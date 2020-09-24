@@ -25,3 +25,7 @@ int check_checksum(struct posix_header *hd) {
   for (int i=0;i<8;i++) { sum += ' ' - hd->chksum[i]; }
   return (checksum == sum);
 }
+
+static int number_of_block(unsigned int filesize) {
+  return (filesize + BLOCKSIZE - 1) >> BLOCKBITS;
+}
