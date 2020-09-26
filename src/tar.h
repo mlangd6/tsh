@@ -1,3 +1,6 @@
+#ifndef TAR_H
+#define TAR_H
+
 /* tar Header Block, from POSIX 1003.1-1990.  */
 
 #define BLOCKSIZE 512
@@ -36,4 +39,10 @@ struct posix_header
 
 #define OLDGNU_MAGIC "ustar  "  /* 7 chars and a null */
 
+/* Compute and write the checksum of a header */
+void set_checksum(struct posix_header *hd);
 
+/* Check that the checksum of a header is correct */
+int check_checksum(struct posix_header *hd);
+
+#endif  
