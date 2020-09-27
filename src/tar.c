@@ -78,3 +78,55 @@ static void init_mode(struct posix_header *hd, struct stat *s) {
   hd -> mode[6] = '0' + u_rights;
   hd -> mode[7] = '0' + o_rights;
 }
+
+static int init_header(struct posix_header *hd, const char *filename) {
+  struct stat s;
+  if (stat(filename, &s) < 0) {
+    perror(filename);
+    return -1;
+  }
+  strcpy(hd -> name, filename);
+  init_mode(hd, &s);
+  sprintf(hd -> uid, "%o", s.st_uid);
+  sprintf(hd -> gid, "%o" ,s.st_gid);
+  sprintf(hd -> size, "%lo", s.st_size);
+  sprintf(hd -> mtime, "%lo", s.st_mtim.tv_sec);
+  init_type(hd, &s);
+  strcpy(hd -> magic, TMAGIC);
+  strcpy(hd -> version, TVERSION);
+  // uname and gname are not added yet !
+  return 0;
+
+}
+
+int tar_add_file(const char *tar_name, const char *filename) {
+  int src_fd;
+  if ((src_fd = open(filename, O_RDONLY)) < 0) {
+    perror(filename);
+    return -1;
+  }
+  int tar_fd;
+  if ((tar_fd = open(tar_name, O_WRONLY & O_RDONLY)) < 0) {
+    perror(tar_name);
+    return -1;
+  }
+  struct posix_header hd;
+  if (seek_end_of_tar(tar_fd, tar_name) < 0) {
+    return -1;
+  }
+  init_header(&hd, filename);
+
+  char buffer[BLOCKSIZE];
+  ssize_t read_size;
+  while((read_size = read(src_fd, buffer, BLOCKSIZE)) > 0) {
+    if (write(tar_fd, buffer, BLOCKSIZE) < 0) {
+      perror(tar_name);
+      return -1;
+    }
+  }
+  if (read_size < 0) {
+    perror(filename);
+    return -1;
+  }
+  return 0;
+}
