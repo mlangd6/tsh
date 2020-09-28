@@ -36,4 +36,5 @@ struct posix_header
 
 #define OLDGNU_MAGIC "ustar  "  /* 7 chars and a null */
 
-
+char **tar_ls(char *tar_name);
+int check_tar(char *file_name);
