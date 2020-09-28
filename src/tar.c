@@ -95,24 +95,23 @@ static int init_header(struct posix_header *hd, const char *filename) {
   strcpy(hd -> magic, TMAGIC);
   strcpy(hd -> version, TVERSION);
   // uname and gname are not added yet !
+  set_checksum(hd);
   return 0;
 
 }
 
 int tar_add_file(const char *tar_name, const char *filename) {
-  int src_fd;
+  int src_fd = -1;
   if ((src_fd = open(filename, O_RDONLY)) < 0) {
-    perror(filename);
-    return -1;
+    goto error_file;
   }
-  int tar_fd;
+  int tar_fd = -1;
   if ((tar_fd = open(tar_name, O_WRONLY & O_RDONLY)) < 0) {
-    perror(tar_name);
-    return -1;
+    goto error_tar;
   }
   struct posix_header hd;
   if (seek_end_of_tar(tar_fd, tar_name) < 0) {
-    return -1;
+    goto error_tar;
   }
   init_header(&hd, filename);
 
@@ -120,13 +119,24 @@ int tar_add_file(const char *tar_name, const char *filename) {
   ssize_t read_size;
   while((read_size = read(src_fd, buffer, BLOCKSIZE)) > 0) {
     if (write(tar_fd, buffer, BLOCKSIZE) < 0) {
-      perror(tar_name);
-      return -1;
+      goto error_tar;
     }
   }
   if (read_size < 0) {
-    perror(filename);
-    return -1;
+    goto error_file;
   }
   return 0;
+error_file:
+  perror(filename);
+  if (src_fd != -1) {
+    close(src_fd);
+  }
+  return -1;
+
+error_tar:
+  perror(tar_name);
+  if (tar_fd == -1) {
+    close(tar_fd);
+  }
+  return -1;
 }
