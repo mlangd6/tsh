@@ -62,16 +62,16 @@ static int nb_file_in_tar(int fd)
 /* List the files contained in a faile .tar */
 char **tar_ls(char *tar_name)
 {
+  int fd = open(tar_name, O_RDONLY);
+  if (fd == -1)
+  {
+    perror(tar_name);
+    return NULL;
+  }
   int n;
   int i = 0;
   struct posix_header *header = malloc(sizeof(struct posix_header));
   assert(header);
-  int fd = open(tar_name, O_RDONLY);
-  if (fd == -1)
-  {
-    printf("Erreur d'ouverture du fichier");
-    return NULL;
-  }
   char **ls = malloc( nb_file_in_tar(fd) * sizeof(char *) );
   assert(ls);
 
@@ -79,12 +79,13 @@ char **tar_ls(char *tar_name)
   {
     if (strcmp(header->name, "\0") == 0) break;
     ls[i] = malloc(strlen(header->name) + 1);
+    assert(ls[i]);
     strcpy(ls[i++], header->name);
     int taille = 0;
     sscanf(header->size, "%o", &taille);
     int filesize = ((taille + BLOCKSIZE - 1) / BLOCKSIZE);
     lseek(fd, BLOCKSIZE*filesize, SEEK_CUR);
   }
-  
+  close(fd);
   return ls;
 }
