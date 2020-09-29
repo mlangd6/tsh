@@ -51,14 +51,17 @@ static int read_write_buf_by_buf(int read_fd, int write_fd, size_t count) {
   int nb_of_buf = (count + BUFSIZE - 1) / BUFSIZE, i = 1;
   
   for (; i < nb_of_buf; i++) {
-    if( read (read_fd,  buffer, BUFSIZE) < 0 || write(write_fd, buffer, BUFSIZE) < 0)
+    if( read (read_fd,  buffer, BUFSIZE) < 0 ||
+	write(write_fd, buffer, BUFSIZE) < 0)
       return -1;
   }
   
   if (i * BUFSIZE != count) {
-    if (read (read_fd,  buffer, count % BUFSIZE) < 0 || write(write_fd, buffer, count % BUFSIZE) < 0)
+    if (read (read_fd,  buffer, count % BUFSIZE) < 0 ||
+	write(write_fd, buffer, count % BUFSIZE) < 0)
       return -1;
   }
+  
   return 0;
 }
 
@@ -81,15 +84,15 @@ int tar_read_file(const char *tar_name, const char *filename, int fd) {
     /* On trouve le bon nom i.e. le bon fichier */
     if (strcmp(filename, file_header.name) == 0)
     {
-      /* On vérifie qu'il ne s'agit pas d'un dossier */
-      if (file_header.typeflag == '5') // TODO: il existe une macro dans le fichier tar.h POSIX 1003.1-1990
-        found = -1;
-      else {
+      /* On vérifie qu'il s'agit bien d'un fichier */
+      if (file_header.typeflag == AREGTYPE || file_header.typeflag == REGTYPE){
         found = 1;
         sscanf(file_header.size, "%o", &file_size);
 	if( read_write_buf_by_buf(tar_fd, fd, file_size) < 0)
 	  goto error_tar;
-      }
+      } else
+        found = -1;
+      
       /* On atteint les blocs nuls de fin */
     } else if (file_header.name[0] == '\0') {
       found = -1;
