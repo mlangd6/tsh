@@ -49,14 +49,20 @@ static int seek_end_of_tar(int tar_fd, const char *tar_name) {
 }
 
 static void init_type(struct posix_header *hd, struct stat *s) {
-  switch (0) {
-    case !S_ISREG(s -> st_mode) : hd -> typeflag = REGTYPE;  break;
-    case !S_ISDIR(s -> st_mode) : hd -> typeflag = DIRTYPE;  break;
-    case !S_ISCHR(s -> st_mode) : hd -> typeflag = CHRTYPE;  break;
-    case !S_ISBLK(s -> st_mode) : hd -> typeflag = BLKTYPE;  break;
-    case !S_ISLNK(s -> st_mode) : hd -> typeflag = LNKTYPE;  break;
-    case !S_ISFIFO(s -> st_mode): hd -> typeflag = FIFOTYPE; break;
-    default: hd -> typeflag = AREGTYPE;
+  if (S_ISREG(s -> st_mode)) {
+    hd -> typeflag = REGTYPE;
+  } else if (S_ISDIR(s -> st_mode)) {
+    hd -> typeflag = DIRTYPE;
+  } else if (S_ISCHR(s -> st_mode)) {
+    hd -> typeflag = CHRTYPE;
+  } else if (S_ISBLK(s -> st_mode)) {
+    hd -> typeflag = BLKTYPE;
+  } else if (S_ISLNK(s -> st_mode)) {
+    hd -> typeflag = LNKTYPE;
+  } else if (S_ISFIFO(s -> st_mode)) {
+    hd -> typeflag = FIFOTYPE;
+  } else {
+    hd -> typeflag = AREGTYPE;
   }
 }
 
