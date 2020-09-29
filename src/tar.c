@@ -135,7 +135,7 @@ error_file:
 
 error_tar:
   perror(tar_name);
-  if (tar_fd == -1) {
+  if (tar_fd != -1) {
     close(tar_fd);
   }
   return -1;
