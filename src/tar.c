@@ -46,36 +46,37 @@ static int number_of_block(unsigned int filesize) {
 }
 
 /* Read buffer by buffer of size BUFSIZE from READ_FD and write to WRITE_FD up to COUNT. */
-static void read_write_buf_by_buf(int read_fd, int write_fd, size_t count) {
+static int read_write_buf_by_buf(int read_fd, int write_fd, size_t count) {
   char buffer[BUFSIZE];
   int nb_of_buf = (count + BUFSIZE - 1) / BUFSIZE, i = 1;
   
   for (; i < nb_of_buf; i++) {
-    read (read_fd,  buffer, BUFSIZE);
-    write(write_fd, buffer, BUFSIZE);
+    if( read (read_fd,  buffer, BUFSIZE) < 0 || write(write_fd, buffer, BUFSIZE) < 0)
+      return -1;
   }
   
   if (i * BUFSIZE != count) {
-    read (read_fd,  buffer, count % BUFSIZE);
-    write(write_fd, buffer, count % BUFSIZE);
-  }  
+    if (read (read_fd,  buffer, count % BUFSIZE) < 0 || write(write_fd, buffer, count % BUFSIZE) < 0)
+      return -1;
+  }
+  return 0;
 }
 
 /* Open the tarball TAR_NAME and copy the content of FILENAME into FD.
    If FILENAME is not in the tarball or there are errors return -1, otherwise return 0. */
-// TODO: Il n'y a pas de gestion des erreurs, trouver une manière élégante de le faire !
 int tar_read_file(const char *tar_name, const char *filename, int fd) {
   int tar_fd = open(tar_name, O_RDONLY);
 
   if (tar_fd < 0)
-    return -1;
+    goto error_tar;
 
   unsigned int file_size;
   struct posix_header file_header;
   int found = 0;
     
   while ( !found ) {
-    read(tar_fd, &file_header, BLOCKSIZE);
+    if( read(tar_fd, &file_header, BLOCKSIZE) < 0)
+      goto error_tar;
 
     /* On trouve le bon nom i.e. le bon fichier */
     if (strcmp(filename, file_header.name) == 0)
@@ -86,7 +87,8 @@ int tar_read_file(const char *tar_name, const char *filename, int fd) {
       else {
         found = 1;
         sscanf(file_header.size, "%o", &file_size);
-	read_write_buf_by_buf(tar_fd, fd, file_size);
+	if( read_write_buf_by_buf(tar_fd, fd, file_size) < 0)
+	  goto error_tar;
       }
       /* On atteint les blocs nuls de fin */
     } else if (file_header.name[0] == '\0') {
@@ -98,7 +100,11 @@ int tar_read_file(const char *tar_name, const char *filename, int fd) {
     }
   }
 
-  close(tar_fd);
-
   return found == 1 ? 0 : -1;
+  
+ error_tar:
+  perror(tar_name);
+  if( tar_fd != -1 )  
+    close(tar_fd);
+  return -1;  
 }
