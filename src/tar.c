@@ -59,7 +59,6 @@ static int nb_file_in_tar(int fd)
   return i;
 }
 
-/* List the files contained in a faile .tar */
 char **tar_ls(char *tar_name)
 {
   int fd = open(tar_name, O_RDONLY);
