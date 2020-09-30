@@ -42,15 +42,14 @@ static int nb_file_in_tar(int fd)
 {
   int i = 0;
   int n;
-  struct posix_header *header = malloc(sizeof(struct posix_header));
-  assert(header);
+  struct posix_header header;
 
-  while ( (n = read(fd, header, BLOCKSIZE)) > 0 )
+  while ( (n = read(fd, &header, BLOCKSIZE)) > 0 )
   {
-    if (strcmp(header->name, "\0") == 0) break;
+    if (strcmp(header.name, "\0") == 0) break;
     else i++;
     int taille = 0;
-    sscanf(header->size, "%o", &taille);
+    sscanf(header.size, "%o", &taille);
     int filesize = ((taille + BLOCKSIZE - 1) / BLOCKSIZE);
     lseek(fd, BLOCKSIZE*filesize, SEEK_CUR);
   }
@@ -65,23 +64,23 @@ char **tar_ls(char *tar_name)
   if (fd == -1)
   {
     perror(tar_name);
+    close(fd);
     return NULL;
   }
   int n;
   int i = 0;
-  struct posix_header *header = malloc(sizeof(struct posix_header));
-  assert(header);
+  struct posix_header header;
   char **ls = malloc( nb_file_in_tar(fd) * sizeof(char *) );
   assert(ls);
 
-  while ( (n = read(fd, header, BLOCKSIZE)) > 0 )
+  while ( (n = read(fd, &header, BLOCKSIZE)) > 0 )
   {
-    if (strcmp(header->name, "\0") == 0) break;
-    ls[i] = malloc(strlen(header->name) + 1);
+    if (strcmp(header.name, "\0") == 0) break;
+    ls[i] = malloc(strlen(header.name) + 1);
     assert(ls[i]);
-    strcpy(ls[i++], header->name);
+    strcpy(ls[i++], header.name);
     int taille = 0;
-    sscanf(header->size, "%o", &taille);
+    sscanf(header.size, "%o", &taille);
     int filesize = ((taille + BLOCKSIZE - 1) / BLOCKSIZE);
     lseek(fd, BLOCKSIZE*filesize, SEEK_CUR);
   }
