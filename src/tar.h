@@ -36,6 +36,16 @@ struct posix_header
 #define TVERSION "00"           /* 00 and no null */
 #define TVERSLEN 2
 
+#define REGTYPE  '0'            /* regular file */
+#define AREGTYPE '\0'           /* regular file */
+#define LNKTYPE  '1'            /* link */
+#define SYMTYPE  '2'            /* reserved */
+#define CHRTYPE  '3'            /* character special */
+#define BLKTYPE  '4'            /* block special */
+#define DIRTYPE  '5'            /* directory */
+#define FIFOTYPE '6'            /* FIFO special */
+#define CONTTYPE '7'            /* reserved */
+
 
 #define OLDGNU_MAGIC "ustar  "  /* 7 chars and a null */
 
@@ -44,5 +54,8 @@ void set_checksum(struct posix_header *hd);
 
 /* Check that the checksum of a header is correct */
 int check_checksum(struct posix_header *hd);
+
+/* Open the tarball TAR_NAME and copy the content of FILENAME into FD */
+int tar_read_file(const char *tar_name, const char *filename, int fd);
 
 #endif  
