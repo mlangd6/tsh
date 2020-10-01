@@ -46,13 +46,23 @@ struct posix_header
 #define FIFOTYPE '6'            /* FIFO special */
 #define CONTTYPE '7'            /* reserved */
 
+
 /* Add file to tarball */
 int tar_add_file(const char *tar_name, const char *filename);
+
+#define OLDGNU_MAGIC "ustar  "  /* 7 chars and a null */
+
+
+/* List the files contained in a faile .tar */
+char **tar_ls(char *tar_name);
 
 /* Compute and write the checksum of a header */
 void set_checksum(struct posix_header *hd);
 
 /* Check that the checksum of a header is correct */
 int check_checksum(struct posix_header *hd);
+
+/* Open the tarball TAR_NAME and copy the content of FILENAME into FD */
+int tar_read_file(const char *tar_name, const char *filename, int fd);
 
 #endif
