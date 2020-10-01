@@ -47,7 +47,11 @@ struct posix_header
 #define CONTTYPE '7'            /* reserved */
 
 
+/* Add file to tarball */
+int tar_add_file(const char *tar_name, const char *filename);
+
 #define OLDGNU_MAGIC "ustar  "  /* 7 chars and a null */
+
 
 /* List the files contained in a faile .tar */
 char **tar_ls(char *tar_name);
