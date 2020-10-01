@@ -41,8 +41,8 @@ static int seek_end_of_tar(int tar_fd, const char *tar_name) {
     perror(tar_name);
     return -1;
   }
-  if (header.name[0] == '\0') {
-    lseek(tar_fd, -BLOCKSIZE, SEEK_CUR);
+  if (header.name[0] != '\0') {
+    lseek(tar_fd, BLOCKSIZE, SEEK_CUR);
     return 0;
   }
   return 0;
@@ -106,6 +106,18 @@ static int init_header(struct posix_header *hd, const char *filename) {
 
 }
 
+/* Add two empty block at the end of a tar file */
+static int add_empty_block(int tar_fd) {
+  int size = 2 * BLOCKSIZE;
+  char buf[size];
+  memset(buf, '\0', size);
+  if (write(tar_fd, buf, size) < 0) {
+    return -1;
+  }
+  return 0;
+}
+
+
 int tar_add_file(const char *tar_name, const char *filename) {
   int src_fd = -1;
   if ((src_fd = open(filename, O_RDONLY)) < 0) {
@@ -124,6 +136,9 @@ int tar_add_file(const char *tar_name, const char *filename) {
   char buffer[BLOCKSIZE];
   ssize_t read_size;
   while((read_size = read(src_fd, buffer, BLOCKSIZE)) > 0) {
+    if (read_size < BLOCKSIZE) {
+      memset(buffer + read_size, '\0', BLOCKSIZE - read_size);
+    }
     if (write(tar_fd, buffer, BLOCKSIZE) < 0) {
       goto error_tar;
     }
@@ -131,11 +146,15 @@ int tar_add_file(const char *tar_name, const char *filename) {
   if (read_size < 0) {
     goto error_file;
   }
+  add_empty_block(tar_fd);
   return 0;
 error_file:
   perror(filename);
   if (src_fd != -1) {
     close(src_fd);
+  }
+  if (tar_fd != -1) {
+    close(tar_fd);
   }
   return -1;
 
@@ -143,6 +162,9 @@ error_tar:
   perror(tar_name);
   if (tar_fd != -1) {
     close(tar_fd);
+  }
+  if (src_fd != -1) {
+    close(src_fd);
   }
   return -1;
 }
