@@ -136,15 +136,15 @@ static int add_empty_block(int tar_fd) {
 int tar_add_file(const char *tar_name, const char *filename) {
   int src_fd = -1;
   if ((src_fd = open(filename, O_RDONLY)) < 0) {
-    return errori(filename, src_fd);
+    return error_i(filename, src_fd);
   }
   int tar_fd = -1;
   if ((tar_fd = open(tar_name, O_WRONLY & O_RDONLY)) < 0) {
-    return errori(tar_name, tar_fd);
+    return error_i(tar_name, tar_fd);
   }
   struct posix_header hd;
   if (seek_end_of_tar(tar_fd, tar_name) < 0) {
-    return errori(tar_name, tar_fd);
+    return error_i(tar_name, tar_fd);
   }
   init_header(&hd, filename);
 
@@ -155,12 +155,12 @@ int tar_add_file(const char *tar_name, const char *filename) {
       memset(buffer + read_size, '\0', BLOCKSIZE - read_size);
     }
     if (write(tar_fd, buffer, BLOCKSIZE) < 0) {
-      return errori(tar_name, tar_fd);
+      return error_i(tar_name, tar_fd);
     }
   }
   if (read_size < 0) {
     int fds[2] ={src_fd, tar_fd};
-    return errorpt(filename, fds, 2);
+    return error_pt(filename, fds, 2);
   }
   add_empty_block(tar_fd);
   return 0;
@@ -193,7 +193,7 @@ char **tar_ls(const char *tar_name)
   int tar_fd = open(tar_name, O_RDONLY);
   if (tar_fd == -1)
   {
-    return errorppc(tar_name, tar_fd);
+    return error_ppc(tar_name, tar_fd);
   }
   int n;
   int i = 0;
@@ -241,7 +241,7 @@ int tar_read_file(const char *tar_name, const char *filename, int fd) {
   int tar_fd = open(tar_name, O_RDONLY);
 
   if (tar_fd < 0)
-    return errori(tar_name, tar_fd);
+    return error_i(tar_name, tar_fd);
 
   unsigned int file_size;
   struct posix_header file_header;
@@ -249,7 +249,7 @@ int tar_read_file(const char *tar_name, const char *filename, int fd) {
 
   while ( !found ) {
     if( read(tar_fd, &file_header, BLOCKSIZE) < 0)
-      return errori(tar_name, tar_fd);
+      return error_i(tar_name, tar_fd);
 
     /* On trouve le bon nom i.e. le bon fichier */
     if (strcmp(filename, file_header.name) == 0)
@@ -259,7 +259,7 @@ int tar_read_file(const char *tar_name, const char *filename, int fd) {
         found = 1;
         sscanf(file_header.size, "%o", &file_size);
 	      if( read_write_buf_by_buf(tar_fd, fd, file_size) < 0)
-	         return errori(tar_name, tar_fd);
+	         return error_i(tar_name, tar_fd);
       } else
         found = -1;
 
