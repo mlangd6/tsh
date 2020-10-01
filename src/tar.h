@@ -49,6 +49,9 @@ struct posix_header
 
 #define OLDGNU_MAGIC "ustar  "  /* 7 chars and a null */
 
+/* List the files contained in a faile .tar */
+char **tar_ls(char *tar_name);
+
 /* Compute and write the checksum of a header */
 void set_checksum(struct posix_header *hd);
 
@@ -58,4 +61,4 @@ int check_checksum(struct posix_header *hd);
 /* Open the tarball TAR_NAME and copy the content of FILENAME into FD */
 int tar_read_file(const char *tar_name, const char *filename, int fd);
 
-#endif  
+#endif
