@@ -10,12 +10,12 @@
 
 #define BUFSIZE 512
 
+/* Code for set_checksum(...) and check_checksum(...) are taken from :
+   https://gaufre.informatique.univ-paris-diderot.fr/klimann/systL3_2020-2021/blob/master/TP/TP1/tar.h */
+
 /* Compute and write the checksum of a header, by adding all (unsigned) bytes in
    it (while hd->chksum is initially all ' '). Then hd->chksum is set to contain
-   the octal encoding of this sum (on 6 bytes), followed by '\0' and ' '. Code
-   recupered for set_checksum(...) and check_checksum(...) on
-   https://gaufre.informatique.univ-paris-diderot.fr/klimann/systL3_2020-2021/blob/master/TP/TP1/tar.h
-*/
+   the octal encoding of this sum (on 6 bytes), followed by '\0' and ' '. */
 
 void set_checksum(struct posix_header *hd) {
   memset(hd->chksum, ' ', 8);
@@ -162,7 +162,7 @@ int tar_add_file(const char *tar_name, const char *filename) {
   }
   add_empty_block(tar_fd);
   return 0;
-error_file:
+ error_file:
   perror(filename);
   if (src_fd != -1) {
     close(src_fd);
@@ -172,7 +172,7 @@ error_file:
   }
   return -1;
 
-error_tar:
+ error_tar:
   perror(tar_name);
   if (tar_fd != -1) {
     close(tar_fd);
@@ -192,14 +192,14 @@ static int nb_file_in_tar(int fd)
   struct posix_header header;
 
   while ( (n = read(fd, &header, BLOCKSIZE)) > 0 )
-  {
-    if (strcmp(header.name, "\0") == 0) break;
-    else i++;
-    int taille = 0;
-    sscanf(header.size, "%o", &taille);
-    int filesize = ((taille + BLOCKSIZE - 1) / BLOCKSIZE);
-    lseek(fd, BLOCKSIZE*filesize, SEEK_CUR);
-  }
+    {
+      if (strcmp(header.name, "\0") == 0) break;
+      else i++;
+      int taille = 0;
+      sscanf(header.size, "%o", &taille);
+      int filesize = ((taille + BLOCKSIZE - 1) / BLOCKSIZE);
+      lseek(fd, BLOCKSIZE*filesize, SEEK_CUR);
+    }
 
   lseek(fd, 0, SEEK_SET);
   return i;
@@ -209,11 +209,11 @@ char **tar_ls(char *tar_name)
 {
   int fd = open(tar_name, O_RDONLY);
   if (fd == -1)
-  {
-    perror(tar_name);
-    close(fd);
-    return NULL;
-  }
+    {
+      perror(tar_name);
+      close(fd);
+      return NULL;
+    }
   int n;
   int i = 0;
   struct posix_header header;
@@ -221,16 +221,16 @@ char **tar_ls(char *tar_name)
   assert(ls);
 
   while ( (n = read(fd, &header, BLOCKSIZE)) > 0 )
-  {
-    if (strcmp(header.name, "\0") == 0) break;
-    ls[i] = malloc(strlen(header.name) + 1);
-    assert(ls[i]);
-    strcpy(ls[i++], header.name);
-    int taille = 0;
-    sscanf(header.size, "%o", &taille);
-    int filesize = ((taille + BLOCKSIZE - 1) / BLOCKSIZE);
-    lseek(fd, BLOCKSIZE*filesize, SEEK_CUR);
-  }
+    {
+      if (strcmp(header.name, "\0") == 0) break;
+      ls[i] = malloc(strlen(header.name) + 1);
+      assert(ls[i]);
+      strcpy(ls[i++], header.name);
+      int taille = 0;
+      sscanf(header.size, "%o", &taille);
+      int filesize = ((taille + BLOCKSIZE - 1) / BLOCKSIZE);
+      lseek(fd, BLOCKSIZE*filesize, SEEK_CUR);
+    }
   close(fd);
   return ls;
 }
@@ -272,18 +272,18 @@ int tar_read_file(const char *tar_name, const char *filename, int fd) {
 
     /* On trouve le bon nom i.e. le bon fichier */
     if (strcmp(filename, file_header.name) == 0)
-    {
-      /* On vérifie qu'il s'agit bien d'un fichier */
-      if (file_header.typeflag == AREGTYPE || file_header.typeflag == REGTYPE){
-        found = 1;
-        sscanf(file_header.size, "%o", &file_size);
-	if( read_write_buf_by_buf(tar_fd, fd, file_size) < 0)
-	  goto error_tar;
-      } else
-        found = -1;
+      {
+	/* On vérifie qu'il s'agit bien d'un fichier */
+	if (file_header.typeflag == AREGTYPE || file_header.typeflag == REGTYPE){
+	  found = 1;
+	  sscanf(file_header.size, "%o", &file_size);
+	  if( read_write_buf_by_buf(tar_fd, fd, file_size) < 0)
+	    goto error_tar;
+	} else
+	  found = -1;
 
-      /* On atteint les blocs nuls de fin */
-    } else if (file_header.name[0] == '\0') {
+	/* On atteint les blocs nuls de fin */
+      } else if (file_header.name[0] == '\0') {
       found = -1;
     } else {
       /* On saute le contenu du fichier */
@@ -292,6 +292,7 @@ int tar_read_file(const char *tar_name, const char *filename, int fd) {
     }
   }
 
+  close(tar_fd);
   return found == 1 ? 0 : -1;
 
  error_tar:
@@ -300,4 +301,44 @@ int tar_read_file(const char *tar_name, const char *filename, int fd) {
     close(tar_fd);
   return -1;
 
+}
+
+/* Check if the file at PATHNAME is a valid tarball. 
+   Return :
+   0  if all header are correct
+   -1 if at least one header is invalid
+   -2 otherwise */ 
+int is_tar(const char *tar_name) {
+  int tar_fd = open(tar_name, O_RDONLY);
+
+  if (tar_fd < 0)
+    goto error_tar;
+  
+  unsigned int file_size;
+  struct posix_header file_header;
+  int fail_header = 0;
+
+  while( !fail_header ) {
+    if( read(tar_fd, &file_header, BLOCKSIZE) < 0)
+      goto error_tar;
+
+    if (file_header.name[0] == '\0')
+      break;
+    else if(!check_checksum(&file_header))
+      fail_header = 1;
+    else {
+    /* On saute le contenu du fichier */
+      sscanf(file_header.size, "%o", &file_size);
+      lseek(tar_fd, number_of_block(file_size) * BLOCKSIZE, SEEK_CUR);
+    }
+  }
+  
+  close(tar_fd);
+  return fail_header ? -1 : 0;
+  
+ error_tar:
+  perror(tar_name);
+  if( tar_fd != -1 )
+    close(tar_fd);
+  return -2;
 }

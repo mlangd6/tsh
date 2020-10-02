@@ -1,15 +1,12 @@
 #ifndef TAR_H
 #define TAR_H
+/* Code taken from https://www.gnu.org/software/tar/manual/html_node/Standard.html and on https://gaufre.informatique.univ-paris-diderot.fr/klimann/systL3_2020-2021/blob/master/TP/TP1/tar.h */
 
 /* tar Header Block, from POSIX 1003.1-1990.  */
-
 #define BLOCKSIZE 512
 #define BLOCKBITS 9
 
 /* POSIX header.  */
-
-/* Code recupered on https://www.gnu.org/software/tar/manual/html_node/Standard.html and on https://gaufre.informatique.univ-paris-diderot.fr/klimann/systL3_2020-2021/blob/master/TP/TP1/tar.h */
-
 struct posix_header
 {                              /* byte offset */
   char name[100];               /*   0 */
@@ -46,12 +43,12 @@ struct posix_header
 #define FIFOTYPE '6'            /* FIFO special */
 #define CONTTYPE '7'            /* reserved */
 
+#define OLDGNU_MAGIC "ustar  "  /* 7 chars and a null */
+
+
 
 /* Add file to tarball */
 int tar_add_file(const char *tar_name, const char *filename);
-
-#define OLDGNU_MAGIC "ustar  "  /* 7 chars and a null */
-
 
 /* List the files contained in a faile .tar */
 char **tar_ls(char *tar_name);
@@ -64,5 +61,8 @@ int check_checksum(struct posix_header *hd);
 
 /* Open the tarball TAR_NAME and copy the content of FILENAME into FD */
 int tar_read_file(const char *tar_name, const char *filename, int fd);
+
+/* Check if the file at PATHNAME is a valid tarball. */
+int is_tar(const char *tar_name);
 
 #endif
