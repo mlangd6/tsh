@@ -111,3 +111,4 @@ flycheck_*.el
 
 ### tsh ###
 tsh
+tsh_test
