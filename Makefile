@@ -1,7 +1,7 @@
 CC=gcc
 CFLAGS=-g -Wall
 EXEC=tsh
-TEST=test
+TEST=tsh_test
 SRC=src/
 TARGET=target/
 MAIN_DIR=main/
@@ -17,20 +17,21 @@ TEST_OBJS:=$(addprefix $(TARGET)$(TEST_DIR), $(TEST_OBJS))
 
 
 all: $(EXEC) $(TEST)
+
 $(EXEC): $(OBJS)
 	@$(CC) -I $(INCLUDE) $(CFLAGS) -o $(EXEC) $(OBJS)
 
 $(TEST): $(OBJS_NO_MAIN) $(TEST_OBJS)
-	@$(CC) -I $(INCLUDE) $(CFLAGS) -o $(TEST) $(OBJS_NO_MAIN) $(TEST_OBJS)
+	$(CC) -I $(INCLUDE) $(CFLAGS) -o $(TEST) $(OBJS_NO_MAIN) $(TEST_OBJS)
 
 
 $(TARGET)$(MAIN_DIR)%.o : $(SRC)$(MAIN_DIR)%.c
 	@mkdir -p $(dir $@)
-	@$(CC) -I $(INCLUDE) -c $(CFLAGS) -o $@ $<
+	$(CC) -I $(INCLUDE) -c $(CFLAGS) -o $@ $<
 
 $(TARGET)$(TEST_DIR)%.o : $(SRC)$(TEST_DIR)%.c
 	@mkdir -p $(dir $@)
-	@$(CC) -I $(INCLUDE) -c $(CFLAGS) -o $@ $<
+	$(CC) -I $(INCLUDE) -c $(CFLAGS) -o $@ $<
 
 clean:
 	@rm -rf $(TARGET) $(EXEC) $(TEST)
