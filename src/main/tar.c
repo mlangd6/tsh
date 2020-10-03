@@ -17,7 +17,6 @@
    recupered for set_checksum(...) and check_checksum(...) on
    https://gaufre.informatique.univ-paris-diderot.fr/klimann/systL3_2020-2021/blob/master/TP/TP1/tar.h
 */
-
 void set_checksum(struct posix_header *hd) {
   memset(hd->chksum, ' ', 8);
   unsigned int sum = 0;

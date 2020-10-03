@@ -9,7 +9,6 @@
 /* POSIX header.  */
 
 /* Code recupered on https://www.gnu.org/software/tar/manual/html_node/Standard.html and on https://gaufre.informatique.univ-paris-diderot.fr/klimann/systL3_2020-2021/blob/master/TP/TP1/tar.h */
-
 struct posix_header
 {                              /* byte offset */
   char name[100];               /*   0 */
