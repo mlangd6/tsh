@@ -52,7 +52,6 @@ static int seek_end_of_tar(int tar_fd, const char *tar_name) {
   lseek(tar_fd, -2 * BLOCKSIZE, SEEK_END);
   struct posix_header header;
   if (read(tar_fd, &header, BLOCKSIZE) < 0) {
-    perror(tar_name);
     return -1;
   }
   if (header.name[0] != '\0') {
@@ -102,7 +101,6 @@ static void init_mode(struct posix_header *hd, struct stat *s) {
 static int init_header(struct posix_header *hd, const char *filename) {
   struct stat s;
   if (stat(filename, &s) < 0) {
-    perror(filename);
     return -1;
   }
   strcpy(hd -> name, filename);
@@ -138,14 +136,16 @@ int tar_add_file(const char *tar_name, const char *filename) {
     return error_pt(filename, &src_fd, 1);
   }
   int tar_fd = -1;
+  int fds[2] = {src_fd, tar_fd};
   if ((tar_fd = open(tar_name, O_WRONLY & O_RDONLY)) < 0) {
-    return error_pt(tar_name, &tar_fd, 1);
+    return error_pt(tar_name, fds, 2);
   }
   struct posix_header hd;
   if (seek_end_of_tar(tar_fd, tar_name) < 0) {
-    return error_pt(tar_name, &tar_fd, 1);
+    return error_pt(tar_name, fds, 2);
   }
-  init_header(&hd, filename);
+  if(init_header(&hd, filename) < 0)
+    return error_pt(&tar_fd, 1)
 
   char buffer[BLOCKSIZE];
   ssize_t read_size;
@@ -154,7 +154,7 @@ int tar_add_file(const char *tar_name, const char *filename) {
       memset(buffer + read_size, '\0', BLOCKSIZE - read_size);
     }
     if (write(tar_fd, buffer, BLOCKSIZE) < 0) {
-      return error_pt(tar_name, &tar_fd, 1);
+      return error_pt(tar_name, fds, 2);
     }
   }
   if (read_size < 0) {
