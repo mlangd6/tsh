@@ -2,17 +2,13 @@
 #include <unistd.h>
 #include <stdio.h>
 
-int error_i(const char *s, int fd)
+void *error_p(const char *s, int fds[], int length_fds)
 {
   perror(s);
-  close(fd);
-  return -1;
-}
-
-void *error_ppc(const char *s, int fd)
-{
-  perror(s);
-  close(fd);
+  for(int i = 0; i < length_fds; i++)
+  {
+    close(fds[i]);
+  }
   return NULL;
 }
 
