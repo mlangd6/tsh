@@ -9,7 +9,7 @@ int error_i(const char *s, int fd)
   return -1;
 }
 
-char **error_ppc(const char *s, int fd)
+void *error_ppc(const char *s, int fd)
 {
   perror(s);
   close(fd);
