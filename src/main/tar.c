@@ -135,8 +135,7 @@ int tar_add_file(const char *tar_name, const char *filename) {
   if ((src_fd = open(filename, O_RDONLY)) < 0) {
     return error_pt(filename, &src_fd, 1);
   }
-  int tar_fd = -1;
-  tar_fd = open(tar_name, O_WRONLY & O_RDONLY);
+  int tar_fd = open(tar_name, O_WRONLY & O_RDONLY);
   int fds[2] = {src_fd, tar_fd};
   if ( tar_fd < 0) {
     return error_pt(tar_name, fds, 2);
