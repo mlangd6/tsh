@@ -213,12 +213,11 @@ char **tar_ls(char *tar_name)
     close(fd);
     return NULL;
   }
-  int n;
+  int n, m;
   int i = 0;
   struct posix_header header;
-  char **ls = malloc( nb_file_in_tar(fd) * sizeof(char *) );
+  char **ls = malloc( (m = nb_file_in_tar(fd)) * sizeof(char *) );
   assert(ls);
-
   while ( (n = read(fd, &header, BLOCKSIZE)) > 0 )
   {
     if (strcmp(header.name, "\0") == 0) break;
