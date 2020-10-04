@@ -145,7 +145,7 @@ int tar_add_file(const char *tar_name, const char *filename) {
     return error_pt(tar_name, fds, 2);
   }
   if(init_header(&hd, filename) < 0)
-    return error_pt(&tar_fd, 1)
+    return error_pt(tar_name, &tar_fd, 1);
 
   char buffer[BLOCKSIZE];
   ssize_t read_size;
