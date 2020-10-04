@@ -136,8 +136,9 @@ int tar_add_file(const char *tar_name, const char *filename) {
     return error_pt(filename, &src_fd, 1);
   }
   int tar_fd = -1;
+  tar_fd = open(tar_name, O_WRONLY & O_RDONLY);
   int fds[2] = {src_fd, tar_fd};
-  if ((tar_fd = open(tar_name, O_WRONLY & O_RDONLY)) < 0) {
+  if ( tar_fd < 0) {
     return error_pt(tar_name, fds, 2);
   }
   struct posix_header hd;
@@ -145,7 +146,7 @@ int tar_add_file(const char *tar_name, const char *filename) {
     return error_pt(tar_name, fds, 2);
   }
   if(init_header(&hd, filename) < 0)
-    return error_pt(tar_name, &tar_fd, 1);
+    return error_pt(filename, fds, 2);
 
   char buffer[BLOCKSIZE];
   ssize_t read_size;
