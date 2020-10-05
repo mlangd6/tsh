@@ -23,10 +23,13 @@ static char *tar_add_file_test() {
 }
 
 static char *test_tar_ls() {
+  int tmp;
   char **a_tester = tar_ls("/tmp/tsh_test/test.tar");
   char *test[12] = {"dir1/", "dir1/subdir/", "dir1/subdir/subsubdir/", "dir1/subdir/subsubdir/hello", "dir1/tata", "man_dir/", "man_dir/man", "man_dir/open2", "man_dir/tar", "titi", "titi_link", "toto"};
-  for(int i = 0; i < 12; i++){
-    mu_assert("Error, this isn't the good ls", strcmp(test[i], a_tester[i]) == 0);
+  for(int i = 0; i < 12; i++) {
+    tmp = 0;
+    for(int j = 0; j < 12; j++)
+      mu_assert("Error, this isn't the good ls", strcmp(test[i], a_tester[j]) == 0 || tmp++ < 12 );
   }
   return 0;
 }
