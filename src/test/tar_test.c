@@ -36,15 +36,24 @@ static char *test_tar_ls() {
 }
 
 static char *tar_read_file_test() {
-  int fd = open("/tmp/tsh_test/read_file_test", O_CREAT | O_RDWR, S_IRUSR | S_IWUSR);
-  if (fd < 0) {
+  int fd1 = open("/tmp/tsh_test/read_file_test", O_CREAT | O_RDWR, S_IRUSR | S_IWUSR);
+  if (fd1 < 0) {
     mu_assert("Open didn't worked", 0);
   }
-  int a = tar_read_file("/tmp/tsh_test/test.tar", "man_dir/man", fd);
-  printf("%d\n", a);
+  tar_read_file("/tmp/tsh_test/test.tar", "man_dir/man", fd1);
   system("man man > /tmp/tsh_test/man_man");
   mu_assert("Error with content of file", system("diff /tmp/tsh_test/man_man /tmp/tsh_test/read_file_test") == 0);
-  close(fd);
+  close(fd1);
+
+  int fd2 = open("/tmp/tsh_test/read_file_test_empty", O_CREAT | O_RDWR, S_IRUSR | S_IWUSR);
+  if (fd2 < 0) {
+    mu_assert("Open didn't worked", 0);
+  }
+  mu_assert("The file doesn't exists and the function shouldn't return 0",
+    tar_read_file("/tmp/tsh_test/test.tar", "dont_exist", fd2) != 0);
+  char c;
+  mu_assert("File should be empty", read(fd2, &c, 1) == 0);
+  close(fd2);
   return 0;
 }
 
