@@ -8,17 +8,25 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
-#define TAR_TEST_SIZE 1
+#define TAR_TEST_SIZE 2
 #define TAR_ADD_TEST_SIZE_BUF 700
 
 static char *tar_add_file_test();
+static char *is_tar_test();
 int tests_run = 0;
 
-static char *(*tests[])(void) = {tar_add_file_test};
+static char *(*tests[])(void) = {tar_add_file_test, is_tar_test};
 
 static char *tar_add_file_test() {
   return 0;
 }
+
+static char *is_tar_test() {
+  mu_assert("error, /tmp/tsh_test/test.tar is a tar !", is_tar("/tmp/tsh_test/test.tar"));
+  return 0;
+}
+
+
 static char *all_tests() {
   for (int i = 0; i < TAR_TEST_SIZE; i++) {
     before();
