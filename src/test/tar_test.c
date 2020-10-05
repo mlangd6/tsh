@@ -17,6 +17,25 @@ int tests_run = 0;
 static char *(*tests[])(void) = {tar_add_file_test};
 
 static char *tar_add_file_test() {
+  chdir(TEST_DIR);
+  char buff1[TAR_ADD_TEST_SIZE_BUF];
+  memset(buff1, 'a', TAR_ADD_TEST_SIZE_BUF);
+
+  int fd = open("tar_test", O_CREAT | O_WRONLY, 0600);
+  write(fd, buff1, TAR_ADD_TEST_SIZE_BUF);
+  close(fd);
+  struct stat s1, s2;
+  stat("tar_test", &s1);
+  tar_add_file("test.tar", "tar_test");
+  system("rm tar_test");
+  system("tar -xf test.tar tar_test");
+
+  stat("tar_test", &s2);
+  int fd2 = open("tar_test", O_RDONLY);
+  char buff2[TAR_ADD_TEST_SIZE_BUF];
+  read(fd2, buff2, TAR_ADD_TEST_SIZE_BUF);
+  mu_assert("tar_add_file_test: error, st_mode of file", s1.st_mode == s2.st_mode);
+  mu_assert("tar_add_file_test: error, initial file content differents from after extarct file content", strcmp(buff1, buff2) == 0);
   return 0;
 }
 static char *all_tests() {

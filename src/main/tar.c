@@ -1,5 +1,6 @@
 #include "tar.h"
 #include "errors.h"
+#include "time.h"
 #include <assert.h>
 #include <stdlib.h>
 #include <fcntl.h>
@@ -100,15 +101,17 @@ static void init_mode(struct posix_header *hd, struct stat *s) {
 
 static int init_header(struct posix_header *hd, const char *filename) {
   struct stat s;
+  time_t act_time;
+  time(&act_time);
   if (stat(filename, &s) < 0) {
     return -1;
   }
   strcpy(hd -> name, filename);
   init_mode(hd, &s);
-  sprintf(hd -> uid, "%o", s.st_uid);
-  sprintf(hd -> gid, "%o" ,s.st_gid);
+  sprintf(hd -> uid, "%07o", s.st_uid);
+  sprintf(hd -> gid, "%07o" ,s.st_gid);
   sprintf(hd -> size, "%lo", s.st_size);
-  sprintf(hd -> mtime, "%lo", s.st_mtim.tv_sec);
+  sprintf(hd -> mtime, "%011o", (unsigned int) act_time);
   init_type(hd, &s);
   strcpy(hd -> magic, TMAGIC);
   strcpy(hd -> version, TVERSION);
@@ -135,17 +138,22 @@ int tar_add_file(const char *tar_name, const char *filename) {
   if ((src_fd = open(filename, O_RDONLY)) < 0) {
     return error_pt(filename, &src_fd, 1);
   }
-  int tar_fd = open(tar_name, O_WRONLY & O_RDONLY);
+  int tar_fd = open(tar_name, O_RDWR);
   int fds[2] = {src_fd, tar_fd};
   if ( tar_fd < 0) {
     return error_pt(tar_name, fds, 2);
   }
   struct posix_header hd;
+  memset(&hd, '\0', sizeof(struct posix_header));
   if (seek_end_of_tar(tar_fd, tar_name) < 0) {
     return error_pt(tar_name, fds, 2);
   }
-  if(init_header(&hd, filename) < 0)
+  if(init_header(&hd, filename) < 0) {
     return error_pt(filename, fds, 2);
+  }
+  if (write(tar_fd, &hd, BLOCKSIZE) < 0) {
+    return error_pt(tar_name, fds, 2);
+  }
 
   char buffer[BLOCKSIZE];
   ssize_t read_size;
