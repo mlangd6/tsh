@@ -7,6 +7,7 @@ TARGET=target/
 MAIN_DIR=main/
 TEST_DIR=test/
 INCLUDE=$(SRC)include/
+TEST_INCLUDE=$(SRC)test_include/
 MAIN_FILES=$(wildcard $(SRC)$(MAIN_DIR)*.c)
 OBJS=$(notdir $(MAIN_FILES:.c=.o))
 OBJS:=$(addprefix $(TARGET)$(MAIN_DIR), $(OBJS))
@@ -22,7 +23,7 @@ $(EXEC): $(OBJS)
 	@$(CC) -I $(INCLUDE) $(CFLAGS) -o $(EXEC) $(OBJS)
 
 $(TEST): $(OBJS_NO_MAIN) $(TEST_OBJS)
-	$(CC) -I $(INCLUDE) $(CFLAGS) -o $(TEST) $(OBJS_NO_MAIN) $(TEST_OBJS)
+	$(CC) -I $(INCLUDE) -I $(TEST_INCLUDE) $(CFLAGS) -o $(TEST) $(OBJS_NO_MAIN) $(TEST_OBJS)
 
 
 $(TARGET)$(MAIN_DIR)%.o : $(SRC)$(MAIN_DIR)%.c
@@ -31,7 +32,7 @@ $(TARGET)$(MAIN_DIR)%.o : $(SRC)$(MAIN_DIR)%.c
 
 $(TARGET)$(TEST_DIR)%.o : $(SRC)$(TEST_DIR)%.c
 	@mkdir -p $(dir $@)
-	$(CC) -I $(INCLUDE) -c $(CFLAGS) -o $@ $<
+	$(CC) -I $(INCLUDE) -I $(TEST_INCLUDE) -c $(CFLAGS) -o $@ $<
 
 clean:
 	@rm -rf $(TARGET) $(EXEC) $(TEST)
