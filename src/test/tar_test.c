@@ -8,7 +8,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
-#define TAR_TEST_SIZE 1
+#define TAR_TEST_SIZE 2
 #define TAR_ADD_TEST_SIZE_BUF 700
 
 static char *tar_add_file_test();
@@ -23,7 +23,6 @@ static char *tar_add_file_test() {
 }
 
 static char *test_tar_ls() {
-  before();
   char **a_tester = tar_ls("/tmp/tsh_test/test.tar");
   char *test[12] = {"dir1/", "dir1/subdir/", "dir1/subdir/subsubdir/", "dir1/subdir/subsubdir/hello", "dir1/tata", "man_dir/", "man_dir/man", "man_dir/open2", "man_dir/tar", "titi", "titi_link", "toto"};
   for(int i = 0; i < 12; i++){
