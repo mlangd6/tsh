@@ -93,9 +93,8 @@ static void init_mode(struct posix_header *hd, struct stat *s) {
   u_rights += (S_IXUSR & s -> st_mode) ? 1 : 0;
   g_rights += (S_IXGRP & s -> st_mode) ? 1 : 0;
   o_rights += (S_IXOTH & s -> st_mode) ? 1 : 0;
-
-  hd -> mode[5] = '0' + g_rights;
-  hd -> mode[6] = '0' + u_rights;
+  hd -> mode[5] = '0' + u_rights;
+  hd -> mode[6] = '0' + g_rights;
   hd -> mode[7] = '0' + o_rights;
 }
 
@@ -110,11 +109,12 @@ static int init_header(struct posix_header *hd, const char *filename) {
   init_mode(hd, &s);
   sprintf(hd -> uid, "%07o", s.st_uid);
   sprintf(hd -> gid, "%07o" ,s.st_gid);
-  sprintf(hd -> size, "%lo", s.st_size);
+  sprintf(hd -> size, "%011lo", s.st_size);
   sprintf(hd -> mtime, "%011o", (unsigned int) act_time);
   init_type(hd, &s);
   strcpy(hd -> magic, TMAGIC);
-  strcpy(hd -> version, TVERSION);
+  hd -> version[0] = '0';
+  hd -> version[1] = '0';
   // uname and gname are not added yet !
   set_checksum(hd);
   return 0;
