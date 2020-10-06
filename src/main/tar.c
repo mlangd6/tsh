@@ -50,15 +50,18 @@ static int number_of_block(unsigned int filesize) {
 
 
 static int seek_end_of_tar(int tar_fd, const char *tar_name) {
-  lseek(tar_fd, -2 * BLOCKSIZE, SEEK_END);
-  struct posix_header header;
-  if (read(tar_fd, &header, BLOCKSIZE) < 0) {
-    return -1;
+  while(1) {
+    struct posix_header hd;
+    memset(&hd, '\0', BLOCKSIZE);
+    read(tar_fd, &hd, BLOCKSIZE);
+    if (hd.name[0] != '\0') {
+      unsigned int filesize;
+      sscanf(hd.size, "%o", &filesize);
+      lseek(tar_fd, (number_of_block(filesize)) * BLOCKSIZE, SEEK_CUR);
+    }
+    else break;
   }
-  if (header.name[0] != '\0') {
-    lseek(tar_fd, BLOCKSIZE, SEEK_CUR);
-    return 0;
-  }
+  lseek(tar_fd, -BLOCKSIZE, SEEK_CUR);
   return 0;
 }
 
@@ -144,7 +147,7 @@ int tar_add_file(const char *tar_name, const char *filename) {
     return error_pt(tar_name, fds, 2);
   }
   struct posix_header hd;
-  memset(&hd, '\0', sizeof(struct posix_header));
+  memset(&hd, '\0', BLOCKSIZE);
   if (seek_end_of_tar(tar_fd, tar_name) < 0) {
     return error_pt(tar_name, fds, 2);
   }

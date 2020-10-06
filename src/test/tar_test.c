@@ -48,7 +48,7 @@ static char *tar_add_file_test() {
   if (s != 0) {
     return s;
   }
-  mu_assert("tar_add_file_test: error: content of file", strcmp(buff1, buff2) == 0);
+  mu_assert("tar_add_file_test: error: content of file", strncmp(buff1, buff2, TAR_ADD_TEST_SIZE_BUF) == 0);
   return 0;
 }
 static char *all_tests() {
