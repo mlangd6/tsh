@@ -279,7 +279,7 @@ int tar_read_file(const char *tar_name, const char *filename, int fd) {
 
 /* Check if the file at PATHNAME is a valid tarball. 
    Return :
-   0  if all header are correct
+   1  if all header are correct
    -2 if at least one header is invalid
    -1 otherwise */ 
 int is_tar(const char *tar_name) {
@@ -308,5 +308,5 @@ int is_tar(const char *tar_name) {
   }
   
   close(tar_fd);
-  return fail_header ? -2 : 0;
+  return fail_header ? -2 : 1;
 }

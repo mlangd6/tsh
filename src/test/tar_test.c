@@ -22,7 +22,8 @@ static char *tar_add_file_test() {
 }
 
 static char *is_tar_test() {
-  mu_assert("error, /tmp/tsh_test/test.tar is a tar !", is_tar("/tmp/tsh_test/test.tar"));
+  mu_assert("error, /tmp/tsh_test/test.tar is a tar !", is_tar("/tmp/tsh_test/test.tar") == 1);
+  
   return 0;
 }
 
