@@ -10,6 +10,7 @@
 #include <unistd.h>
 #define TAR_TEST_SIZE 3
 #define TAR_ADD_TEST_SIZE_BUF 700
+#define SIZE_CURRENT_DIR_NAME 47
 
 
 static char *tar_add_file_test();
@@ -18,7 +19,7 @@ static char *tar_read_file_test();
 int tests_run = 0;
 
 
-static char *(*tests[])(void) = {test_tar_ls, tar_read_file_test, tar_add_file_test};
+static char *(*tests[])(void) = { tar_add_file_test, test_tar_ls, tar_read_file_test};
 
 static char *stat_equals(struct stat *s1, struct stat *s2) {
   mu_assert("tar_add_file_test: error: st_mode", s1 -> st_mode == s2 -> st_mode);
@@ -29,6 +30,8 @@ static char *stat_equals(struct stat *s1, struct stat *s2) {
 }
 
 static char *tar_add_file_test() {
+  char *tmp = malloc(SIZE_CURRENT_DIR_NAME*sizeof(char));
+  getcwd(tmp, SIZE_CURRENT_DIR_NAME);
   chdir(TEST_DIR);
   char buff1[TAR_ADD_TEST_SIZE_BUF];
   memset(buff1, 'a', TAR_ADD_TEST_SIZE_BUF);
@@ -52,6 +55,7 @@ static char *tar_add_file_test() {
     return s;
   }
   mu_assert("tar_add_file_test: error: content of file", strncmp(buff1, buff2, TAR_ADD_TEST_SIZE_BUF) == 0);
+  chdir(tmp);
   return 0;
 }
 
