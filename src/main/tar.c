@@ -1,5 +1,6 @@
 #include "tar.h"
 #include "errors.h"
+#include "time.h"
 #include <assert.h>
 #include <stdlib.h>
 #include <fcntl.h>
@@ -49,15 +50,18 @@ static int number_of_block(unsigned int filesize) {
 
 
 static int seek_end_of_tar(int tar_fd, const char *tar_name) {
-  lseek(tar_fd, -2 * BLOCKSIZE, SEEK_END);
-  struct posix_header header;
-  if (read(tar_fd, &header, BLOCKSIZE) < 0) {
-    return -1;
+  while(1) {
+    struct posix_header hd;
+    memset(&hd, '\0', BLOCKSIZE);
+    read(tar_fd, &hd, BLOCKSIZE);
+    if (hd.name[0] != '\0') {
+      unsigned int filesize;
+      sscanf(hd.size, "%o", &filesize);
+      lseek(tar_fd, (number_of_block(filesize)) * BLOCKSIZE, SEEK_CUR);
+    }
+    else break;
   }
-  if (header.name[0] != '\0') {
-    lseek(tar_fd, BLOCKSIZE, SEEK_CUR);
-    return 0;
-  }
+  lseek(tar_fd, -BLOCKSIZE, SEEK_CUR);
   return 0;
 }
 
@@ -92,26 +96,28 @@ static void init_mode(struct posix_header *hd, struct stat *s) {
   u_rights += (S_IXUSR & s -> st_mode) ? 1 : 0;
   g_rights += (S_IXGRP & s -> st_mode) ? 1 : 0;
   o_rights += (S_IXOTH & s -> st_mode) ? 1 : 0;
-
-  hd -> mode[5] = '0' + g_rights;
-  hd -> mode[6] = '0' + u_rights;
+  hd -> mode[5] = '0' + u_rights;
+  hd -> mode[6] = '0' + g_rights;
   hd -> mode[7] = '0' + o_rights;
 }
 
 static int init_header(struct posix_header *hd, const char *filename) {
   struct stat s;
+  time_t act_time;
+  time(&act_time);
   if (stat(filename, &s) < 0) {
     return -1;
   }
   strcpy(hd -> name, filename);
   init_mode(hd, &s);
-  sprintf(hd -> uid, "%o", s.st_uid);
-  sprintf(hd -> gid, "%o" ,s.st_gid);
-  sprintf(hd -> size, "%lo", s.st_size);
-  sprintf(hd -> mtime, "%lo", s.st_mtim.tv_sec);
+  sprintf(hd -> uid, "%07o", s.st_uid);
+  sprintf(hd -> gid, "%07o" ,s.st_gid);
+  sprintf(hd -> size, "%011lo", s.st_size);
+  sprintf(hd -> mtime, "%011o", (unsigned int) act_time);
   init_type(hd, &s);
   strcpy(hd -> magic, TMAGIC);
-  strcpy(hd -> version, TVERSION);
+  hd -> version[0] = '0';
+  hd -> version[1] = '0';
   // uname and gname are not added yet !
   set_checksum(hd);
   return 0;
@@ -135,17 +141,22 @@ int tar_add_file(const char *tar_name, const char *filename) {
   if ((src_fd = open(filename, O_RDONLY)) < 0) {
     return error_pt(filename, &src_fd, 1);
   }
-  int tar_fd = open(tar_name, O_WRONLY & O_RDONLY);
+  int tar_fd = open(tar_name, O_RDWR);
   int fds[2] = {src_fd, tar_fd};
   if ( tar_fd < 0) {
     return error_pt(tar_name, fds, 2);
   }
   struct posix_header hd;
+  memset(&hd, '\0', BLOCKSIZE);
   if (seek_end_of_tar(tar_fd, tar_name) < 0) {
     return error_pt(tar_name, fds, 2);
   }
-  if(init_header(&hd, filename) < 0)
+  if(init_header(&hd, filename) < 0) {
     return error_pt(filename, fds, 2);
+  }
+  if (write(tar_fd, &hd, BLOCKSIZE) < 0) {
+    return error_pt(tar_name, fds, 2);
+  }
 
   char buffer[BLOCKSIZE];
   ssize_t read_size;
