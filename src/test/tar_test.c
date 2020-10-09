@@ -8,7 +8,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
-#define TAR_TEST_SIZE 3
+#define TAR_TEST_SIZE 2
 #define TAR_ADD_TEST_SIZE_BUF 700
 
 
@@ -18,7 +18,7 @@ static char *tar_read_file_test();
 int tests_run = 0;
 
 
-static char *(*tests[])(void) = {tar_add_file_test, test_tar_ls, tar_read_file_test};
+static char *(*tests[])(void) = {/*tar_add_file_test, */test_tar_ls, tar_read_file_test};
 
 static char *stat_equals(struct stat *s1, struct stat *s2) {
   mu_assert("tar_add_file_test: error: st_mode", s1 -> st_mode == s2 -> st_mode);
