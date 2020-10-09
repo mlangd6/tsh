@@ -280,7 +280,7 @@ int tar_read_file(const char *tar_name, const char *filename, int fd) {
 /* Check if the file at PATHNAME is a valid tarball. 
    Return :
    1  if all header are correct
-   -2 if at least one header is invalid
+   0 if at least one header is invalid or can't read a full block
    -1 otherwise */ 
 int is_tar(const char *tar_name) {
   int tar_fd = open(tar_name, O_RDONLY);
@@ -290,16 +290,18 @@ int is_tar(const char *tar_name) {
   
   unsigned int file_size;
   struct posix_header file_header;
-  int fail_header = 0;
+  int fail = 0, read_size;
 
-  while( !fail_header ) {
-    if( read(tar_fd, &file_header, BLOCKSIZE) < 0)
+  while( !fail ) {
+    if( (read_size=read(tar_fd, &file_header, BLOCKSIZE)) < 0)
       return error_pt(tar_name, &tar_fd, 1);
 
-    if (file_header.name[0] == '\0')
+    if( read_size != BLOCKSIZE )
+      fail = 1;
+    else if (file_header.name[0] == '\0')
       break;
-    else if(!check_checksum(&file_header))
-      fail_header = 1;
+    else if( !check_checksum(&file_header) )
+      fail = 1;
     else {
     /* On saute le contenu du fichier */
       sscanf(file_header.size, "%o", &file_size);
@@ -308,5 +310,5 @@ int is_tar(const char *tar_name) {
   }
   
   close(tar_fd);
-  return fail_header ? -2 : 1;
+  return !fail;
 }

@@ -22,7 +22,20 @@ static char *tar_add_file_test() {
 }
 
 static char *is_tar_test() {
-  mu_assert("error, /tmp/tsh_test/test.tar is a tar !", is_tar("/tmp/tsh_test/test.tar") == 1);
+  // test intégrité valide
+  mu_assert("Error, is_tar(\"/tmp/tsh_test/test.tar\") != 1", is_tar("/tmp/tsh_test/test.tar") == 1);
+
+  // test fichier vide
+  system("touch /tmp/tsh_test/toto");
+  mu_assert("Error, is_tar(\"/tmp/tsh_test/toto\") != 0", is_tar("/tmp/tsh_test/toto") == 0);
+
+  // test corruption
+  int fd = open("/tmp/tsh_test/test.tar", O_RDWR); 
+  lseek(fd, 148, SEEK_SET);
+  char bad_chksm[8] = {'\0','\0','\0','\0','\0','\0','\0','\0'};
+  write(fd, bad_chksm, sizeof(bad_chksm));
+  mu_assert("Error, is_tar(\"/tmp/tsh_test/test.tar\") != 0", is_tar("/tmp/tsh_test/test.tar") == 0);  
+  close(fd);
   
   return 0;
 }
