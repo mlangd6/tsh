@@ -198,35 +198,8 @@ static int nb_file_in_tar(int tar_fd)
   return i;
 }
 
-char **tar_ls(const char *tar_name)
-{
-  int tar_fd = open(tar_name, O_RDONLY);
-  if (tar_fd == -1)
-  {
-    return error_p(tar_name, &tar_fd, 1);
-  }
-  int n;
-  int i = 0;
-  struct posix_header header;
-  char **ls = malloc( nb_file_in_tar(tar_fd) * sizeof(char *) );
-  assert(ls);
 
-  while ( (n = read(tar_fd, &header, BLOCKSIZE)) > 0 )
-  {
-    if (strcmp(header.name, "\0") == 0) break;
-    ls[i] = malloc(strlen(header.name) + 1);
-    assert(ls[i]);
-    strcpy(ls[i++], header.name);
-    int taille = 0;
-    sscanf(header.size, "%o", &taille);
-    int filesize = ((taille + BLOCKSIZE - 1) / BLOCKSIZE);
-    lseek(tar_fd, BLOCKSIZE*filesize, SEEK_CUR);
-  }
-  close(tar_fd);
-  return ls;
-}
-
-struct posix_header *tar_ls2(const char *tar_name)
+struct posix_header *tar_ls(const char *tar_name)
 {
   int tar_fd = open(tar_name, O_RDONLY);
   if (tar_fd == -1)

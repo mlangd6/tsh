@@ -14,12 +14,11 @@
 
 static char *tar_add_file_test();
 static char *test_tar_ls();
-//static char *test_tar_ls_2();
 static char *tar_read_file_test();
 int tests_run = 0;
 
 
-static char *(*tests[])(void) = {tar_add_file_test, test_tar_ls, /*test_tar_ls_2,*/ tar_read_file_test};
+static char *(*tests[])(void) = {test_tar_ls, tar_read_file_test, tar_add_file_test};
 
 static char *stat_equals(struct stat *s1, struct stat *s2) {
   mu_assert("tar_add_file_test: error: st_mode", s1 -> st_mode == s2 -> st_mode);
@@ -47,7 +46,7 @@ static char *tar_add_file_test() {
   int fd2 = open("tar_test", O_RDONLY);
   char buff2[TAR_ADD_TEST_SIZE_BUF];
   read(fd2, buff2, TAR_ADD_TEST_SIZE_BUF);
-
+  close(fd2);
   char *s = stat_equals(&s1, &s2);
   if (s != 0) {
     return s;
@@ -56,29 +55,17 @@ static char *tar_add_file_test() {
   return 0;
 }
 
-static char *test_tar_ls() {
-  int tmp;
-  char **a_tester = tar_ls("/tmp/tsh_test/test.tar");
-  char *test[12] = {"dir1/", "dir1/subdir/", "dir1/subdir/subsubdir/", "dir1/subdir/subsubdir/hello", "dir1/tata", "man_dir/", "man_dir/man", "man_dir/open2", "man_dir/tar", "titi", "titi_link", "toto"};
-  for(int i = 0; i < 12; i++) {
-    tmp = 0;
-    for(int j = 0; j < 12; j++)
-      mu_assert("Error, this isn't the good ls", strcmp(test[i], a_tester[j]) == 0 || tmp++ < 12 );
-  }
-  return 0;
-}
-/*
-static char *test_tar_ls_2(){
+static char *test_tar_ls(){
   int tmp;
   char *test[12] = {"dir1/", "dir1/subdir/", "dir1/subdir/subsubdir/", "dir1/subdir/subsubdir/hello", "dir1/tata", "man_dir/", "man_dir/man", "man_dir/open2", "man_dir/tar", "titi", "titi_link", "toto"};
-  struct posix_header *a_tester = tar_ls2("/tmp/tsh_test/test.tar");
+  struct posix_header *a_tester = tar_ls("/tmp/tsh_test/test.tar");
   for(int i = 0; i < 12; i++) {
     tmp = 0;
     for(int j = 0; j < 12; j++)
       mu_assert("Error, this isn't the good ls", strcmp(test[i], a_tester[j].name) == 0 || tmp++ < 12 );
   }
   return 0;
-}*/
+}
 
 static char *tar_read_file_test() {
   int fd1 = open("/tmp/tsh_test/read_file_test", O_CREAT | O_RDWR, S_IRUSR | S_IWUSR);
@@ -105,7 +92,6 @@ static char *tar_read_file_test() {
 static char *all_tests() {
   for (int i = 0; i < TAR_TEST_SIZE; i++) {
     before();
-    printf("W\n");
     mu_run_test(tests[i]);
   }
   return 0;
