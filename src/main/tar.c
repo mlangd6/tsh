@@ -225,6 +225,32 @@ char **tar_ls(const char *tar_name)
   close(tar_fd);
   return ls;
 }
+
+struct posix_header *tar_ls2(const char *tar_name)
+{
+  int tar_fd = open(tar_name, O_RDONLY);
+  if (tar_fd == -1)
+  {
+    return error_p(tar_name, &tar_fd, 1);
+  }
+  int n;
+  int i = 0;
+  struct posix_header header;
+  struct posix_header *list_header = malloc(nb_file_in_tar(tar_fd)*sizeof(struct posix_header));
+  assert(list_header);
+
+  while ( (n = read(tar_fd, &header, BLOCKSIZE)) > 0 )
+  {
+    if (strcmp(header.name, "\0") == 0) break;
+    list_header[i++] = header;
+    int taille = 0;
+    sscanf(header.size, "%o", &taille);
+    int filesize = ((taille + BLOCKSIZE - 1) / BLOCKSIZE);
+    lseek(tar_fd, BLOCKSIZE*filesize, SEEK_CUR);
+  }
+  close(tar_fd);
+  return list_header;
+}
 /* Read buffer by buffer of size BUFSIZE from READ_FD and write to WRITE_FD up to COUNT. */
 static int read_write_buf_by_buf(int read_fd, int write_fd, size_t count) {
   char buffer[BUFSIZE];
