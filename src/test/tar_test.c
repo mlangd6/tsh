@@ -10,6 +10,7 @@
 #include <unistd.h>
 #define TAR_TEST_SIZE 2
 #define TAR_ADD_TEST_SIZE_BUF 700
+#define SIZE_CURRENT_DIR_NAME 47
 
 
 static char *tar_add_file_test();
@@ -18,7 +19,7 @@ static char *tar_read_file_test();
 int tests_run = 0;
 
 
-static char *(*tests[])(void) = {/*tar_add_file_test, */test_tar_ls, tar_read_file_test};
+static char *(*tests[])(void) = { tar_add_file_test, test_tar_ls, tar_read_file_test};
 
 static char *stat_equals(struct stat *s1, struct stat *s2) {
   mu_assert("tar_add_file_test: error: st_mode", s1 -> st_mode == s2 -> st_mode);
@@ -29,6 +30,8 @@ static char *stat_equals(struct stat *s1, struct stat *s2) {
 }
 
 static char *tar_add_file_test() {
+  char *tmp = malloc(SIZE_CURRENT_DIR_NAME*sizeof(char));
+  getcwd(tmp, SIZE_CURRENT_DIR_NAME);
   chdir(TEST_DIR);
   char buff1[TAR_ADD_TEST_SIZE_BUF];
   memset(buff1, 'a', TAR_ADD_TEST_SIZE_BUF);
@@ -46,23 +49,24 @@ static char *tar_add_file_test() {
   int fd2 = open("tar_test", O_RDONLY);
   char buff2[TAR_ADD_TEST_SIZE_BUF];
   read(fd2, buff2, TAR_ADD_TEST_SIZE_BUF);
-
+  close(fd2);
   char *s = stat_equals(&s1, &s2);
   if (s != 0) {
     return s;
   }
   mu_assert("tar_add_file_test: error: content of file", strncmp(buff1, buff2, TAR_ADD_TEST_SIZE_BUF) == 0);
+  chdir(tmp);
   return 0;
 }
 
-static char *test_tar_ls() {
+static char *test_tar_ls(){
   int tmp;
-  char **a_tester = tar_ls("/tmp/tsh_test/test.tar");
   char *test[12] = {"dir1/", "dir1/subdir/", "dir1/subdir/subsubdir/", "dir1/subdir/subsubdir/hello", "dir1/tata", "man_dir/", "man_dir/man", "man_dir/open2", "man_dir/tar", "titi", "titi_link", "toto"};
+  struct posix_header *a_tester = tar_ls("/tmp/tsh_test/test.tar");
   for(int i = 0; i < 12; i++) {
     tmp = 0;
     for(int j = 0; j < 12; j++)
-      mu_assert("Error, this isn't the good ls", strcmp(test[i], a_tester[j]) == 0 || tmp++ < 12 );
+      mu_assert("Error, this isn't the good ls", strcmp(test[i], a_tester[j].name) == 0 || tmp++ < 12 );
   }
   return 0;
 }
