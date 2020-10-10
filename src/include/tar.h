@@ -51,7 +51,7 @@ struct posix_header
 int tar_add_file(const char *tar_name, const char *filename);
 
 /* List the files contained in a faile .tar */
-char **tar_ls(const char *tar_name);
+struct posix_header *tar_ls(const char *tar_name);
 
 /* Compute and write the checksum of a header */
 void set_checksum(struct posix_header *hd);
