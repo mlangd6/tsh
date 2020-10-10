@@ -10,7 +10,6 @@
 #include <unistd.h>
 #define TAR_TEST_SIZE 3
 #define TAR_ADD_TEST_SIZE_BUF 700
-#define SIZE_CURRENT_DIR_NAME 47
 
 
 static char *tar_add_file_test();
@@ -30,8 +29,7 @@ static char *stat_equals(struct stat *s1, struct stat *s2) {
 }
 
 static char *tar_add_file_test() {
-  char *tmp = malloc(SIZE_CURRENT_DIR_NAME*sizeof(char));
-  getcwd(tmp, SIZE_CURRENT_DIR_NAME);
+  char *tmp = getcwd(NULL, 0);
   chdir(TEST_DIR);
   char buff1[TAR_ADD_TEST_SIZE_BUF];
   memset(buff1, 'a', TAR_ADD_TEST_SIZE_BUF);
@@ -56,6 +54,7 @@ static char *tar_add_file_test() {
   }
   mu_assert("tar_add_file_test: error: content of file", strncmp(buff1, buff2, TAR_ADD_TEST_SIZE_BUF) == 0);
   chdir(tmp);
+  free(tmp);
   return 0;
 }
 
