@@ -1,5 +1,6 @@
 CC=gcc
 CFLAGS=-g -Wall
+LDLIBS = -lreadline
 EXEC=tsh
 TEST=tsh_test
 SRC=src/
@@ -20,7 +21,7 @@ TEST_OBJS:=$(addprefix $(TARGET)$(TEST_DIR), $(TEST_OBJS))
 all: $(EXEC) $(TEST)
 
 $(EXEC): $(OBJS)
-	@$(CC) -I $(INCLUDE) $(CFLAGS) -o $(EXEC) $(OBJS)
+	@$(CC) -I $(INCLUDE) $(CFLAGS) -o $(EXEC) $(OBJS) $(LDLIBS)
 
 $(TEST): $(OBJS_NO_MAIN) $(TEST_OBJS)
 	$(CC) -I $(INCLUDE) -I $(TEST_INCLUDE) $(CFLAGS) -o $(TEST) $(OBJS_NO_MAIN) $(TEST_OBJS)

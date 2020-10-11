@@ -32,6 +32,25 @@ static char **split(char *s) {
 }
 
 int main(int argc, char *argv[]){
-  printf("Hello World!\n");
+  char *buf;
+  while((buf = readline(PROMPT))) {
+    if (strlen(buf) > 0) {
+      add_history(buf);
+    }
+    char **tokens = split(buf);
+    int p = fork(), w;
+    switch (p) {
+      case -1:
+        perror("fork");
+        exit(EXIT_FAILURE);
+      case 0: //son
+        exit(execvp(tokens[0], tokens));
+      default: // father
+        wait(&w);
+
+    }
+
+
+  }
   return 0;
 }
