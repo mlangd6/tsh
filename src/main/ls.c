@@ -33,6 +33,30 @@ static char **add_in_line(char **line, struct posix_header ph)
   return line;
 }
 
+static char *convert_right_number_in_letter(char *rights) {
+  return NULL;
+}
+
+static char *is_directory(char *name){
+  return NULL;
+}
+
+static char *convert_time(char *time){
+  return NULL;
+}
+
+static int color_directory(){
+    return -1;
+}
+
+static char *convert_size(char *size){
+  return NULL;
+}
+
+static char *convert_name_user(char *user){
+  return NULL;
+}
+
 char **ls_l(const char *tar_name) {
   struct posix_header *header = tar_ls(tar_name);
   int tar_fd = open(tar_name, O_RDONLY);
