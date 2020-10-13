@@ -4,9 +4,12 @@
 #include <readline/history.h>
 #include <unistd.h>
 #include <sys/wait.h>
+#include <errno.h>
 #include "tar.h"
 
 #define PROMPT "$ "
+#define CMD_NOT_FOUND " : command not found\n"
+#define CMD_NOT_FOUND_SIZE 22
 
 static int count_words(char *s) {
   int res = 1;
@@ -44,7 +47,15 @@ int main(int argc, char *argv[]){
         perror("fork");
         exit(EXIT_FAILURE);
       case 0: //son
-        exit(execvp(tokens[0], tokens));
+        execvp(tokens[0], tokens);
+        if (errno == ENOENT) {
+          int size = strlen(tokens[0]) + CMD_NOT_FOUND_SIZE;
+          char error_msg[size];
+          strcpy(error_msg, tokens[0]);
+          strcat(error_msg, CMD_NOT_FOUND);
+          write(STDOUT_FILENO, error_msg, size);
+        }
+        exit(EXIT_FAILURE);
       default: // father
         wait(&w);
 
