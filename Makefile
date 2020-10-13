@@ -1,5 +1,6 @@
 CC=gcc
 CFLAGS=-g -Wall
+LDLIBS = -lreadline
 EXEC=tsh
 TEST=tsh_test
 
@@ -36,7 +37,7 @@ cmd: $(BIN_FILES)
 
 
 $(EXEC): $(OBJS)
-	@$(CC) -I $(INCLUDE) $(CFLAGS) -o $(EXEC) $^
+	@$(CC) -I $(INCLUDE) $(CFLAGS) -o $(EXEC) $^ $(LDLIBS)
 
 $(TEST): $(OBJS_NO_MAIN) $(TEST_OBJS)
 	$(CC) -I $(INCLUDE) -I $(TEST_INCLUDE) $(CFLAGS) -o $(TEST) $^
