@@ -8,18 +8,18 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
-#define TAR_TEST_SIZE 2
+#define TAR_TEST_SIZE 4
 #define TAR_ADD_TEST_SIZE_BUF 700
-#define SIZE_CURRENT_DIR_NAME 47
 
 
 static char *tar_add_file_test();
 static char *test_tar_ls();
+static char *is_tar_test();
 static char *tar_read_file_test();
+
 int tests_run = 0;
 
-
-static char *(*tests[])(void) = { tar_add_file_test, test_tar_ls, tar_read_file_test};
+static char *(*tests[])(void) = { tar_add_file_test, test_tar_ls, is_tar_test, tar_read_file_test};
 
 static char *stat_equals(struct stat *s1, struct stat *s2) {
   mu_assert("tar_add_file_test: error: st_mode", s1 -> st_mode == s2 -> st_mode);
@@ -30,8 +30,7 @@ static char *stat_equals(struct stat *s1, struct stat *s2) {
 }
 
 static char *tar_add_file_test() {
-  char *tmp = malloc(SIZE_CURRENT_DIR_NAME*sizeof(char));
-  getcwd(tmp, SIZE_CURRENT_DIR_NAME);
+  char *tmp = getcwd(NULL, 0);
   chdir(TEST_DIR);
   char buff1[TAR_ADD_TEST_SIZE_BUF];
   memset(buff1, 'a', TAR_ADD_TEST_SIZE_BUF);
@@ -56,8 +55,30 @@ static char *tar_add_file_test() {
   }
   mu_assert("tar_add_file_test: error: content of file", strncmp(buff1, buff2, TAR_ADD_TEST_SIZE_BUF) == 0);
   chdir(tmp);
+  free(tmp);
   return 0;
 }
+
+static char *is_tar_test() {
+  // test intégrité valide
+  mu_assert("Error, is_tar(\"/tmp/tsh_test/test.tar\") != 1", is_tar("/tmp/tsh_test/test.tar") == 1);
+
+  // test fichier vide
+  system("touch /tmp/tsh_test/toto");
+  mu_assert("Error, is_tar(\"/tmp/tsh_test/toto\") != 0", is_tar("/tmp/tsh_test/toto") == 0);
+
+  // test corruption
+  char bad_chksm[8];
+  memset(bad_chksm, '\0', sizeof(bad_chksm));
+  int fd = open("/tmp/tsh_test/test.tar", O_RDWR);
+  lseek(fd, 148, SEEK_SET);
+  write(fd, bad_chksm, sizeof(bad_chksm));
+  mu_assert("Error, is_tar(\"/tmp/tsh_test/test.tar\") != 0", is_tar("/tmp/tsh_test/test.tar") == 0);
+  close(fd);
+
+  return 0;
+}
+
 
 static char *test_tar_ls(){
   int tmp;
