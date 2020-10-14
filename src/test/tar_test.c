@@ -68,6 +68,7 @@ static char *test_tar_ls(){
     for(int j = 0; j < 12; j++)
       mu_assert("Error, this isn't the good ls", strcmp(test[i], a_tester[j].name) == 0 || tmp++ < 12 );
   }
+  free(a_tester);
   return 0;
 }
 
