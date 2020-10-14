@@ -8,7 +8,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
-#define TAR_TEST_SIZE 4 
+#define TAR_TEST_SIZE 5
 #define TAR_ADD_TEST_SIZE_BUF 700
 
 
@@ -16,10 +16,11 @@ static char *tar_add_file_test();
 static char *test_tar_ls();
 static char *is_tar_test();
 static char *tar_cp_test();
+static char *tar_rm_test();
 
 int tests_run = 0;
 
-static char *(*tests[])(void) = { tar_add_file_test, test_tar_ls, is_tar_test, tar_cp_test};
+static char *(*tests[])(void) = { tar_add_file_test, test_tar_ls, is_tar_test, tar_cp_test, tar_rm_test};
 
 static char *stat_equals(struct stat *s1, struct stat *s2) {
   mu_assert("tar_add_file_test: error: st_mode", s1 -> st_mode == s2 -> st_mode);
@@ -111,6 +112,16 @@ static char *tar_cp_test() {
   char c;
   mu_assert("File should be empty", read(fd2, &c, 1) == 0);
   close(fd2);
+  return 0;
+}
+
+static char *tar_rm_test()
+{
+  mu_assert("Couldn't remove man_dir/open2", tar_rm_file("/tmp/tsh_test/test.tar", "man_dir/open2") == 0);
+  mu_assert("Error tar_rm_file corrupted the tar", is_tar("/tmp/tsh_test/test.tar") == 1);
+
+  mu_assert("tar_rm_file(\"/tmp/tsh_test/test.tar\", \"man_dir/open2\") != -2", tar_rm_file("/tmp/tsh_test/test.tar", "man_dir/open2") == -1);
+  
   return 0;
 }
 

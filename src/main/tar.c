@@ -298,7 +298,7 @@ static int find_header(int tar_fd, const char *filename, struct posix_header *he
       if (header->typeflag == AREGTYPE || header->typeflag == REGTYPE)
 	return 1;
       else
-	return -2;
+	return 0;
       }
     else
       {
@@ -326,12 +326,61 @@ int tar_cp_file(const char *tar_name, const char *filename, int fd) {
 
   if(r <= 0) // erreur ou pas un fichier ou pas trouvé
     return error_pt(tar_name, &tar_fd, 1);
-
+  
   sscanf(file_header.size, "%o", &file_size);
   if( read_write_buf_by_buf(tar_fd, fd, file_size) < 0)
     return error_pt(tar_name, &tar_fd, 1);
   
   close(tar_fd);
 
+  return 0;
+}
+
+/* Open the tarball TAR_NAME and delete FILENAME if possible */
+int tar_rm_file(const char *tar_name, const char *filename)
+{
+  int tar_fd = open(tar_name, O_RDWR);
+
+  if (tar_fd < 0)
+    return error_pt(tar_name, &tar_fd, 1);
+
+  unsigned int file_size;
+  struct posix_header file_header;
+
+  int r = find_header(tar_fd, filename, &file_header);
+
+  if(r < 0) // erreur
+    return error_pt(tar_name, &tar_fd, 1);
+  else if(r == 0) // pas un fichier ou pas trouvé
+    {
+      close(tar_fd);
+      return -1;
+    }
+
+  
+  int file_start = lseek(tar_fd, -BLOCKSIZE, SEEK_CUR); // on était à la fin d'un header, on se place donc au début
+  sscanf(file_header.size, "%o", &file_size);
+  int file_end = file_start + BLOCKSIZE + number_of_block(file_size)*BLOCKSIZE;  
+
+  int tar_end = lseek(tar_fd, 0, SEEK_END);
+
+  // on copie la partie droite dans le buffer
+  int buffer_size = tar_end - file_end; 
+  char *buffer = malloc(buffer_size);
+  assert(buffer);
+
+  lseek(tar_fd, file_end, SEEK_SET);
+  if( read(tar_fd, buffer, buffer_size) < 0)
+    return error_pt(tar_name, &tar_fd, 1);
+
+  // puis on écrit par dessus
+  lseek(tar_fd, file_start, SEEK_SET);
+  if( write(tar_fd, buffer, buffer_size) < 0)
+    return error_pt(tar_name, &tar_fd, 1);
+
+  // ftruncate(tar_fd, tar_end - (file_end - file_start));?
+
+  free(buffer);
+  close(tar_fd);
   return 0;
 }

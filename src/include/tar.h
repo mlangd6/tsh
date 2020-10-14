@@ -65,5 +65,7 @@ int is_tar(const char *tar_name);
 /* Open the tarball TAR_NAME and copy the content of FILENAME into FD */
 int tar_cp_file(const char *tar_name, const char *filename, int fd);
 
+/* Open the tarball TAR_NAME and delete FILENAME if possible */
+int tar_rm_file(const char *tar_name, const char *filename);
 		
 #endif
