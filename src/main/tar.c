@@ -324,8 +324,14 @@ int tar_cp_file(const char *tar_name, const char *filename, int fd) {
 
   int r = find_header(tar_fd, filename, &file_header);
 
-  if(r <= 0) // erreur ou pas un fichier ou pas trouvé
+  
+  if(r < 0) // erreur
     return error_pt(tar_name, &tar_fd, 1);
+  else if(r == 0) // pas un fichier ou pas trouvé
+    {
+      close(tar_fd);
+      return -1;
+    }
   
   sscanf(file_header.size, "%o", &file_size);
   if( read_write_buf_by_buf(tar_fd, fd, file_size) < 0)
