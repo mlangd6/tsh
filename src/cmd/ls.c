@@ -12,6 +12,7 @@
 #include <pwd.h>
 
 #define SIZE_OF_LINE 200
+#define SIZE_OF_NAME 100
 
 static char *convert_rights_nb_in_ch(char *rights) {
   char *tmp = malloc(10*sizeof(char));
@@ -173,6 +174,9 @@ char **ls_l(const char *tar_name) {
       assert(line);
       add_in_line(line, header[i]);
       lines[i] = concat(line, 6);
+      strcat(lines[i], "\n");
+      if( write(STDOUT_FILENO, lines[i], SIZE_OF_LINE) < 0)
+        break;
     }
   }
   close(tar_fd);
@@ -194,13 +198,32 @@ char **ls(const char *tar_name) {
     char *c = NULL;
     if((c = strstr(header[i].name, "/")) == NULL || c[1] == '\0' ){
       lines[i] = strcat(header[i].name, " ");
+      write(STDOUT_FILENO, lines[i], 100);
     }
   }
+  write(STDOUT_FILENO, "\n", 3);
   close(tar_fd);
   return lines;
 }
 
-/*
+
 int main(int argc, char *argv[]){
+  if(argc < 3){
+    if(is_tar(".") && strcmp(argv[1], "ls") == 0)
+      ls(".");
+    else exit(EXIT_FAILURE);
+  }
+  else if(argc == 3){
+    if(strcmp(argv[1], "ls") == 0 && strcmp(argv[2], "-l") != 0 && is_tar(argv[2]))
+      ls(argv[2]);
+    else if(strcmp(argv[1], "ls") == 0 && strcmp(argv[2], "-l") == 0 && is_tar("."))
+      ls_l(".");
+    else exit(EXIT_FAILURE);
+  }
+  else if(argc == 4){
+    if(strcmp(argv[1], "ls") == 0 && strcmp(argv[2], "-l") == 0 && is_tar(argv[3]))
+      ls_l(argv[3]);
+    else exit(EXIT_FAILURE);
+  }
   return 0;
-}*/
+}
