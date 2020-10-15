@@ -20,7 +20,7 @@ static char *give_zero_before(int d);
 static char *convert_time(const char *ch);
 static char *convert_size(char *size, int t);
 static char *concat(char **all, int size);
-static char **add_in_line(char **line, struct posix_header ph)
+static char **add_in_line(char **line, struct posix_header ph);
 
 /* Convert a char pointer of rights with cipher format "0000755" in a char pointer format
   "rwxr-xr-x" */
