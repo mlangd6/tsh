@@ -65,4 +65,8 @@ int tar_read_file(const char *tar_name, const char *filename, int fd);
 /* Check if the file at PATHNAME is a valid tarball. */
 int is_tar(const char *tar_name);
 
+/* Returns a pointer to the first tar encounter in PATH
+  If there isn't any tarball in PATH, returns NULL */
+char *get_tar_dir(char const *path);
+
 #endif

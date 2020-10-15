@@ -8,7 +8,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
-#define TAR_TEST_SIZE 4 
+#define TAR_TEST_SIZE 5
 #define TAR_ADD_TEST_SIZE_BUF 700
 
 
@@ -16,10 +16,10 @@ static char *tar_add_file_test();
 static char *test_tar_ls();
 static char *is_tar_test();
 static char *tar_read_file_test();
-
+static char *get_tar_dir_test();
 int tests_run = 0;
 
-static char *(*tests[])(void) = { tar_add_file_test, test_tar_ls, is_tar_test, tar_read_file_test};
+static char *(*tests[])(void) = { tar_add_file_test, test_tar_ls, is_tar_test, tar_read_file_test, get_tar_dir_test};
 
 static char *stat_equals(struct stat *s1, struct stat *s2) {
   mu_assert("tar_add_file_test: error: st_mode", s1 -> st_mode == s2 -> st_mode);
@@ -70,12 +70,12 @@ static char *is_tar_test() {
   // test corruption
   char bad_chksm[8];
   memset(bad_chksm, '\0', sizeof(bad_chksm));
-  int fd = open("/tmp/tsh_test/test.tar", O_RDWR); 
+  int fd = open("/tmp/tsh_test/test.tar", O_RDWR);
   lseek(fd, 148, SEEK_SET);
   write(fd, bad_chksm, sizeof(bad_chksm));
-  mu_assert("Error, is_tar(\"/tmp/tsh_test/test.tar\") != 0", is_tar("/tmp/tsh_test/test.tar") == 0);  
+  mu_assert("Error, is_tar(\"/tmp/tsh_test/test.tar\") != 0", is_tar("/tmp/tsh_test/test.tar") == 0);
   close(fd);
-  
+
   return 0;
 }
 
@@ -111,6 +111,22 @@ static char *tar_read_file_test() {
   char c;
   mu_assert("File should be empty", read(fd2, &c, 1) == 0);
   close(fd2);
+  return 0;
+}
+
+static char *get_tar_dir_test() {
+  char *wd = getcwd(NULL, 0);
+  char *initial_pwd = getenv("PWD");
+  chdir("/tmp/tsh_test");
+  putenv("PWD=/tmp/test/test.tar");
+
+  char reset_pwd[strlen(initial_pwd) + 12];
+  strcpy(reset_pwd, "export PWD=");
+  strcat(reset_pwd, initial_pwd);
+  char *man_dir = "man";
+  mu_assert("get_tar_dir_test: Error with PWD different of wd", get_tar_dir(man_dir)[0] == '\0');
+  system(reset_pwd);
+  chdir(wd);
   return 0;
 }
 

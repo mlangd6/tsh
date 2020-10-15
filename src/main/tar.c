@@ -11,6 +11,7 @@
 #include <unistd.h>
 
 #define BUFSIZE 512
+extern int errno;
 
 /* Code for set_checksum(...) and check_checksum(...) are taken from :
    https://gaufre.informatique.univ-paris-diderot.fr/klimann/systL3_2020-2021/blob/master/TP/TP1/tar.h */
@@ -287,17 +288,17 @@ int tar_read_file(const char *tar_name, const char *filename, int fd) {
   return found == 1 ? 0 : -1;
 }
 
-/* Check if the file at PATHNAME is a valid tarball. 
+/* Check if the file at PATHNAME is a valid tarball.
    Return :
    1  if all header are correct
    0 if at least one header is invalid or can't read a full block
-   -1 otherwise */ 
+   -1 otherwise */
 int is_tar(const char *tar_name) {
   int tar_fd = open(tar_name, O_RDONLY);
 
   if (tar_fd < 0)
     return error_pt(tar_name, &tar_fd, 1);
-  
+
   unsigned int file_size;
   struct posix_header file_header;
   int fail = 0, read_size;
@@ -318,7 +319,34 @@ int is_tar(const char *tar_name) {
       lseek(tar_fd, number_of_block(file_size) * BLOCKSIZE, SEEK_CUR);
     }
   }
-  
+
   close(tar_fd);
   return !fail;
+}
+
+
+
+char *get_tar_dir(char const *path) {
+  char *chr;
+
+  if (path[0] != '/') { // Relative path
+    char *wd = getcwd(NULL, 0);
+    char *pwd = getenv("PWD");
+    if (strcmp (pwd, wd) == 0) { // PWD not in tarball
+      chr = path;
+    }
+    else { // PWD already in a tarball
+      return path + strlen(path);
+    }
+  }
+  else { // absolute path
+    chr = path + 1; // avoid first '/'
+  }
+  while ((chr = strchr(chr, '/')) != NULL) {
+    chr[0] = '\0';
+    if (is_tar(path)) {
+      return chr;
+    }
+  }
+  return NULL;
 }
