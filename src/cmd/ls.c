@@ -14,6 +14,16 @@
 #define SIZE_OF_LINE 200
 #define SIZE_OF_NAME 100
 
+static char *convert_rights_nb_in_ch(char *rights);
+static char *is_directory(char c);
+static char *give_zero_before(int d);
+static char *convert_time(const char *ch);
+static char *convert_size(char *size, int t);
+static char *concat(char **all, int size);
+static char **add_in_line(char **line, struct posix_header ph)
+
+/* Convert a char pointer of rights with cipher format "0000755" in a char pointer format
+  "rwxr-xr-x" */
 static char *convert_rights_nb_in_ch(char *rights) {
   char *tmp = malloc(10*sizeof(char));
   int c = 1;
@@ -34,6 +44,7 @@ static char *convert_rights_nb_in_ch(char *rights) {
   return tmp;
 }
 
+/* Return the letter "d" if the typeflag corresponds with a directory else "-" */
 static char *is_directory(char c){
   char *type = malloc(2*sizeof(char));
   type[0] = '-';
@@ -44,6 +55,8 @@ static char *is_directory(char c){
   return type;
 }
 
+/* Add a '0' before a number if it is between 0 included and 10 excluded and
+   return a char pointer representing an integer passed in parameter */
 static char *give_zero_before(int d){
   char *res = malloc(3), *buf = malloc(3);
   if(d < 10) {
@@ -58,6 +71,8 @@ static char *give_zero_before(int d){
   return res;
 }
 
+/* Convert the time in the format of a number to the format of the human
+   time "mmm. dd hh:min" */
 static char *convert_time(const char *ch){
   char *c = malloc(12);
   int si;
@@ -96,12 +111,12 @@ static char *convert_time(const char *ch){
   return res;
 }
 
-
 /*
 static int color_directory(){
     return -1;
 }*/
 
+/* convert the size to octal size */
 static char *convert_size(char *size, int t){
   int si = 0, cmp = 0, it = 0;
   char *tmp = malloc(12*sizeof(char));
@@ -128,6 +143,8 @@ static char *convert_size(char *size, int t){
   return tmp;
 }
 
+/* concatenate the elements of a char pointer pointer between them and add a
+   space between each of them */
 static char *concat(char **all, int size)
 {
   char *line = malloc(SIZE_OF_LINE);
@@ -139,6 +156,8 @@ static char *concat(char **all, int size)
   return line;
 }
 
+/* Add all the elements for that the command ls -l needs, in a char pointer
+   pointer, representing a line of the command */
 static char **add_in_line(char **line, struct posix_header ph)
 {
   char *unam = malloc(32);
@@ -154,7 +173,7 @@ static char **add_in_line(char **line, struct posix_header ph)
   return line;
 }
 
-
+ //TODO : Il manque le nombre de liens pour chaque fichier
 char **ls_l(const char *tar_name) {
   struct posix_header *header = tar_ls(tar_name);
   int tar_fd = open(tar_name, O_RDONLY);
@@ -182,6 +201,7 @@ char **ls_l(const char *tar_name) {
   close(tar_fd);
   return lines;
 }
+
 
 char **ls(const char *tar_name) {
   struct posix_header *header = tar_ls(tar_name);
