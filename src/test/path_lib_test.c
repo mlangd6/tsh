@@ -20,14 +20,22 @@ static char *split_tar_abs_path_test() {
   char *sub_dir_tar = "/tmp/tsh_test/test.tar/man";
   char *sub_dir_tar_bis = "/tmp/tsh_test/test.tar/man/";
   char *test_error = "relative";
-  mu_assert("ERROR0", split_tar_abs_path(test_error) == NULL);
-  mu_assert("ERROR1", split_tar_abs_path(root)[0] == '\0');
-  mu_assert("ERROR2", split_tar_abs_path(tmp)[0] == '\0');
-  mu_assert("ERROR3", split_tar_abs_path(tmp_bis)[0] == '\0');
-  mu_assert("ERROR4", split_tar_abs_path(root_tar)[0] == '\0');
-  mu_assert("ERROR7",  strcmp(split_tar_abs_path(root_tar_bis), "") == 0);
-  mu_assert("ERROR5", strcmp(split_tar_abs_path(sub_dir_tar), "man")  == 0);
-  mu_assert("ERROR6",  strcmp(split_tar_abs_path(sub_dir_tar_bis), "man/") == 0);
+  mu_assert("split_tar_abs_path: error: should return NULL with \"relative\"",
+    split_tar_abs_path(test_error) == NULL);
+  mu_assert("split_tar_abs_path: error: should return a NULL char with \"/\"",
+    split_tar_abs_path(root)[0] == '\0');
+  mu_assert("split_tar_abs_path: error: should return a NULL char with \"/tmp\"",
+    split_tar_abs_path(tmp)[0] == '\0');
+  mu_assert("split_tar_abs_path: error: should return a NULL char with \"/tmp/\"",
+    split_tar_abs_path(tmp_bis)[0] == '\0');
+  mu_assert("split_tar_abs_path: error: should return a NULL char with \"/tmp/tsh_test/test.tar\"",
+    split_tar_abs_path(root_tar)[0] == '\0');
+  mu_assert("split_tar_abs_path: error: should return a NULL char with \"/tmp/tsh_test/test.tar/\"",
+    strcmp(split_tar_abs_path(root_tar_bis), "") == 0);
+  mu_assert("split_tar_abs_path: error: should return \"man\" with \"/tmp/tsh_test/test.tar/man\"",
+    strcmp(split_tar_abs_path(sub_dir_tar), "man")  == 0);
+  mu_assert("split_tar_abs_path: error: should return \"man/\" with \"/tmp/tsh_test/test.tar/man/",
+    strcmp(split_tar_abs_path(sub_dir_tar_bis), "man/") == 0);
   return 0;
 }
 
