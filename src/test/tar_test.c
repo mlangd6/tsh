@@ -8,7 +8,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
-#define TAR_TEST_SIZE 5
+#define TAR_TEST_SIZE 4
 #define TAR_ADD_TEST_SIZE_BUF 700
 
 
@@ -16,10 +16,10 @@ static char *tar_add_file_test();
 static char *test_tar_ls();
 static char *is_tar_test();
 static char *tar_read_file_test();
-static char *get_tar_dir_test();
-int tests_run = 0;
 
-static char *(*tests[])(void) = { tar_add_file_test, test_tar_ls, is_tar_test, tar_read_file_test, get_tar_dir_test};
+extern int tests_run;
+
+static char *(*tests[])(void) = { tar_add_file_test, test_tar_ls, is_tar_test, tar_read_file_test};
 
 static char *stat_equals(struct stat *s1, struct stat *s2) {
   mu_assert("tar_add_file_test: error: st_mode", s1 -> st_mode == s2 -> st_mode);
@@ -114,21 +114,6 @@ static char *tar_read_file_test() {
   return 0;
 }
 
-static char *get_tar_dir_test() {
-  char *wd = getcwd(NULL, 0);
-  char *initial_pwd = getenv("PWD");
-  chdir("/tmp/tsh_test");
-  putenv("PWD=/tmp/test/test.tar");
-
-  char reset_pwd[strlen(initial_pwd) + 12];
-  strcpy(reset_pwd, "export PWD=");
-  strcat(reset_pwd, initial_pwd);
-  char *man_dir = "man";
-  mu_assert("get_tar_dir_test: Error with PWD different of wd", get_tar_dir(man_dir)[0] == '\0');
-  system(reset_pwd);
-  chdir(wd);
-  return 0;
-}
 
 static char *all_tests() {
   for (int i = 0; i < TAR_TEST_SIZE; i++) {
@@ -139,6 +124,7 @@ static char *all_tests() {
 }
 
 int launch_tar_tests() {
+  int prec_tests_run = tests_run;
   char *results = all_tests();
   if (results != 0) {
     printf("%s\n", results);
@@ -146,7 +132,6 @@ int launch_tar_tests() {
   else {
     printf("ALL TAR TESTS PASSED\n");
   }
-  printf("tar tests run: %d\n", tests_run);
-
-  return results != 0;
+  printf("tar tests run: %d\n\n", tests_run - prec_tests_run);
+  return (results == 0);
 }
