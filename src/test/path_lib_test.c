@@ -3,12 +3,14 @@
 #include "tsh_test.h"
 #include <stdio.h>
 #include <string.h>
+#include <stdlib.h>
 
-#define PATH_LIB_TEST_SIZE 1
+#define PATH_LIB_TEST_SIZE 2
 static char *split_tar_abs_path_test();
+static char *reduce_abs_path_test();
 
 extern int tests_run;
-static char *(*tests[])(void) = {split_tar_abs_path_test};
+static char *(*tests[])(void) = {split_tar_abs_path_test, reduce_abs_path_test};
 
 
 static char *split_tar_abs_path_test() {
@@ -36,6 +38,21 @@ static char *split_tar_abs_path_test() {
     strcmp(split_tar_abs_path(sub_dir_tar), "man")  == 0);
   mu_assert("split_tar_abs_path: error: should return \"man/\" with \"/tmp/tsh_test/test.tar/man/",
     strcmp(split_tar_abs_path(sub_dir_tar_bis), "man/") == 0);
+  return 0;
+}
+
+static char *reduce_abs_path_test() {
+  char *root1 = "/";
+  char *root2 = "/tmp/..";
+  char *root3 = "/tmp/../tmp/tsh_test/../..";
+  char *root4 = "/tmp/./tsh_test/.././..";
+  char *ress[] = {reduce_abs_path(root1), reduce_abs_path(root2),
+    reduce_abs_path(root3), reduce_abs_path(root4)};
+  for (int i = 0; i < 4; i++) {
+    mu_assert("reduce_abs_path: error: Should return \"/\"",
+      strcmp(ress[i], "/") == 0);
+    free(ress[i]);
+  }
   return 0;
 }
 

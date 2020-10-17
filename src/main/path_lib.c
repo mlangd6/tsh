@@ -1,5 +1,4 @@
 #include <string.h>
-#include <linux/limits.h>
 #include <stdlib.h>
 #include "tar.h"
 
@@ -42,25 +41,37 @@ static int is_special_dir(char const *s) {
 }
 
 
-char *reduce_abs_path(char const *s) {
-  char *res = malloc(strlen(s) + 1); // Max size possible
-  strcpy(res, s);
-  char *prev_chr = res;
+char *reduce_abs_path(char const *path) {
+  int len = strlen(path);
+  char *res = malloc(len + 1); // Max size possible
+  char **prev_chr = malloc(len * sizeof(char *)); // Maximum number of '/'
+  strcpy(res, path);
   char *chr = res;
+  int i = 0;
   while ( (chr = strchr(chr, '/')) != NULL) {
     switch (is_special_dir(++chr)) {
       case 0:
         strcpy(chr, chr + 2);
+        chr--;
         break;
       case 1:
-        if (chr - 1 == res) { // path starts by /..
-          return NULL;
+        if (prev_chr[0] == NULL) { // path starts by /.. ( == /)
+          strcpy(chr, chr + 3);
         }
         else {
-          strcpy(prev_chr, chr + 3);
+          if (chr[2] == '\0'){
+            strcpy(prev_chr[--i], chr + 2);
+          }
+          else {
+            strcpy(prev_chr[--i], chr + 3);
+          }
+          chr = prev_chr[i] - 1;
+          prev_chr[i] = NULL;
         }
+        break;
+      default:
+        prev_chr[i++] = chr;
     }
-    prev_chr = chr;
   }
   return res;
 }
