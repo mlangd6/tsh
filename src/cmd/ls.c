@@ -14,23 +14,25 @@
 #define SIZE_OF_LINE 200
 #define SIZE_OF_NAME 100
 
-static char *convert_rights_nb_in_ch(char *rights);
-static char *is_directory(char c);
-static char *give_zero_before(int d);
-static char *convert_time(const char *ch);
+static int convert_rights_nb_in_ch(char *rights);
+static int file_type(char c);
+static int convert_time(const char *ch);
 static char *convert_size(char *size, int t);
-static char *concat(char **all, int size);
-static char **add_in_line(char **line, struct posix_header ph);
+static int is_link(char c);
+static int nb_link(struct posix_header ph, struct posix_header *header, int n);
+static int nb_of_slash(char *name);
 
-/* Convert a char pointer of rights with cipher format "0000755" in a char pointer format
-  "rwxr-xr-x" */
-static char *convert_rights_nb_in_ch(char *rights) {
-  char *tmp = malloc(10*sizeof(char));
+/* Convert a char pointer of rights with cipher format "0000755" in
+   a char pointer format "rwxr-xr-x" */
+static int convert_rights_nb_in_ch(char *rights) {
+  char tmp[10];
   int c = 1;
   tmp[9] = '\0';
-  for(int i = 4; i < 7; i++, c++){
+  for(int i = 4; i < 7; i++, c++)
+  {
     int aux = c*((i-1)%3)+(c-1)%2;
-    switch(rights[i]){
+    switch(rights[i])
+    {
       case '0' : tmp[aux] = '-'; tmp[aux + 1] = '-'; tmp[aux + 2] = '-'; break;
       case '1' : tmp[aux] = '-'; tmp[aux + 1] = '-'; tmp[aux + 2] = 'x'; break;
       case '2' : tmp[aux] = '-'; tmp[aux + 1] = 'w'; tmp[aux + 2] = '-'; break;
@@ -41,74 +43,107 @@ static char *convert_rights_nb_in_ch(char *rights) {
       case '7' : tmp[aux] = 'r'; tmp[aux + 1] = 'w'; tmp[aux + 2] = 'x'; break;
     }
   }
-  return tmp;
+  tmp[9] = '\0';
+  write(STDOUT_FILENO, strcat(tmp, " "), strlen(tmp)+2);
+  return 1;
 }
 
-/* Return the letter "d" if the typeflag corresponds with a directory else "-" */
-static char *is_directory(char c){
-  char *type = malloc(2*sizeof(char));
+/* Return the letter "d" if the typeflag corresponds with a directory,
+   "l" if the typeflag corresponds with a link else "-" */
+static int file_type(char c) {
+  char type[2];
   type[0] = '-';
   type[1] = '\0';
-  if(c == DIRTYPE){
+  if(c == DIRTYPE)
     type[0] = 'd';
-  }
-  return type;
+  if(c == LNKTYPE || c == SYMTYPE)
+    type[0] = 'l';
+  write(STDOUT_FILENO, type, 2);
+  return 1;
 }
 
-/* Add a '0' before a number if it is between 0 included and 10 excluded and
-   return a char pointer representing an integer passed in parameter */
-static char *give_zero_before(int d){
-  char *res = malloc(3), *buf = malloc(3);
-  if(d < 10) {
-    strcat(res, "0");
-    sprintf(buf, "%d", d);
-    strcat(res, buf);
-  }
-  else {
-    sprintf(buf, "%d", d);
-    strcat(res, buf);
-  }
-  return res;
+/* Return 1 if the typeflag representing by char c represent a link type,
+   else 0 */
+static int is_link(char c) {
+  if(c == LNKTYPE || c == SYMTYPE)
+    return 1;
+  return 0;
 }
+
+/* Return the number of occurences of '/' in a name */
+static int nb_of_slash(char *name) {
+  int cmp = 0;
+  for(int i = 0; i < strlen(name)-1; i++)
+    if(name[i] == '/') cmp++;
+  return cmp;
+}
+
+/* Return the number of link for one file of the tar*/
+static int nb_link(struct posix_header ph, struct posix_header *header, int n) {
+  char nb_ln[10];
+  int cmp = 1;
+  for(int i = 0; i < n; i++)
+    if(strcmp(header[i].linkname, ph.name)==0 ||( header[i].typeflag==DIRTYPE &&
+      strstr(header[i].name, ph.name)!=NULL && nb_of_slash(header[i].name)-nb_of_slash(ph.name) == 1) )
+      cmp++;
+  if(ph.typeflag == DIRTYPE)
+    cmp+=1;
+  sprintf(nb_ln, "%i", cmp);
+  nb_ln[1] = '\0';
+  write(STDOUT_FILENO, strcat(nb_ln, "  "), strlen(nb_ln)+3);
+  return 1;
+}
+
 
 /* Convert the time in the format of a number to the format of the human
    time "mmm. dd hh:min" */
-static char *convert_time(const char *ch){
+static int convert_time(const char *ch) {
   char *c = malloc(12);
   int si;
   strcat(c, ch);
   sscanf(c, "%o", &si);
+  time_t timestamp =  si;
+  struct tm *realtime = gmtime(&timestamp);
+  char month[6];
+  char day[4];
+  char hour[3];
+  char min[4];
 
-  int nb_annee_bisextile = (2020 - 1970) /4;
-  int min = si/60, minutes = min%60;
-  int h = min/60, hours = h%24;
-  int d = h/24 - nb_annee_bisextile, day = d%31 ;
-  int m = d/31, month = m%12;
-
-  char *res = malloc(20);
-  char *buf = malloc(5);
-
-  switch(month){
-    case 1 : strcat(res, "jan. "); break;
-    case 2 : strcat(res, "feb. "); break;
-    case 3 : strcat(res, "mar. "); break;
-    case 4 : strcat(res, "apr. "); break;
-    case 5 : strcat(res, "may  "); break;
-    case 6 : strcat(res, "jun. "); break;
-    case 7 : strcat(res, "jul. "); break;
-    case 8 : strcat(res, "aug. "); break;
-    case 9 : strcat(res, "sep. "); break;
-    case 10 : strcat(res, "oct. "); break;
-    case 11 : strcat(res, "nov. "); break;
-    case 12 : strcat(res, "dec. "); break;
+  switch(realtime->tm_mon)
+  {
+    case 0 : month[0] = 'j'; month[1] = 'a'; month[2] = 'n'; month[3] = '.'; month[4] = ' '; month[5] = '\0'; break;
+    case 1 : month[0] = 'f'; month[1] = 'e'; month[2] = 'b'; month[3] = '.'; month[4] = ' '; month[5] = '\0'; break;
+    case 2 : month[0] = 'm'; month[1] = 'a'; month[2] = 'r'; month[3] = '.'; month[4] = ' '; month[5] = '\0'; break;
+    case 3 : month[0] = 'a'; month[1] = 'p'; month[2] = 'r'; month[3] = '.'; month[4] = ' '; month[5] = '\0'; break;
+    case 4 : month[0] = 'm'; month[1] = 'a'; month[2] = 'y'; month[3] = ' '; month[4] = ' '; month[5] = '\0'; break;
+    case 5 : month[0] = 'j'; month[1] = 'u'; month[2] = 'n'; month[3] = '.'; month[4] = ' '; month[5] = '\0'; break;
+    case 6 : month[0] = 'j'; month[1] = 'u'; month[2] = 'l'; month[3] = '.'; month[4] = ' '; month[5] = '\0'; break;
+    case 7 : month[0] = 'a'; month[1] = 'u'; month[2] = 'g'; month[3] = '.'; month[4] = ' '; month[5] = '\0'; break;
+    case 8 : month[0] = 's'; month[1] = 'e'; month[2] = 'p'; month[3] = '.'; month[4] = ' '; month[5] = '\0'; break;
+    case 9 : month[0] = 'o'; month[1] = 'c'; month[2] = 't'; month[3] = '.'; month[4] = ' '; month[5] = '\0'; break;
+    case 10 : month[0] = 'n'; month[1] = 'o'; month[2] = 'v'; month[3] = '.'; month[4] = ' '; month[5] = '\0'; break;
+    case 11 : month[0] = 'd'; month[1] = 'e'; month[2] = 'c'; month[3] = '.'; month[4] = ' '; month[5] = '\0'; break;
+    default : exit(EXIT_FAILURE);
   }
-  sprintf(buf, "%d", day);
-  strcat(res, buf);
-  strcat(res, " ");
-  strcat(res, give_zero_before(hours));
-  strcat(res, ":");
-  strcat(res, give_zero_before(minutes));
-  return res;
+
+  sprintf(day, "%i", (*realtime).tm_mday);
+  sprintf(hour, "%i", (*realtime).tm_hour);
+  sprintf(min, "%i", (*realtime).tm_min);
+
+  if(strlen(day) == 2) { day[2] = ' '; day[3] ='\0'; }
+  else { day[1] = ' '; day[2] = ' '; day[3] = '\0'; }
+  if(strlen(min) == 1) { min[1] = min[0]; min[0] = '0'; min[2] = ' '; min[3] = '\0'; }
+  else { min[2] = ' '; min[3] = '\0'; }
+  if(strlen(hour) == 1) { hour[1] = hour[0]; hour[0] = '0'; }
+
+
+  write(STDOUT_FILENO, month, strlen(month));
+  write(STDOUT_FILENO, day , strlen(day));
+  write(STDOUT_FILENO, hour, strlen(hour));
+  write(STDOUT_FILENO, ":", 2);
+  write(STDOUT_FILENO, min, strlen(min));
+  free(c);
+  return 1;
 }
 
 /*
@@ -117,132 +152,110 @@ static int color_directory(){
 }*/
 
 /* convert the size to octal size */
-static char *convert_size(char *size, int t){
+static char *convert_size(char *size, int t) {
   int si = 0, cmp = 0, it = 0;
   char *tmp = malloc(12*sizeof(char));
   sscanf(size, "%011o", &si);
-  for(int i = 0; i < t; i++){
-    if(it > 0){
+  for(int i = 0; i < t; i++) {
+    if(it > 0)
+    {
       tmp[cmp++] = size[i];
       it = 1;
     }
-    else if(size[i] != '0'){
+    else if(size[i] != '0')
+    {
       tmp[cmp++] = size[i];
       it = 1;
     }
-    if(size[i] == '0' && it == 0 && size[i+1] != '\0'){
+    if(size[i] == '0' && it == 0 && size[i+1] != '\0')
+    {
       tmp[cmp++] = ' ';
       it = 0;
     }
-    else if(size[i] == '0' && it == 0 && size[i+1] == '\0'){
+    else if(size[i] == '0' && it == 0 && size[i+1] == '\0')
+    {
       tmp[cmp++] = size[i];
       it = 1;
     }
   }
   tmp[cmp] = tmp[t-1];
+  write(STDOUT_FILENO, strcat(tmp, "   "), strlen(tmp)+3);
+  free(tmp);
   return tmp;
 }
 
-/* concatenate the elements of a char pointer pointer between them and add a
-   space between each of them */
-static char *concat(char **all, int size)
-{
-  char *line = malloc(SIZE_OF_LINE);
-  for(int i = 0; i < size; i++)
-  {
-    strcat(line, all[i]);
-    strcat(line, " ");
-  }
-  return line;
-}
 
-/* Add all the elements for that the command ls -l needs, in a char pointer
-   pointer, representing a line of the command */
-static char **add_in_line(char **line, struct posix_header ph)
-{
-  char *unam = malloc(32);
-  strcat(unam, ph.uname);
-  char *gnam = malloc(32);
-  strcat(gnam, ph.gname);
-  line[0] = strcat(is_directory(ph.typeflag), convert_rights_nb_in_ch(ph.mode));
-  line[1] = unam;
-  line[2] = gnam;
-  line[3] = convert_size(ph.size, 12);
-  line[4] = convert_time(ph.mtime);
-  line[5] = ph.name;
-  return line;
-}
-
- //TODO : Il manque le nombre de liens pour chaque fichier
-char **ls_l(const char *tar_name) {
+int ls_l(const char *tar_name) {
   struct posix_header *header = tar_ls(tar_name);
   int tar_fd = open(tar_name, O_RDONLY);
   if (tar_fd == -1)
-  {
-    return error_p(tar_name, &tar_fd, 1);
-  }
+    return error_pt(tar_name, &tar_fd, 1);
   int nb_in_tar = nb_files_in_tar(tar_fd);
-  char **lines = malloc(nb_in_tar * SIZE_OF_LINE);
-  assert(lines);
+
+  for(int i = 0; i < nb_in_tar; i++)
+  {
+    char *c = NULL;
+    if((c = strstr(header[i].name, "/")) == NULL || c[1] == '\0' )
+    {
+      file_type(header[i].typeflag);
+      convert_rights_nb_in_ch(header[i].mode);
+      write(STDOUT_FILENO, " ", 2);
+      nb_link(header[i], header, nb_in_tar);
+      write(STDOUT_FILENO, strcat(header[i].uname, " "), strlen(header[i].uname)+1);
+      write(STDOUT_FILENO, strcat(header[i].gname, " "), strlen(header[i].gname)+1);
+      convert_size(header[i].size, 12);
+      convert_time(header[i].mtime);
+      if(is_link(header[i].typeflag))
+        write(STDOUT_FILENO, strcat(strcat(header[i].name, " -> "), header[i].linkname), strlen(header[i].name)+4+strlen(header[i].linkname));
+      else
+        write(STDOUT_FILENO, strcat(header[i].name, " "), strlen(header[i].name));
+      write(STDOUT_FILENO, "\n", 2);
+    }
+  }
+  close(tar_fd);
+  return 1;
+}
+
+
+int ls(const char *tar_name) {
+  struct posix_header *header = tar_ls(tar_name);
+  int tar_fd = open(tar_name, O_RDONLY);
+  if (tar_fd == -1)
+    return error_pt(tar_name, &tar_fd, 1);
+  int nb_in_tar = nb_files_in_tar(tar_fd);
 
   for(int i = 0; i < nb_in_tar; i++)
   {
     char *c = NULL;
     if((c = strstr(header[i].name, "/")) == NULL || c[1] == '\0' ){
-      char **line = malloc(SIZE_OF_LINE);
-      assert(line);
-      add_in_line(line, header[i]);
-      lines[i] = concat(line, 6);
-      strcat(lines[i], "\n");
-      if( write(STDOUT_FILENO, lines[i], SIZE_OF_LINE) < 0)
-        break;
-    }
-  }
-  close(tar_fd);
-  return lines;
-}
-
-
-char **ls(const char *tar_name) {
-  struct posix_header *header = tar_ls(tar_name);
-  int tar_fd = open(tar_name, O_RDONLY);
-  if (tar_fd == -1)
-  {
-    return error_p(tar_name, &tar_fd, 1);
-  }
-  int nb_in_tar = nb_files_in_tar(tar_fd);
-  char **lines = malloc(nb_in_tar * 100);
-  assert(lines);
-
-  for(int i = 0; i < nb_in_tar; i++){
-    char *c = NULL;
-    if((c = strstr(header[i].name, "/")) == NULL || c[1] == '\0' ){
-      lines[i] = strcat(header[i].name, " ");
-      write(STDOUT_FILENO, lines[i], 100);
+      write(STDOUT_FILENO, strcat(header[i].name, " "), strlen(header[i].name)+2);
     }
   }
   write(STDOUT_FILENO, "\n", 3);
   close(tar_fd);
-  return lines;
+  return 0;
 }
 
 
-int main(int argc, char *argv[]){
-  if(argc < 3){
-    if(is_tar(".") && strcmp(argv[1], "ls") == 0)
+int main(int argc, char *argv[]) {
+  if(argc < 2)
+  {
+    if(is_tar(".") && strcmp(argv[0], "./ls") == 0)
       ls(".");
     else exit(EXIT_FAILURE);
   }
-  else if(argc == 3){
-    if(strcmp(argv[1], "ls") == 0 && strcmp(argv[2], "-l") != 0 && is_tar(argv[2]))
-      ls(argv[2]);
-    else if(strcmp(argv[1], "ls") == 0 && strcmp(argv[2], "-l") == 0 && is_tar("."))
+  else if(argc == 2)
+  {
+    if(strcmp(argv[0], "./ls") == 0 && strcmp(argv[1], "-l") != 0 && is_tar(argv[1]))
+      ls(argv[1]);
+    else if(strcmp(argv[0], "./ls") == 0 && strcmp(argv[1], "-l") == 0 && is_tar("."))
       ls_l(".");
     else exit(EXIT_FAILURE);
   }
-  else if(argc == 4){
-    if(strcmp(argv[1], "ls") == 0 && strcmp(argv[2], "-l") == 0 && is_tar(argv[3]))
-      ls_l(argv[3]);
+  else if(argc == 3)
+  {
+    if(strcmp(argv[0], "./ls") == 0 && strcmp(argv[1], "-l") == 0 && is_tar(argv[2]))
+      ls_l(argv[2]);
     else exit(EXIT_FAILURE);
   }
   return 0;
