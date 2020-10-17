@@ -297,7 +297,7 @@ int is_tar(const char *tar_name) {
   int tar_fd = open(tar_name, O_RDONLY);
 
   if (tar_fd < 0)
-    return error_pt(tar_name, &tar_fd, 1);
+    return -1;
 
   unsigned int file_size;
   struct posix_header file_header;
@@ -305,7 +305,7 @@ int is_tar(const char *tar_name) {
 
   while( !fail ) {
     if( (read_size=read(tar_fd, &file_header, BLOCKSIZE)) < 0)
-      return error_pt(tar_name, &tar_fd, 1);
+      return -1;
 
     if( read_size != BLOCKSIZE )
       fail = 1;

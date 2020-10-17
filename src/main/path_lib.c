@@ -2,26 +2,20 @@
 #include <stdlib.h>
 #include "tar.h"
 
-char *split_tar_abs_path(char const *path) {
+char *split_tar_abs_path(char *path) {
   if (path[0] != '/') {
     return NULL;
   }
-  char *cpy = malloc(strlen(path) + 1);
-  strcpy(cpy, path);
-  char *chr = cpy+1;
+  char *chr = path+1;
 
   while ( (chr = strchr(chr, '/')) != NULL) {
     *chr = '\0';
-    if (is_tar(cpy) == 1) {
-      #pragma GCC diagnostic ignored "-Wdiscarded-qualifiers"
-      char *res = path + (chr + 1 - cpy);
-      free(cpy);
-      return res;
+    if (is_tar(path) == 1) {
+      return path + (chr + 1 - path);
     }
     *chr = '/';
     chr++;
   }
-  free(cpy);
   return strchr(path, '\0');
 }
 
@@ -74,4 +68,14 @@ char *reduce_abs_path(char const *path) {
     }
   }
   return res;
+}
+
+char *reduce_path_and_split(char const *path) {
+//   if (path == NULL) {
+//     return NULL;
+//   }
+//   if (path[0] == '/') {
+//     return split_tar_abs_path(reduce_abs_path(*path));
+//   }
+  return NULL;
 }

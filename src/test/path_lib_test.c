@@ -14,14 +14,14 @@ static char *(*tests[])(void) = {split_tar_abs_path_test, reduce_abs_path_test};
 
 
 static char *split_tar_abs_path_test() {
-  char *root = "/";
-  char *tmp = "/tmp";
-  char *tmp_bis = "/tmp/";
-  char *root_tar = "/tmp/tsh_test/test.tar";
-  char *root_tar_bis = "/tmp/tsh_test/test.tar/";
-  char *sub_dir_tar = "/tmp/tsh_test/test.tar/man";
-  char *sub_dir_tar_bis = "/tmp/tsh_test/test.tar/man/";
-  char *test_error = "relative";
+  char root[] = "/";
+  char tmp[] = "/tmp";
+  char tmp_bis[] = "/tmp/";
+  char root_tar[] = "/tmp/tsh_test/test.tar";
+  char root_tar_bis[] = "/tmp/tsh_test/test.tar/";
+  char sub_dir_tar[] = "/tmp/tsh_test/test.tar/man";
+  char sub_dir_tar_bis[] = "/tmp/tsh_test/test.tar/man/";
+  char test_error[] = "relative";
   mu_assert("split_tar_abs_path: error: should return NULL with \"relative\"",
     split_tar_abs_path(test_error) == NULL);
   mu_assert("split_tar_abs_path: error: should return a NULL char with \"/\"",
