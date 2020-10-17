@@ -282,6 +282,7 @@ int is_tar(const char *tar_name) {
   return !fail;
 }
 
+
 static int find_header(int tar_fd, const char *filename, struct posix_header *header)
 {
   unsigned int file_size;
@@ -321,9 +322,7 @@ int tar_cp_file(const char *tar_name, const char *filename, int fd) {
 
   unsigned int file_size;
   struct posix_header file_header;
-
   int r = find_header(tar_fd, filename, &file_header);
-
   
   if(r < 0) // erreur
     return error_pt(tar_name, &tar_fd, 1);
@@ -338,6 +337,31 @@ int tar_cp_file(const char *tar_name, const char *filename, int fd) {
     return error_pt(tar_name, &tar_fd, 1);
   
   close(tar_fd);
+
+  return 0;
+}
+
+
+static int tar_shift(int tar_fd, off_t whence, size_t size, off_t where)
+{
+  char *buffer = malloc(size);
+  assert(buffer);
+  
+  lseek(tar_fd, whence, SEEK_SET);
+  if( read(tar_fd, buffer, size) < 0 )
+    {
+      free(buffer);
+      return -1;
+    }
+
+  lseek(tar_fd, where, SEEK_SET);
+  if( write(tar_fd, buffer, size) < 0)
+    {
+      free(buffer);
+      return -1;
+    }
+
+  free(buffer);
 
   return 0;
 }
@@ -352,7 +376,6 @@ int tar_rm_file(const char *tar_name, const char *filename)
 
   unsigned int file_size;
   struct posix_header file_header;
-
   int r = find_header(tar_fd, filename, &file_header);
 
   if(r < 0) // erreur
@@ -362,31 +385,17 @@ int tar_rm_file(const char *tar_name, const char *filename)
       close(tar_fd);
       return -1;
     }
-
   
-  int file_start = lseek(tar_fd, -BLOCKSIZE, SEEK_CUR); // on était à la fin d'un header, on se place donc au début
   sscanf(file_header.size, "%o", &file_size);
-  int file_end = file_start + BLOCKSIZE + number_of_block(file_size)*BLOCKSIZE;  
+  int file_start = lseek(tar_fd, -BLOCKSIZE, SEEK_CUR), // on était à la fin d'un header, on se place donc au début
+      file_end   = file_start + BLOCKSIZE + number_of_block(file_size)*BLOCKSIZE,
+      tar_end    = lseek(tar_fd, 0, SEEK_END);
 
-  int tar_end = lseek(tar_fd, 0, SEEK_END);
-
-  // on copie la partie droite dans le buffer
-  int buffer_size = tar_end - file_end; 
-  char *buffer = malloc(buffer_size);
-  assert(buffer);
-
-  lseek(tar_fd, file_end, SEEK_SET);
-  if( read(tar_fd, buffer, buffer_size) < 0)
+  if( tar_shift(tar_fd, file_end, tar_end - file_end, file_start) < 0)
     return error_pt(tar_name, &tar_fd, 1);
-
-  // puis on écrit par dessus
-  lseek(tar_fd, file_start, SEEK_SET);
-  if( write(tar_fd, buffer, buffer_size) < 0)
-    return error_pt(tar_name, &tar_fd, 1);
-
+  
   // ftruncate(tar_fd, tar_end - (file_end - file_start));?
 
-  free(buffer);
   close(tar_fd);
   return 0;
 }
@@ -401,9 +410,7 @@ int tar_mv_file(const char *tar_name, const char *filename, int fd)
 
   unsigned int file_size;
   struct posix_header file_header;
-
   int r = find_header(tar_fd, filename, &file_header);
-
   
   if(r < 0) // erreur
     return error_pt(tar_name, &tar_fd, 1);
@@ -414,34 +421,22 @@ int tar_mv_file(const char *tar_name, const char *filename, int fd)
     }
 
   int p = lseek(tar_fd, 0, SEEK_CUR);
-  
+
+  // CP
   sscanf(file_header.size, "%o", &file_size);
   if( read_write_buf_by_buf(tar_fd, fd, file_size) < 0)
     return error_pt(tar_name, &tar_fd, 1);
 
-  int file_start = lseek(tar_fd, p - BLOCKSIZE, SEEK_SET); // on était à la fin d'un header, on se place donc au début
-  sscanf(file_header.size, "%o", &file_size);
-  int file_end = file_start + BLOCKSIZE + number_of_block(file_size)*BLOCKSIZE;  
+  // RM
+  int file_start = p - BLOCKSIZE,
+      file_end   = file_start + BLOCKSIZE + number_of_block(file_size)*BLOCKSIZE,
+      tar_end    = lseek(tar_fd, 0, SEEK_END);
 
-  int tar_end = lseek(tar_fd, 0, SEEK_END);
-
-  // on copie la partie droite dans le buffer
-  int buffer_size = tar_end - file_end; 
-  char *buffer = malloc(buffer_size);
-  assert(buffer);
-
-  lseek(tar_fd, file_end, SEEK_SET);
-  if( read(tar_fd, buffer, buffer_size) < 0)
+  if( tar_shift(tar_fd, file_end, tar_end - file_end, file_start) < 0)
     return error_pt(tar_name, &tar_fd, 1);
-
-  // puis on écrit par dessus
-  lseek(tar_fd, file_start, SEEK_SET);
-  if( write(tar_fd, buffer, buffer_size) < 0)
-    return error_pt(tar_name, &tar_fd, 1);
-
+  
   // ftruncate(tar_fd, tar_end - (file_end - file_start));?
 
-  free(buffer);
   close(tar_fd);
 
   return 0;
