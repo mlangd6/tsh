@@ -32,7 +32,7 @@ void set_checksum(struct posix_header *hd) {
 /* Check that the checksum of a header is correct */
 
 int check_checksum(struct posix_header *hd) {
-  unsigned int checksum;
+  unsigned int checksum = 0;
   sscanf(hd->chksum, "%o ", &checksum);
   unsigned int sum = 0;
   char *p = (char *)hd;
