@@ -12,6 +12,7 @@ TEST_DIR=test/
 CMD_DIR=cmd/
 INCLUDE=$(SRC)include/
 TEST_INCLUDE=$(SRC)test_include/
+TSH_DIR=${HOME}/.tsh
 
 # Prevent from deleting files
 .SECONDARY:
@@ -37,6 +38,8 @@ BIN_FILES:=$(addprefix $(BIN), $(BIN_FILES))
 all: $(EXEC) $(TEST) cmd
 
 cmd: $(BIN_FILES)
+	@mkdir -p $(TSH_DIR)
+	@cp -r $(BIN) $(TSH_DIR)
 
 
 $(EXEC): $(OBJS)

@@ -11,7 +11,7 @@ char *split_tar_abs_path(char *path) {
   while ( (chr = strchr(chr, '/')) != NULL) {
     *chr = '\0';
     if (is_tar(path) == 1) {
-      return path + (chr + 1 - path);
+      return chr+1;
     }
     *chr = '/';
     chr++;
@@ -35,12 +35,9 @@ static int is_special_dir(char const *s) {
 }
 
 
-char *reduce_abs_path(char const *path) {
-  int len = strlen(path);
-  char *res = malloc(len + 1); // Max size possible
-  char **prev_chr = malloc(len * sizeof(char *)); // Maximum number of '/'
-  strcpy(res, path);
-  char *chr = res;
+char *reduce_abs_path(char *path) {
+  char **prev_chr = malloc(strlen(path) * sizeof(char *)); // Maximum number of '/'
+  char *chr = path;
   int i = 0;
   while ( (chr = strchr(chr, '/')) != NULL) {
     switch (is_special_dir(++chr)) {
@@ -67,15 +64,6 @@ char *reduce_abs_path(char const *path) {
         prev_chr[i++] = chr;
     }
   }
-  return res;
-}
-
-char *reduce_path_and_split(char const *path) {
-//   if (path == NULL) {
-//     return NULL;
-//   }
-//   if (path[0] == '/') {
-//     return split_tar_abs_path(reduce_abs_path(*path));
-//   }
-  return NULL;
+  free(prev_chr);
+  return path;
 }

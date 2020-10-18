@@ -323,30 +323,3 @@ int is_tar(const char *tar_name) {
   close(tar_fd);
   return !fail;
 }
-
-
-
-char *get_tar_dir(char const *path) {
-  char *chr;
-
-  if (path[0] != '/') { // Relative path
-    char *wd = getcwd(NULL, 0);
-    char *pwd = getenv("PWD");
-    if (strcmp (pwd, wd) == 0) { // PWD not in tarball
-      chr = path;
-    }
-    else { // PWD already in a tarball
-      return path + strlen(path);
-    }
-  }
-  else { // absolute path
-    chr = path + 1; // avoid first '/'
-  }
-  while ((chr = strchr(chr, '/')) != NULL) {
-    chr[0] = '\0';
-    if (is_tar(path)) {
-      return chr;
-    }
-  }
-  return NULL;
-}

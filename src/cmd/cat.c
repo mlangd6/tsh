@@ -1,26 +1,38 @@
-#include "tar.h"
 #include <unistd.h>
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
+#include <sys/types.h>
+#include <sys/wait.h>
+#include "tar.h"
+#include "path_lib.h"
 
 #define CMD_NAME "cat"
 
-int main(int argc, char const *argv[]) {
+int main(int argc, char *argv[]) {
   if (argc == 1) {
     execlp(CMD_NAME, CMD_NAME, NULL);
   }
   int ret = EXIT_SUCCESS;
-  char *wd = getcwd(NULL, 0);
-  char *pwd = getenv("PWD");
   for (int i = 1; i < argc; i++) {
-    char *tar = get_tar_dir(argv[i]);
-    if (tar[0] == '\0') {
-      tar = pwd + strlen(wd) + 1;
-      tar_read_file(tar, argv[i], STDOUT_FILENO);
+    char *in_tar = split_tar_abs_path(argv[i]);
+    if (*in_tar == '\0') {
+      int f = fork(), w;
+      switch(f) {
+        case -1:
+          perror("fork");
+          break;
+        case 0: // son
+          execlp(CMD_NAME, CMD_NAME, argv[i], NULL);
+        default:
+          wait(&w);
+      }
+    }
+    else {
+      printf("ELSE: tar=%s, file=%s\n", in_tar, argv[i]);
+      tar_read_file(argv[i], in_tar, STDOUT_FILENO);
     }
 
   }
-  free(wd);
   exit(ret);
 }

@@ -42,16 +42,15 @@ static char *split_tar_abs_path_test() {
 }
 
 static char *reduce_abs_path_test() {
-  char *root1 = "/";
-  char *root2 = "/tmp/..";
-  char *root3 = "/tmp/../tmp/tsh_test/../..";
-  char *root4 = "/tmp/./tsh_test/.././..";
+  char root1[] = "/";
+  char root2[] = "/tmp/..";
+  char root3[] = "/tmp/../tmp/tsh_test/../..";
+  char root4[] = "/tmp/./tsh_test/.././..";
   char *ress[] = {reduce_abs_path(root1), reduce_abs_path(root2),
     reduce_abs_path(root3), reduce_abs_path(root4)};
   for (int i = 0; i < 4; i++) {
     mu_assert("reduce_abs_path: error: Should return \"/\"",
       strcmp(ress[i], "/") == 0);
-    free(ress[i]);
   }
   return 0;
 }
