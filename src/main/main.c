@@ -19,11 +19,9 @@ char act_path[PATH_MAX];
 
 static int count_words(char *s) {
   int res = 1;
-  char *prev = s;
-  char *next;
-  while((next = strchr(prev, ' ')) != NULL) {
-    if (next != prev+1 && *(next+1) != '\0' && res++) ;
-    prev = next+1;
+  char *chr = s;
+  while((chr = strchr(chr, ' ')) != NULL && chr[1] != '\0' && res++) {
+    chr++;
   }
   return res;
 }
@@ -107,7 +105,10 @@ int main(int argc, char *argv[]){
         wait(&w);
 
     }
-
+    for (int i = 0; tokens[i] != NULL; i++) {
+      free(tokens[i]);
+    }
+    // free(buf);
 
   }
   return 0;
