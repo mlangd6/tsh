@@ -1,4 +1,3 @@
-#include <stdio.h>
 #include <stdlib.h>
 #include <readline/readline.h>
 #include <readline/history.h>
@@ -91,7 +90,6 @@ int main(int argc, char *argv[]){
           strcpy(cmd_exec, tsh_dir);
           strcat(cmd_exec, "/bin/");
           strcat(cmd_exec, tokens[0]);
-          printf("%s\n", cmd_exec);
           execv(cmd_exec, tokens);
         }
         else {

@@ -29,8 +29,7 @@ int main(int argc, char *argv[]) {
       }
     }
     else {
-      printf("ELSE: tar=%s, file=%s\n", in_tar, argv[i]);
-      tar_read_file(argv[i], in_tar, STDOUT_FILENO);
+      tar_cp_file(argv[i], in_tar, STDOUT_FILENO);
     }
 
   }
