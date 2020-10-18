@@ -179,7 +179,7 @@ static char *convert_size(char *size, int t) {
     }
   }
   tmp[cmp] = tmp[t-1];
-  write(STDOUT_FILENO, strcat(tmp, "   "), strlen(tmp)+3);
+  write(STDOUT_FILENO, strcat(tmp, "   "), strlen(tmp)+4);
   free(tmp);
   return tmp;
 }
@@ -201,12 +201,12 @@ int ls_l(const char *tar_name) {
       convert_rights_nb_in_ch(header[i].mode);
       write(STDOUT_FILENO, " ", 2);
       nb_link(header[i], header, nb_in_tar);
-      write(STDOUT_FILENO, strcat(header[i].uname, " "), strlen(header[i].uname)+1);
-      write(STDOUT_FILENO, strcat(header[i].gname, " "), strlen(header[i].gname)+1);
+      write(STDOUT_FILENO, strcat(header[i].uname, " "), strlen(header[i].uname)+2);
+      write(STDOUT_FILENO, strcat(header[i].gname, " "), strlen(header[i].gname)+2);
       convert_size(header[i].size, 12);
       convert_time(header[i].mtime);
       if(is_link(header[i].typeflag))
-        write(STDOUT_FILENO, strcat(strcat(header[i].name, " -> "), header[i].linkname), strlen(header[i].name)+4+strlen(header[i].linkname));
+        write(STDOUT_FILENO, strcat(strcat(header[i].name, " -> "), header[i].linkname), strlen(header[i].name)+5+strlen(header[i].linkname));
       else
         write(STDOUT_FILENO, strcat(header[i].name, " "), strlen(header[i].name));
       write(STDOUT_FILENO, "\n", 2);
@@ -228,10 +228,10 @@ int ls(const char *tar_name) {
   {
     char *c = NULL;
     if((c = strstr(header[i].name, "/")) == NULL || c[1] == '\0' ){
-      write(STDOUT_FILENO, strcat(header[i].name, " "), strlen(header[i].name)+2);
+      write(STDOUT_FILENO, strcat(header[i].name, "   "), strlen(header[i].name)+4);
     }
   }
-  write(STDOUT_FILENO, "\n", 3);
+  write(STDOUT_FILENO, "\n", 2);
   close(tar_fd);
   return 0;
 }
@@ -240,21 +240,21 @@ int ls(const char *tar_name) {
 int main(int argc, char *argv[]) {
   if(argc < 2)
   {
-    if(is_tar(".") && strcmp(argv[0], "./ls") == 0)
+    if(is_tar("."))
       ls(".");
     else exit(EXIT_FAILURE);
   }
   else if(argc == 2)
   {
-    if(strcmp(argv[0], "./ls") == 0 && strcmp(argv[1], "-l") != 0 && is_tar(argv[1]))
+    if(strcmp(argv[1], "-l") != 0 && is_tar(argv[1]))
       ls(argv[1]);
-    else if(strcmp(argv[0], "./ls") == 0 && strcmp(argv[1], "-l") == 0 && is_tar("."))
+    else if(strcmp(argv[1], "-l") == 0 && is_tar("."))
       ls_l(".");
     else exit(EXIT_FAILURE);
   }
   else if(argc == 3)
   {
-    if(strcmp(argv[0], "./ls") == 0 && strcmp(argv[1], "-l") == 0 && is_tar(argv[2]))
+    if(strcmp(argv[1], "-l") == 0 && is_tar(argv[2]))
       ls_l(argv[2]);
     else exit(EXIT_FAILURE);
   }
