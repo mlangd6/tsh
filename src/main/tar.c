@@ -394,7 +394,7 @@ int tar_rm_file(const char *tar_name, const char *filename)
   if( tar_shift(tar_fd, file_end, tar_end - file_end, file_start) < 0)
     return error_pt(tar_name, &tar_fd, 1);
   
-  // ftruncate(tar_fd, tar_end - (file_end - file_start));?
+  ftruncate(tar_fd, tar_end - (file_end - file_start));
 
   close(tar_fd);
   return 0;
@@ -435,7 +435,7 @@ int tar_mv_file(const char *tar_name, const char *filename, int fd)
   if( tar_shift(tar_fd, file_end, tar_end - file_end, file_start) < 0)
     return error_pt(tar_name, &tar_fd, 1);
   
-  // ftruncate(tar_fd, tar_end - (file_end - file_start));?
+  ftruncate(tar_fd, tar_end - (file_end - file_start));
 
   close(tar_fd);
 
