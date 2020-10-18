@@ -62,10 +62,16 @@ void set_checksum(struct posix_header *hd);
 /* Check that the checksum of a header is correct */
 int check_checksum(struct posix_header *hd);
 
-/* Open the tarball TAR_NAME and copy the content of FILENAME into FD */
-int tar_read_file(const char *tar_name, const char *filename, int fd);
-
 /* Check if the file at PATHNAME is a valid tarball. */
 int is_tar(const char *tar_name);
+
+/* Open the tarball TAR_NAME and copy the content of FILENAME into FD */
+int tar_cp_file(const char *tar_name, const char *filename, int fd);
+
+/* Open the tarball TAR_NAME and delete FILENAME if possible */
+int tar_rm_file(const char *tar_name, const char *filename);
+
+/* Open the tarball TAR_NAME and copy the content of FILENAME into FD then delete FILENAME */
+int tar_mv_file(const char *tar_name, const char *filename, int fd);
 
 #endif
