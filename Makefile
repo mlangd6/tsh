@@ -14,9 +14,6 @@ INCLUDE=$(SRC)include/
 TEST_INCLUDE=$(SRC)test_include/
 TSH_DIR=${HOME}/.tsh
 
-# Prevent from deleting files
-.SECONDARY:
-
 # TSH
 MAIN_FILES=$(wildcard $(SRC)$(MAIN_DIR)*.c)
 OBJS=$(notdir $(MAIN_FILES:.c=.o))
@@ -34,6 +31,8 @@ CMD_FILES=$(wildcard $(SRC)$(CMD_DIR)*.c)
 BIN_FILES=$(notdir $(basename $(CMD_FILES)))
 BIN_FILES:=$(addprefix $(BIN), $(BIN_FILES))
 
+# Prevent deletion of file
+.PRECIOUS: 	$(TARGET)$(CMD_DIR)%.o
 
 all: $(EXEC) $(TEST) cmd
 

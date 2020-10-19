@@ -1,3 +1,4 @@
+#include <stdio.h>
 #include <stdlib.h>
 #include <readline/readline.h>
 #include <readline/history.h>
@@ -37,7 +38,7 @@ static char **split(char *s) {
       if (res[i][0] != '/') { // Relative path
         char *tmp = malloc(PATH_MAX);
         strcpy(tmp, act_path);
-        tmp[strlen(tmp)] = '/';
+        strcat(tmp, "/");
         strcat(tmp, res[i]);
         res[i] = tmp;
       }

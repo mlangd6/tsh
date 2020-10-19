@@ -42,8 +42,13 @@ char *reduce_abs_path(char *path) {
   while ( (chr = strchr(chr, '/')) != NULL) {
     switch (is_special_dir(++chr)) {
       case 0:
-        strcpy(chr, chr + 2);
-        chr--;
+        if (chr[1] == '\0') {
+          chr[0] = '\0';
+        }
+        else {
+          strcpy(chr, chr+2);
+          chr--;
+        }
         break;
       case 1:
         if (prev_chr[0] == NULL) { // path starts by /.. ( == /)
