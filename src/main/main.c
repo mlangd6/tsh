@@ -49,6 +49,11 @@ static char **split(char *s) {
       }
       reduce_abs_path(res[i]);
     }
+    else {
+      char *tmp = malloc(sizeof(res[i]) + 1);
+      strcpy(tmp, res[i]);
+      res[i] = tmp;
+    }
   }
   res[nb_tokens] = NULL;
   return res;
@@ -109,7 +114,6 @@ int main(int argc, char *argv[]){
     for (int i = 0; tokens[i] != NULL; i++) {
       free(tokens[i]);
     }
-    // free(buf);
 
   }
   return 0;
