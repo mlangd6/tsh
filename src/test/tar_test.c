@@ -19,7 +19,7 @@ static char *tar_cp_test();
 static char *tar_rm_test();
 static char *tar_mv_test();
 
-int tests_run = 0;
+extern int tests_run;
 
 static char *(*tests[])(void) = { tar_add_file_test, test_tar_ls, is_tar_test, tar_cp_test, tar_rm_test, tar_mv_test};
 
@@ -72,12 +72,12 @@ static char *is_tar_test() {
   // test corruption
   char bad_chksm[8];
   memset(bad_chksm, '\0', sizeof(bad_chksm));
-  int fd = open("/tmp/tsh_test/test.tar", O_RDWR); 
+  int fd = open("/tmp/tsh_test/test.tar", O_RDWR);
   lseek(fd, 148, SEEK_SET);
   write(fd, bad_chksm, sizeof(bad_chksm));
-  mu_assert("Error, is_tar(\"/tmp/tsh_test/test.tar\") != 0", is_tar("/tmp/tsh_test/test.tar") == 0);  
+  mu_assert("Error, is_tar(\"/tmp/tsh_test/test.tar\") != 0", is_tar("/tmp/tsh_test/test.tar") == 0);
   close(fd);
-  
+
   return 0;
 }
 
@@ -122,15 +122,15 @@ static char *tar_rm_test()
   mu_assert("Error tar_rm_file corrupted the tar", is_tar("/tmp/tsh_test/test.tar") == 1);
 
   mu_assert("tar_rm_file(\"/tmp/tsh_test/test.tar\", \"man_dir/open2\") != -1", tar_rm_file("/tmp/tsh_test/test.tar", "man_dir/open2") == -1);
-  
+
   return 0;
 }
 
 static char *tar_mv_test()
 {
-  int fd = open("/tmp/tsh_test/mv_test", O_CREAT | O_RDWR, S_IRUSR | S_IWUSR);  
+  int fd = open("/tmp/tsh_test/mv_test", O_CREAT | O_RDWR, S_IRUSR | S_IWUSR);
   mu_assert("Open didn't work", fd > 0);
-  
+
   mu_assert("Couldn't mv \"/tmp/tsh_test/test.tar/man_dir/man\"", tar_mv_file("/tmp/tsh_test/test.tar", "man_dir/man", fd) == 0);
 
   system("man man > /tmp/tsh_test/man_man");
@@ -152,6 +152,7 @@ static char *all_tests() {
 }
 
 int launch_tar_tests() {
+  int prec_tests_run = tests_run;
   char *results = all_tests();
   if (results != 0) {
     printf("%s\n", results);
@@ -159,7 +160,6 @@ int launch_tar_tests() {
   else {
     printf("ALL TAR TESTS PASSED\n");
   }
-  printf("tar tests run: %d\n", tests_run);
-
-  return results != 0;
+  printf("tar tests run: %d\n\n", tests_run - prec_tests_run);
+  return (results == 0);
 }

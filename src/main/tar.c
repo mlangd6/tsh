@@ -11,6 +11,7 @@
 #include <unistd.h>
 
 #define BUFSIZE 512
+extern int errno;
 
 /* Code for set_checksum(...) and check_checksum(...) are taken from :
    https://gaufre.informatique.univ-paris-diderot.fr/klimann/systL3_2020-2021/blob/master/TP/TP1/tar.h */
@@ -246,24 +247,24 @@ static int read_write_buf_by_buf(int read_fd, int write_fd, size_t count) {
   return 0;
 }
 
-/* Check if the file at PATHNAME is a valid tarball. 
+/* Check if the file at PATHNAME is a valid tarball.
    Return :
    1  if all header are correct
    0 if at least one header is invalid or can't read a full block
-   -1 otherwise */ 
+   -1 otherwise */
 int is_tar(const char *tar_name) {
   int tar_fd = open(tar_name, O_RDONLY);
 
   if (tar_fd < 0)
-    return error_pt(tar_name, &tar_fd, 1);
-  
+    return -1;
+
   unsigned int file_size;
   struct posix_header file_header;
   int fail = 0, read_size;
 
   while( !fail ) {
     if( (read_size=read(tar_fd, &file_header, BLOCKSIZE)) < 0)
-      return error_pt(tar_name, &tar_fd, 1);
+      return -1;
 
     if( read_size != BLOCKSIZE )
       fail = 1;
@@ -277,7 +278,7 @@ int is_tar(const char *tar_name) {
       lseek(tar_fd, number_of_block(file_size) * BLOCKSIZE, SEEK_CUR);
     }
   }
-  
+
   close(tar_fd);
   return !fail;
 }
@@ -289,8 +290,8 @@ static int find_header(int tar_fd, const char *filename, struct posix_header *he
 
   while (1)
     {
-      if( read(tar_fd, header, BLOCKSIZE) < 0)      
-	return -1;      
+      if( read(tar_fd, header, BLOCKSIZE) < 0)
+	return -1;
       else if (header->name[0] == '\0')
 	return 0;
       else if (strcmp(filename, header->name) == 0)
@@ -308,7 +309,7 @@ static int find_header(int tar_fd, const char *filename, struct posix_header *he
 	  lseek(tar_fd, number_of_block(file_size) * BLOCKSIZE, SEEK_CUR);
 	}
     }
-  
+
   return -1;
 }
 
@@ -323,7 +324,7 @@ int tar_cp_file(const char *tar_name, const char *filename, int fd) {
   unsigned int file_size;
   struct posix_header file_header;
   int r = find_header(tar_fd, filename, &file_header);
-  
+
   if(r < 0) // erreur
     return error_pt(tar_name, &tar_fd, 1);
   else if(r == 0) // pas un fichier ou pas trouvé
@@ -331,11 +332,11 @@ int tar_cp_file(const char *tar_name, const char *filename, int fd) {
       close(tar_fd);
       return -1;
     }
-  
+
   sscanf(file_header.size, "%o", &file_size);
   if( read_write_buf_by_buf(tar_fd, fd, file_size) < 0)
     return error_pt(tar_name, &tar_fd, 1);
-  
+
   close(tar_fd);
 
   return 0;
@@ -346,7 +347,7 @@ static int tar_shift(int tar_fd, off_t whence, size_t size, off_t where)
 {
   char *buffer = malloc(size);
   assert(buffer);
-  
+
   lseek(tar_fd, whence, SEEK_SET);
   if( read(tar_fd, buffer, size) < 0 )
     {
@@ -385,7 +386,7 @@ int tar_rm_file(const char *tar_name, const char *filename)
       close(tar_fd);
       return -1;
     }
-  
+
   sscanf(file_header.size, "%o", &file_size);
   int file_start = lseek(tar_fd, -BLOCKSIZE, SEEK_CUR), // on était à la fin d'un header, on se place donc au début
       file_end   = file_start + BLOCKSIZE + number_of_block(file_size)*BLOCKSIZE,
@@ -393,7 +394,7 @@ int tar_rm_file(const char *tar_name, const char *filename)
 
   if( tar_shift(tar_fd, file_end, tar_end - file_end, file_start) < 0)
     return error_pt(tar_name, &tar_fd, 1);
-  
+
   ftruncate(tar_fd, tar_end - (file_end - file_start));
 
   close(tar_fd);
@@ -411,7 +412,7 @@ int tar_mv_file(const char *tar_name, const char *filename, int fd)
   unsigned int file_size;
   struct posix_header file_header;
   int r = find_header(tar_fd, filename, &file_header);
-  
+
   if(r < 0) // erreur
     return error_pt(tar_name, &tar_fd, 1);
   else if(r == 0) // pas un fichier ou pas trouvé
@@ -434,7 +435,7 @@ int tar_mv_file(const char *tar_name, const char *filename, int fd)
 
   if( tar_shift(tar_fd, file_end, tar_end - file_end, file_start) < 0)
     return error_pt(tar_name, &tar_fd, 1);
-  
+
   ftruncate(tar_fd, tar_end - (file_end - file_start));
 
   close(tar_fd);
