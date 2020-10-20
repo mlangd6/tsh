@@ -11,6 +11,7 @@
 #include <unistd.h>
 
 #define BUFSIZE 512
+extern int errno;
 
 /* Code for set_checksum(...) and check_checksum(...) are taken from :
    https://gaufre.informatique.univ-paris-diderot.fr/klimann/systL3_2020-2021/blob/master/TP/TP1/tar.h */
@@ -254,7 +255,7 @@ int is_tar(const char *tar_name) {
   int tar_fd = open(tar_name, O_RDONLY);
 
   if (tar_fd < 0)
-    return error_pt(tar_name, &tar_fd, 1);
+    return -1;
 
   unsigned int file_size;
   struct posix_header file_header;
@@ -262,7 +263,7 @@ int is_tar(const char *tar_name) {
 
   while( !fail ) {
     if( (read_size=read(tar_fd, &file_header, BLOCKSIZE)) < 0)
-      return error_pt(tar_name, &tar_fd, 1);
+      return -1;
 
     if( read_size != BLOCKSIZE )
       fail = 1;

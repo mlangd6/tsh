@@ -19,7 +19,7 @@ static char *tar_cp_test();
 static char *tar_rm_test();
 static char *tar_mv_test();
 
-int tests_run = 0;
+extern int tests_run;
 
 static char *(*tests[])(void) = { tar_add_file_test, test_tar_ls, is_tar_test, tar_cp_test, tar_rm_test, tar_mv_test};
 
@@ -153,6 +153,7 @@ static char *all_tests() {
 }
 
 int launch_tar_tests() {
+  int prec_tests_run = tests_run;
   char *results = all_tests();
   if (results != 0) {
     printf("%s\n", results);
@@ -160,7 +161,6 @@ int launch_tar_tests() {
   else {
     printf("ALL TAR TESTS PASSED\n");
   }
-  printf("tar tests run: %d\n", tests_run);
-
-  return results != 0;
+  printf("tar tests run: %d\n\n", tests_run - prec_tests_run);
+  return (results == 0);
 }
