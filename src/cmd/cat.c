@@ -13,6 +13,10 @@ int main(int argc, char *argv[]) {
   if (argc == 1) {
     execlp(CMD_NAME, CMD_NAME, NULL);
   }
+  if (argv[1][0] == '-') {
+    execvp(argv[0], argv);
+    exit(EXIT_FAILURE);
+  }
   int ret = EXIT_SUCCESS;
   for (int i = 1; i < argc; i++) {
     char *in_tar = split_tar_abs_path(argv[i]);
@@ -29,7 +33,9 @@ int main(int argc, char *argv[]) {
       }
     }
     else {
-      tar_cp_file(argv[i], in_tar, STDOUT_FILENO);
+      if (tar_cp_file(argv[i], in_tar, STDOUT_FILENO) < 0) {
+        write(STDOUT_FILENO, "cat: erreur\n", 13); // A CHANGER
+      }
     }
 
   }
