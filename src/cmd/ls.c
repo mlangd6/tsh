@@ -251,7 +251,8 @@ int ls_l(char *tar_name, char *name_in_tar) {
     return error_pt(tar_name, &tar_fd, 1);
   int nb_in_tar = nb_files_in_tar(tar_fd);
 
-  //if(name_in_tar != NULL){
+
+  if(strcmp(name_in_tar, "\0") != 0){
     for(int i = 0; i < nb_in_tar; i++)
     {
       char *c = NULL;
@@ -275,7 +276,7 @@ int ls_l(char *tar_name, char *name_in_tar) {
       }
       free(new_name);
     }
-  /*}else{
+  }else{
     for(int i = 0; i < nb_in_tar; i++)
     {
       char *c = NULL;
@@ -296,7 +297,7 @@ int ls_l(char *tar_name, char *name_in_tar) {
         write(STDOUT_FILENO, "\n", 2);
       }
     }
-  }*/
+  }
   free(n);
   close(tar_fd);
   return 1;
@@ -331,16 +332,17 @@ int main(int argc, char *argv[]) {
   /*char *name = malloc(100);
   ls_l("/tmp/tsh_test/test.tar", name);*/
   char *name = malloc(100);
+  char *tar = malloc(100);
   if(argc == 1 ) {
     execlp(CMD_NAME, CMD_NAME, NULL);
   }
   else if(argc == 2)
   {
-    if(argv[1][0] != '-' && !is_tar(argv[1]))
-      execlp(CMD_NAME, CMD_NAME, argv[1], NULL);
-    else if(strcmp(argv[1], "-l")==0)
+    if(strcmp(argv[1], "-l")==0)
       execvp(CMD_NAME, argv);
-    else if(strcmp(argv[1], "-l")!=0)
+    else if(argv[1][0] != '-' && is_tar(tar_name_func(argv[1], tar)) != 1)
+      execvp(CMD_NAME, argv);
+    else if(strcmp(argv[1], "-l")!=0 && is_tar(tar_name_func(argv[1], tar)) == 1)
       ls(argv[1], name);
     else
       write(STDOUT_FILENO, "ls : error\n" , 12);
@@ -348,48 +350,22 @@ int main(int argc, char *argv[]) {
   else if(argc == 3)
   {
     name = split_tar_abs_path(argv[2]);
-    printf("0\n");
-    if(strcmp(argv[1], "-l") == 0 && !is_tar(argv[2]))
-      execlp(CMD_NAME, CMD_NAME, CMD_NAME_OPT_L, argv[2], NULL);
-    else if(strcmp(argv[1], "-l") == 0 && is_tar(argv[2]))
+    if(strcmp(argv[1], "-l") == 0 && is_tar(tar_name_func(argv[2], tar)) != 1){
+      printf("n'est pas dans tar\n");
+      execvp(CMD_NAME, argv);
+    }
+    else if(strcmp(argv[1], "-l") == 0 && is_tar(tar_name_func(argv[2], tar)) == 1 && strcmp(name, "\0") != 0){
+      printf("est dans tar et n'est pas racine\n");
       ls_l(argv[2], name);
+    }
+    else if(strcmp(argv[1], "-l") == 0 && is_tar(tar_name_func(argv[2], tar)) == 1){
+      printf("est racine du tar\n");
+      ls_l(argv[2], "");
+    }
     else
       write(STDOUT_FILENO, "ls : error\n" , 12);
   }
-
-  /*if(argv[1][0] != '-'){
-    for (int i = 1; i < argc; i++) {
-      char *in_tar = split_tar_abs_path(argv[i]);
-      if (*in_tar == '\0') {
-        int f = fork(), w;
-        switch(f) {
-          case -1:
-            perror("fork");
-            break;
-          case 0: // son
-            execlp(CMD_NAME, CMD_NAME, argv[i], NULL);
-          default:
-            wait(&w);
-        }
-      }
-    }
-
-  if (argc == 1) {
-    execlp(CMD_NAME, CMD_NAME, NULL);
-  }
-  else if(argc == 2)
-  {
-    if(strcmp(argv[1], "-l") != 0 && is_tar(argv[1]))
-      ls(argv[1]);
-    else if(strcmp(argv[1], "-l") == 0 )//&& !is_tar("."))
-      execvp(CMD_NAME, argv);
-    else exit(EXIT_FAILURE);
-  }
-  else if(argc == 3)
-  {
-    if(strcmp(argv[1], "-l") == 0 && is_tar(argv[2]))
-      ls_l(argv[2]);
-    else exit(EXIT_FAILURE);
-  }*/
+  free(name);
+  free(tar);
   return 0;
 }
