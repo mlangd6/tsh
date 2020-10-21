@@ -25,7 +25,8 @@ static int is_link(char c);
 static int nb_link(struct posix_header ph, struct posix_header *header, int n);
 static int nb_of_slash(char *name);
 static char *tar_name_func(char *name, char *name_two);
-//static int verif_if_to_ls(char *name, char *fullname, char *path);
+static char *cut_name(char *to_cut, char *original, char *new_name);
+
 
 /* Convert a char pointer of rights with cipher format "0000755" in
    a char pointer format "rwxr-xr-x" */
@@ -189,27 +190,7 @@ static char *convert_size(char *size, int t) {
   return tmp;
 }
 
-/*static int verif_if_to_ls(char *name, char *fullname, char *path){
-  int i, j, size_name;
-  int size_fullname = 100;
-  printf("%s | %s | %s\n", name, fullname, path);
-  int len_path = strlen(path);
-  int verif = ((strcmp(path, fullname)!=0)&&((strncmp(path, fullname, (len_path-1))==0)|| (strcmp(path, "") == 0)));
-  if(verif){
-    for(i = 0, j =len_path; j < size_fullname - len_path; i++, j++ ){
-      name[i] = fullname[i];
-      if(name[i] == '\0')
-        break;
-    }
-    printf("%s\n", name);
-    size_name = strlen(name);
-    strtok(name, "/");
-    printf("||||||||\n\n\n\n");
-    return (size_name <= strlen(name)+1);
-  }
-  return 0;
-}*/
-
+/* Return for "/tmp/tsh_test/test.tar/dir1/" the char * "/tmp/tsh_test/test.tar" */
 static char *tar_name_func(char *name, char *n){
   int j = 0;
   if( strstr(name, ".tar") == NULL){
@@ -228,7 +209,8 @@ static char *tar_name_func(char *name, char *n){
   return n;
 }
 
-char *cut_name(char *to_cut, char *original, char *new_name){
+/* remove original in to_cut and stock this result in new_name which is return */
+static char *cut_name(char *to_cut, char *original, char *new_name){
   int i = 0, j = 0;
   int size = strlen(to_cut) - strlen(original) + 1;
   while(to_cut[i] == original[i]){
@@ -241,7 +223,7 @@ char *cut_name(char *to_cut, char *original, char *new_name){
   return new_name;
 }
 
-//ne marche pas à la racine... FIX ERROR
+
 int ls_l(char *tar_name, char *name_in_tar) {
   char *n = malloc(100);
   char *effective_tar_name = tar_name_func(tar_name, n);
@@ -256,9 +238,14 @@ int ls_l(char *tar_name, char *name_in_tar) {
     for(int i = 0; i < nb_in_tar; i++)
     {
       char *c = NULL;
+      char *d = NULL;
       char *new_name = malloc(strlen(name_in_tar));
       cut_name(header[i].name, name_in_tar, new_name);
-      if(strcmp(name_in_tar, header[i].name)!=0 && strstr(header[i].name, name_in_tar) != NULL && ((c = strstr(new_name, "/")) == NULL || c[1] == '\0' ))
+      if(strcmp(name_in_tar, header[i].name)!=0
+      && ((d = strstr(header[i].name, name_in_tar)) != NULL)
+      && name_in_tar[strlen(name_in_tar)-1] == '/'
+      && name_in_tar[strlen(name_in_tar)] == '\0'
+      && ((c = strstr(new_name, "/")) == NULL || c[1] == '\0' ))
       {
         file_type(header[i].typeflag);
         convert_rights_nb_in_ch(header[i].mode);
@@ -311,26 +298,44 @@ int ls(char *tar_name, char *name_in_tar) {
   if (tar_fd == -1)
     return error_pt(tar_name, &tar_fd, 1);
   int nb_in_tar = nb_files_in_tar(tar_fd);
+  int empty = 1;
 
-  for(int i = 0; i < nb_in_tar; i++)
-  {
-    char *c = NULL;
-    char *new_name = malloc(strlen(name_in_tar));
-    cut_name(header[i].name, name_in_tar, new_name);
-    if(strcmp(name_in_tar, header[i].name)!=0 && strstr(header[i].name, name_in_tar) != NULL && ((c = strstr(new_name, "/")) == NULL || c[1] == '\0' )) {
-      write(STDOUT_FILENO, strcat(new_name, "   "), strlen(new_name)+4);
+  if(strcmp(name_in_tar, "\0") != 0){
+    for(int i = 0; i < nb_in_tar; i++)
+    {
+      char *c = NULL;
+      char *d = NULL;
+      char *new_name = malloc(strlen(name_in_tar));
+      cut_name(header[i].name, name_in_tar, new_name);
+      if(strcmp(name_in_tar, header[i].name)!=0
+      && ((d = strstr(header[i].name, name_in_tar)) != NULL && name_in_tar[strlen(name_in_tar)-1] == '/' && name_in_tar[strlen(name_in_tar)] == '\0')
+      && ((c = strstr(new_name, "/")) == NULL || c[1] == '\0' )) {
+        write(STDOUT_FILENO, strcat(new_name, "   "), strlen(new_name)+4);
+        empty = 0;
+      }
+      if(i == nb_in_tar-1 && !empty)
+        write(STDOUT_FILENO, "\n", 2);
+      free(new_name);
     }
-    free(new_name);
   }
-  write(STDOUT_FILENO, "\n", 2);
+  else {
+    for(int i = 0; i < nb_in_tar; i++)
+    {
+      char *c = NULL;
+      if((c = strstr(header[i].name, "/")) == NULL || c[1] == '\0' ){
+        write(STDOUT_FILENO, strcat(header[i].name, "   "), strlen(header[i].name)+4);
+        empty = 0;
+      }
+      if(i == nb_in_tar-1 && !empty)
+        write(STDOUT_FILENO, "\n", 2);
+    }
+  }
   close(tar_fd);
   return 0;
 }
 
-
+//GERER LE CAS OU LE NOMBRE D'ARGUMENTS EST SUPERIEUR A 3
 int main(int argc, char *argv[]) {
-  /*char *name = malloc(100);
-  ls_l("/tmp/tsh_test/test.tar", name);*/
   char *name = malloc(100);
   char *tar = malloc(100);
   if(argc == 1 ) {
@@ -350,18 +355,12 @@ int main(int argc, char *argv[]) {
   else if(argc == 3)
   {
     name = split_tar_abs_path(argv[2]);
-    if(strcmp(argv[1], "-l") == 0 && is_tar(tar_name_func(argv[2], tar)) != 1){
-      printf("n'est pas dans tar\n");
+    if(strcmp(argv[1], "-l") == 0 && is_tar(tar_name_func(argv[2], tar)) != 1)
       execvp(CMD_NAME, argv);
-    }
-    else if(strcmp(argv[1], "-l") == 0 && is_tar(tar_name_func(argv[2], tar)) == 1 && strcmp(name, "\0") != 0){
-      printf("est dans tar et n'est pas racine\n");
+    else if(strcmp(argv[1], "-l") == 0 && is_tar(tar_name_func(argv[2], tar)) == 1 && strcmp(name, "\0") != 0)
       ls_l(argv[2], name);
-    }
-    else if(strcmp(argv[1], "-l") == 0 && is_tar(tar_name_func(argv[2], tar)) == 1){
-      printf("est racine du tar\n");
+    else if(strcmp(argv[1], "-l") == 0 && is_tar(tar_name_func(argv[2], tar)) == 1)
       ls_l(argv[2], "");
-    }
     else
       write(STDOUT_FILENO, "ls : error\n" , 12);
   }
