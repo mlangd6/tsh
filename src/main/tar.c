@@ -283,7 +283,8 @@ int is_tar(const char *tar_name) {
   return !fail;
 }
 
-
+/* if FILENAME is in the tar then return 1 and set header accordingly.
+   Else return 0. If there is any kind of error return -1. IN ANY CASE THE CURSOR OF TAR_FD IS MOVED. */
 static int find_header(int tar_fd, const char *filename, struct posix_header *header)
 {
   unsigned int file_size;
@@ -291,16 +292,16 @@ static int find_header(int tar_fd, const char *filename, struct posix_header *he
   while (1)
     {
       if( read(tar_fd, header, BLOCKSIZE) < 0)
-	return -1;
+	{
+	  return -1;
+	}
       else if (header->name[0] == '\0')
-	return 0;
+	{
+	  return 0;
+	}
       else if (strcmp(filename, header->name) == 0)
 	{
-	  /* On vérifie qu'il s'agit bien d'un fichier */
-	  if (header->typeflag == AREGTYPE || header->typeflag == REGTYPE)
-	    return 1;
-	  else
-	    return 0;
+	  return 1;
 	}
       else
 	{
@@ -327,7 +328,7 @@ int tar_cp_file(const char *tar_name, const char *filename, int fd) {
 
   if(r < 0) // erreur
     return error_pt(tar_name, &tar_fd, 1);
-  else if(r == 0) // pas un fichier ou pas trouvé
+  else if( r == 0 || (file_header.typeflag != AREGTYPE && file_header.typeflag != REGTYPE)) // pas un fichier ou pas trouvé
     {
       close(tar_fd);
       return -1;
@@ -379,14 +380,15 @@ int tar_rm_file(const char *tar_name, const char *filename)
   struct posix_header file_header;
   int r = find_header(tar_fd, filename, &file_header);
 
+  
   if(r < 0) // erreur
     return error_pt(tar_name, &tar_fd, 1);
-  else if(r == 0) // pas un fichier ou pas trouvé
+  else if( r == 0 || (file_header.typeflag != AREGTYPE && file_header.typeflag != REGTYPE)) // pas un fichier ou pas trouvé
     {
       close(tar_fd);
       return -1;
     }
-
+  
   sscanf(file_header.size, "%o", &file_size);
   int file_start = lseek(tar_fd, -BLOCKSIZE, SEEK_CUR), // on était à la fin d'un header, on se place donc au début
       file_end   = file_start + BLOCKSIZE + number_of_block(file_size)*BLOCKSIZE,
@@ -412,15 +414,15 @@ int tar_mv_file(const char *tar_name, const char *filename, int fd)
   unsigned int file_size;
   struct posix_header file_header;
   int r = find_header(tar_fd, filename, &file_header);
-
+  
   if(r < 0) // erreur
     return error_pt(tar_name, &tar_fd, 1);
-  else if(r == 0) // pas un fichier ou pas trouvé
+  else if( r == 0 || (file_header.typeflag != AREGTYPE && file_header.typeflag != REGTYPE)) // pas un fichier ou pas trouvé
     {
       close(tar_fd);
       return -1;
     }
-
+  
   int p = lseek(tar_fd, 0, SEEK_CUR);
 
   // CP
