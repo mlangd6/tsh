@@ -1,5 +1,6 @@
 #include "tar.h"
 #include "errors.h"
+#include "path_lib.h"
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
@@ -13,6 +14,8 @@
 
 #define SIZE_OF_LINE 200
 #define SIZE_OF_NAME 100
+#define CMD_NAME "ls"
+#define CMD_NAME_OPT_L "ls -l"
 
 static int convert_rights_nb_in_ch(char *rights);
 static int file_type(char c);
@@ -21,6 +24,8 @@ static char *convert_size(char *size, int t);
 static int is_link(char c);
 static int nb_link(struct posix_header ph, struct posix_header *header, int n);
 static int nb_of_slash(char *name);
+static char *tar_name_func(char *name, char *name_two);
+//static int verif_if_to_ls(char *name, char *fullname, char *path);
 
 /* Convert a char pointer of rights with cipher format "0000755" in
    a char pointer format "rwxr-xr-x" */
@@ -184,42 +189,124 @@ static char *convert_size(char *size, int t) {
   return tmp;
 }
 
+/*static int verif_if_to_ls(char *name, char *fullname, char *path){
+  int i, j, size_name;
+  int size_fullname = 100;
+  printf("%s | %s | %s\n", name, fullname, path);
+  int len_path = strlen(path);
+  int verif = ((strcmp(path, fullname)!=0)&&((strncmp(path, fullname, (len_path-1))==0)|| (strcmp(path, "") == 0)));
+  if(verif){
+    for(i = 0, j =len_path; j < size_fullname - len_path; i++, j++ ){
+      name[i] = fullname[i];
+      if(name[i] == '\0')
+        break;
+    }
+    printf("%s\n", name);
+    size_name = strlen(name);
+    strtok(name, "/");
+    printf("||||||||\n\n\n\n");
+    return (size_name <= strlen(name)+1);
+  }
+  return 0;
+}*/
 
-int ls_l(const char *tar_name) {
-  struct posix_header *header = tar_ls(tar_name);
-  int tar_fd = open(tar_name, O_RDONLY);
+static char *tar_name_func(char *name, char *n){
+  int j = 0;
+  if( strstr(name, ".tar") == NULL){
+    return NULL;
+  }
+  for(int i = 0; i < strlen(name); i++){
+    if(name[i] == '.' && name[i+1] == 't' && name[i+2] == 'a' && name[i+3] == 'r'){
+      n[j] = name[i];
+      n[j+1] = name[i+1];
+      n[j+2] = name[i+2];
+      n[i+3] = name[i+3];
+      break;
+    }else
+      n[j++] = name[i];
+  }
+  return n;
+}
+
+char *cut_name(char *to_cut, char *original, char *new_name){
+  int i = 0, j = 0;
+  int size = strlen(to_cut) - strlen(original) + 1;
+  while(to_cut[i] == original[i]){
+    i++;
+  }
+  for(j = 0; j < size; j++){
+    new_name[j] = to_cut[i++];
+  }
+  new_name[j] = '\0';
+  return new_name;
+}
+
+//ne marche pas à la racine... FIX ERROR
+int ls_l(char *tar_name, char *name_in_tar) {
+  char *n = malloc(100);
+  char *effective_tar_name = tar_name_func(tar_name, n);
+  struct posix_header *header = tar_ls(effective_tar_name);
+  int tar_fd = open(effective_tar_name, O_RDONLY);
   if (tar_fd == -1)
     return error_pt(tar_name, &tar_fd, 1);
   int nb_in_tar = nb_files_in_tar(tar_fd);
 
-  for(int i = 0; i < nb_in_tar; i++)
-  {
-    char *c = NULL;
-    if((c = strstr(header[i].name, "/")) == NULL || c[1] == '\0' )
+  //if(name_in_tar != NULL){
+    for(int i = 0; i < nb_in_tar; i++)
     {
-      file_type(header[i].typeflag);
-      convert_rights_nb_in_ch(header[i].mode);
-      write(STDOUT_FILENO, " ", 2);
-      nb_link(header[i], header, nb_in_tar);
-      write(STDOUT_FILENO, strcat(header[i].uname, " "), strlen(header[i].uname)+2);
-      write(STDOUT_FILENO, strcat(header[i].gname, " "), strlen(header[i].gname)+2);
-      convert_size(header[i].size, 12);
-      convert_time(header[i].mtime);
-      if(is_link(header[i].typeflag))
-        write(STDOUT_FILENO, strcat(strcat(header[i].name, " -> "), header[i].linkname), strlen(header[i].name)+5+strlen(header[i].linkname));
-      else
-        write(STDOUT_FILENO, strcat(header[i].name, " "), strlen(header[i].name));
-      write(STDOUT_FILENO, "\n", 2);
+      char *c = NULL;
+      char *new_name = malloc(strlen(name_in_tar));
+      cut_name(header[i].name, name_in_tar, new_name);
+      if(strcmp(name_in_tar, header[i].name)!=0 && strstr(header[i].name, name_in_tar) != NULL && ((c = strstr(new_name, "/")) == NULL || c[1] == '\0' ))
+      {
+        file_type(header[i].typeflag);
+        convert_rights_nb_in_ch(header[i].mode);
+        write(STDOUT_FILENO, " ", 2);
+        nb_link(header[i], header, nb_in_tar);
+        write(STDOUT_FILENO, strcat(header[i].uname, " "), strlen(header[i].uname)+2);
+        write(STDOUT_FILENO, strcat(header[i].gname, " "), strlen(header[i].gname)+2);
+        convert_size(header[i].size, 12);
+        convert_time(header[i].mtime);
+        if(is_link(header[i].typeflag))
+          write(STDOUT_FILENO, strcat(strcat(header[i].name, " -> "), header[i].linkname), strlen(header[i].name)+5+strlen(header[i].linkname));
+        else
+          write(STDOUT_FILENO, strcat(new_name, " "), strlen(new_name)+2);
+        write(STDOUT_FILENO, "\n", 2);
+      }
+      free(new_name);
     }
-  }
+  /*}else{
+    for(int i = 0; i < nb_in_tar; i++)
+    {
+      char *c = NULL;
+      if((c = strstr(header[i].name, "/")) == NULL || c[1] == '\0' )
+      {
+        file_type(header[i].typeflag);
+        convert_rights_nb_in_ch(header[i].mode);
+        write(STDOUT_FILENO, " ", 2);
+        nb_link(header[i], header, nb_in_tar);
+        write(STDOUT_FILENO, strcat(header[i].uname, " "), strlen(header[i].uname)+2);
+        write(STDOUT_FILENO, strcat(header[i].gname, " "), strlen(header[i].gname)+2);
+        convert_size(header[i].size, 12);
+        convert_time(header[i].mtime);
+        if(is_link(header[i].typeflag))
+          write(STDOUT_FILENO, strcat(strcat(header[i].name, " -> "), header[i].linkname), strlen(header[i].name)+5+strlen(header[i].linkname));
+        else
+          write(STDOUT_FILENO, strcat(header[i].name, " "), strlen(header[i].name));
+        write(STDOUT_FILENO, "\n", 2);
+      }
+    }
+  }*/
+  free(n);
   close(tar_fd);
   return 1;
 }
 
-
-int ls(const char *tar_name) {
-  struct posix_header *header = tar_ls(tar_name);
-  int tar_fd = open(tar_name, O_RDONLY);
+int ls(char *tar_name, char *name_in_tar) {
+  char *effective_tar_name = tar_name_func(tar_name, name_in_tar);
+  name_in_tar = split_tar_abs_path(tar_name);
+  struct posix_header *header = tar_ls(effective_tar_name);
+  int tar_fd = open(effective_tar_name, O_RDONLY);
   if (tar_fd == -1)
     return error_pt(tar_name, &tar_fd, 1);
   int nb_in_tar = nb_files_in_tar(tar_fd);
@@ -227,9 +314,12 @@ int ls(const char *tar_name) {
   for(int i = 0; i < nb_in_tar; i++)
   {
     char *c = NULL;
-    if((c = strstr(header[i].name, "/")) == NULL || c[1] == '\0' ){
-      write(STDOUT_FILENO, strcat(header[i].name, "   "), strlen(header[i].name)+4);
+    char *new_name = malloc(strlen(name_in_tar));
+    cut_name(header[i].name, name_in_tar, new_name);
+    if(strcmp(name_in_tar, header[i].name)!=0 && strstr(header[i].name, name_in_tar) != NULL && ((c = strstr(new_name, "/")) == NULL || c[1] == '\0' )) {
+      write(STDOUT_FILENO, strcat(new_name, "   "), strlen(new_name)+4);
     }
+    free(new_name);
   }
   write(STDOUT_FILENO, "\n", 2);
   close(tar_fd);
@@ -238,18 +328,61 @@ int ls(const char *tar_name) {
 
 
 int main(int argc, char *argv[]) {
-  if(argc < 2)
+  /*char *name = malloc(100);
+  ls_l("/tmp/tsh_test/test.tar", name);*/
+  char *name = malloc(100);
+  if(argc == 1 ) {
+    execlp(CMD_NAME, CMD_NAME, NULL);
+  }
+  else if(argc == 2)
   {
-    if(is_tar("."))
-      ls(".");
-    else exit(EXIT_FAILURE);
+    if(argv[1][0] != '-' && !is_tar(argv[1]))
+      execlp(CMD_NAME, CMD_NAME, argv[1], NULL);
+    else if(strcmp(argv[1], "-l")==0)
+      execvp(CMD_NAME, argv);
+    else if(strcmp(argv[1], "-l")!=0)
+      ls(argv[1], name);
+    else
+      write(STDOUT_FILENO, "ls : error\n" , 12);
+  }
+  else if(argc == 3)
+  {
+    name = split_tar_abs_path(argv[2]);
+    printf("0\n");
+    if(strcmp(argv[1], "-l") == 0 && !is_tar(argv[2]))
+      execlp(CMD_NAME, CMD_NAME, CMD_NAME_OPT_L, argv[2], NULL);
+    else if(strcmp(argv[1], "-l") == 0 && is_tar(argv[2]))
+      ls_l(argv[2], name);
+    else
+      write(STDOUT_FILENO, "ls : error\n" , 12);
+  }
+
+  /*if(argv[1][0] != '-'){
+    for (int i = 1; i < argc; i++) {
+      char *in_tar = split_tar_abs_path(argv[i]);
+      if (*in_tar == '\0') {
+        int f = fork(), w;
+        switch(f) {
+          case -1:
+            perror("fork");
+            break;
+          case 0: // son
+            execlp(CMD_NAME, CMD_NAME, argv[i], NULL);
+          default:
+            wait(&w);
+        }
+      }
+    }
+
+  if (argc == 1) {
+    execlp(CMD_NAME, CMD_NAME, NULL);
   }
   else if(argc == 2)
   {
     if(strcmp(argv[1], "-l") != 0 && is_tar(argv[1]))
       ls(argv[1]);
-    else if(strcmp(argv[1], "-l") == 0 && is_tar("."))
-      ls_l(".");
+    else if(strcmp(argv[1], "-l") == 0 )//&& !is_tar("."))
+      execvp(CMD_NAME, argv);
     else exit(EXIT_FAILURE);
   }
   else if(argc == 3)
@@ -257,6 +390,6 @@ int main(int argc, char *argv[]) {
     if(strcmp(argv[1], "-l") == 0 && is_tar(argv[2]))
       ls_l(argv[2]);
     else exit(EXIT_FAILURE);
-  }
+  }*/
   return 0;
 }

@@ -12,7 +12,7 @@
 #define PROMPT "$ "
 #define CMD_NOT_FOUND " : command not found\n"
 #define CMD_NOT_FOUND_SIZE 22
-#define NB_TAR_CMD 1
+#define NB_TAR_CMD 2
 
 static int count_words(char *s);
 static char **split(char *s, int *is_tar_cmd);
@@ -20,7 +20,7 @@ static void init_tsh();
 static int is_tar_command(char *s);
 
 char tsh_dir[PATH_MAX];
-char *tar_cmds[NB_TAR_CMD] = {"cat"};
+char *tar_cmds[NB_TAR_CMD] = {"cat", "ls"};
 char act_path[PATH_MAX];
 
 static int count_words(char *s) {

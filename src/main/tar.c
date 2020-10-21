@@ -205,8 +205,6 @@ struct posix_header *tar_ls(const char *tar_name)
   int tar_fd = open(tar_name, O_RDONLY);
   if (tar_fd == -1)
     return error_p(tar_name, &tar_fd, 1);
-  if(is_tar(tar_name) != 1)
-    return error_p(tar_name, &tar_fd, 1);
   int n;
   int i = 0;
   struct posix_header header;
