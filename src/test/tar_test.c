@@ -123,6 +123,9 @@ static char *tar_rm_test()
 
   mu_assert("tar_rm_file(\"/tmp/tsh_test/test.tar\", \"man_dir/open2\") != -1", tar_rm_file("/tmp/tsh_test/test.tar", "man_dir/open2") == -1);
 
+  mu_assert("Couldn't remove dir1/", tar_rm_file("/tmp/tsh_test/test.tar","dir1/") == 0);
+  mu_assert("Error tar_rm_file corrupted the tar", is_tar("/tmp/tsh_test/test.tar") == 1);
+  
   return 0;
 }
 
