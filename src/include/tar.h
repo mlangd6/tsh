@@ -65,8 +65,13 @@ int is_tar(const char *tar_name);
 /* Open the tarball TAR_NAME and copy the content of FILENAME into FD */
 int tar_cp_file(const char *tar_name, const char *filename, int fd);
 
-/* Open the tarball TAR_NAME and delete FILENAME if possible */
-int tar_rm_file(const char *tar_name, const char *filename);
+
+/* Open the tarball at path TAR_NAME and delete FILENAME.
+   Returns :
+   0  if it succeed
+   -1 if a system call failed
+   -2 for other errors such as : FILENAME not in tar, FILENAME is a directory not finishing with '/'... */
+int tar_rm(const char *tar_name, const char *filename);
 
 /* Open the tarball TAR_NAME and copy the content of FILENAME into FD then delete FILENAME */
 int tar_mv_file(const char *tar_name, const char *filename, int fd);
