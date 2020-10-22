@@ -46,6 +46,20 @@ struct posix_header
 #define OLDGNU_MAGIC "ustar  "  /* 7 chars and a null */
 
 
+/* Compute and write the checksum of a header */
+void set_checksum(struct posix_header *hd);
+
+/* Check that the checksum of a header is correct */
+int check_checksum(struct posix_header *hd);
+
+/* Check if the file at PATHNAME is a valid tarball */
+int is_tar(const char *tar_name);
+
+int find_header(int tar_fd, const char *filename, struct posix_header *header);
+
+unsigned int number_of_block(unsigned int filesize);
+
+
 
 /* Add file to tarball */
 int tar_add_file(const char *tar_name, const char *filename);
@@ -53,18 +67,8 @@ int tar_add_file(const char *tar_name, const char *filename);
 /* List the files contained in a faile .tar */
 struct posix_header *tar_ls(const char *tar_name);
 
-/* Compute and write the checksum of a header */
-void set_checksum(struct posix_header *hd);
-
-/* Check that the checksum of a header is correct */
-int check_checksum(struct posix_header *hd);
-
-/* Check if the file at PATHNAME is a valid tarball. */
-int is_tar(const char *tar_name);
-
 /* Open the tarball TAR_NAME and copy the content of FILENAME into FD */
 int tar_cp_file(const char *tar_name, const char *filename, int fd);
-
 
 /* Open the tarball at path TAR_NAME and delete FILENAME.
    Returns :
