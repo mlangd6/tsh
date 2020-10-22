@@ -17,5 +17,5 @@ int main(int argc, char const *argv[]) {
   ret = launch_tar_tests() && ret;
   if (ret) printf("ALL TESTS PASSED\n");
   printf("Total tests run: %d\n", tests_run);
-  return ret;
+  return (ret == 0) ? EXIT_FAILURE : EXIT_SUCCESS;
 }
