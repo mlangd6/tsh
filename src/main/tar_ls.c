@@ -20,12 +20,12 @@ static int nb_file_in_tar(int tar_fd)
 
   while ( (n = read(tar_fd, &header, BLOCKSIZE)) > 0 )
     {
-      if (strcmp(header.name, "\0") == 0) break;
-      else i++;
-      int taille = 0;
-      sscanf(header.size, "%o", &taille);
-      int filesize = ((taille + BLOCKSIZE - 1) / BLOCKSIZE);
-      lseek(tar_fd, BLOCKSIZE*filesize, SEEK_CUR);
+      if (strcmp(header.name, "\0") == 0)
+	break;
+      else
+	i++;
+      
+      skip_file_content(tar_fd, &header);
     }
 
   lseek(tar_fd, 0, SEEK_SET);
@@ -48,13 +48,14 @@ struct posix_header *tar_ls(const char *tar_name)
 
   while ( (n = read(tar_fd, &header, BLOCKSIZE)) > 0 )
     {
-      if (strcmp(header.name, "\0") == 0) break;
+      if (strcmp(header.name, "\0") == 0)
+	break;
+
       list_header[i++] = header;
-      int taille = 0;
-      sscanf(header.size, "%o", &taille);
-      int filesize = ((taille + BLOCKSIZE - 1) / BLOCKSIZE);
-      lseek(tar_fd, BLOCKSIZE*filesize, SEEK_CUR);
+
+      skip_file_content(tar_fd, &header);
     }
+  
   close(tar_fd);
   return list_header;
 }

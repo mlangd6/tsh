@@ -32,7 +32,7 @@ int tar_mv_file(const char *tar_name, const char *filename, int fd)
   int p = lseek(tar_fd, 0, SEEK_CUR);
 
   // CP
-  sscanf(file_header.size, "%o", &file_size);
+  file_size = get_file_size(&file_header);
   if( read_write_buf_by_buf(tar_fd, fd, file_size, BUFSIZE) < 0)
     return error_pt(tar_name, &tar_fd, 1);
 

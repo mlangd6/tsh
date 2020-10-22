@@ -37,8 +37,7 @@ static int tar_rm_dir(int tar_fd, const char *dirname)
 	}
       else if(is_prefix(dirname, file_header.name))
 	{
-	  sscanf(file_header.size, "%o", &file_size);
-
+	  file_size  = get_file_size(&file_header);
 	  file_start = lseek(tar_fd, -BLOCKSIZE, SEEK_CUR); // on était à la fin d'un header, on se place donc au début
 	  file_end   = file_start + BLOCKSIZE + number_of_block(file_size)*BLOCKSIZE;
 
@@ -50,9 +49,7 @@ static int tar_rm_dir(int tar_fd, const char *dirname)
 	}
       else
 	{
-	  /* On saute le contenu du fichier */
-	  sscanf(file_header.size, "%o", &file_size);
-	  lseek(tar_fd, number_of_block(file_size) * BLOCKSIZE, SEEK_CUR);
+	  skip_file_content(tar_fd, &file_header);
 	}	    
     }
 
@@ -81,10 +78,12 @@ static int tar_rm_file(int tar_fd, const char *filename)
       return -2;
     }
   
-  sscanf(file_header.size, "%o", &file_size);
+
+  file_size = get_file_size(&file_header);
+  
   ssize_t file_start = lseek(tar_fd, -BLOCKSIZE, SEEK_CUR), // on était à la fin d'un header, on se place donc au début
-    file_end   = file_start + BLOCKSIZE + number_of_block(file_size)*BLOCKSIZE, 
-    tar_end    = lseek(tar_fd, 0, SEEK_END);
+          file_end   = file_start + BLOCKSIZE + number_of_block(file_size)*BLOCKSIZE, 
+          tar_end    = lseek(tar_fd, 0, SEEK_END);
 
   if(fmemmove(tar_fd, file_end, tar_end - file_end, file_start) < 0)
     return -1;

@@ -14,12 +14,10 @@ static int seek_end_of_tar(int tar_fd, const char *tar_name) {
     struct posix_header hd;
     memset(&hd, '\0', BLOCKSIZE);
     read(tar_fd, &hd, BLOCKSIZE);
-    if (hd.name[0] != '\0') {
-      unsigned int filesize;
-      sscanf(hd.size, "%o", &filesize);
-      lseek(tar_fd, (number_of_block(filesize)) * BLOCKSIZE, SEEK_CUR);
-    }
-    else break;
+    if (hd.name[0] != '\0')
+      skip_file_content(tar_fd, &hd);
+    else
+      break;
   }
   lseek(tar_fd, -BLOCKSIZE, SEEK_CUR);
   return 0;

@@ -59,7 +59,12 @@ int find_header(int tar_fd, const char *filename, struct posix_header *header);
 
 unsigned int number_of_block(unsigned int filesize);
 
+unsigned int get_file_size(struct posix_header *hd);
 
+/* If it succeed returns the number of bytes from the beginning of the file, cursor of tar_fd is moved. Otherwise, -1 */
+int skip_file_content(int tar_fd, struct posix_header *hd);
+
+  
 
 /* Add file to tarball */
 int tar_add_file(const char *tar_name, const char *filename);
