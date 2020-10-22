@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 mkdir -p /tmp/tsh_test
 cd /tmp/tsh_test
 rm -rf *
