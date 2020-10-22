@@ -20,7 +20,7 @@
 static int convert_rights_nb_in_ch(char *rights);
 static int file_type(char c);
 static int convert_time(const char *ch);
-static char *convert_size(char *size, int t);
+static int convert_size(char *size, int t);
 static int is_link(char c);
 static int nb_link(struct posix_header ph, struct posix_header *header, int n);
 static int nb_of_slash(char *name);
@@ -51,7 +51,7 @@ static int convert_rights_nb_in_ch(char *rights) {
   }
   tmp[9] = '\0';
   write(STDOUT_FILENO, strcat(tmp, " "), strlen(tmp)+2);
-  return 1;
+  return 0;
 }
 
 /* Return the letter "d" if the typeflag corresponds with a directory,
@@ -65,7 +65,7 @@ static int file_type(char c) {
   if(c == LNKTYPE || c == SYMTYPE)
     type[0] = 'l';
   write(STDOUT_FILENO, type, 2);
-  return 1;
+  return 0;
 }
 
 /* Return 1 if the typeflag representing by char c represent a link type,
@@ -97,7 +97,7 @@ static int nb_link(struct posix_header ph, struct posix_header *header, int n) {
   sprintf(nb_ln, "%i", cmp);
   nb_ln[1] = '\0';
   write(STDOUT_FILENO, strcat(nb_ln, "  "), strlen(nb_ln)+3);
-  return 1;
+  return 0;
 }
 
 
@@ -149,7 +149,7 @@ static int convert_time(const char *ch) {
   write(STDOUT_FILENO, ":", 2);
   write(STDOUT_FILENO, min, strlen(min));
   free(c);
-  return 1;
+  return 0;
 }
 
 /*
@@ -158,7 +158,7 @@ static int color_directory(){
 }*/
 
 /* convert the size to octal size */
-static char *convert_size(char *size, int t) {
+static int convert_size(char *size, int t) {
   int si = 0, cmp = 0, it = 0;
   char *tmp = malloc(12*sizeof(char));
   sscanf(size, "%011o", &si);
@@ -187,7 +187,7 @@ static char *convert_size(char *size, int t) {
   tmp[cmp] = tmp[t-1];
   write(STDOUT_FILENO, strcat(tmp, "   "), strlen(tmp)+4);
   free(tmp);
-  return tmp;
+  return 0;
 }
 
 /* Return for "/tmp/tsh_test/test.tar/dir1/" the char * "/tmp/tsh_test/test.tar" */
@@ -287,7 +287,7 @@ int ls_l(char *tar_name, char *name_in_tar) {
   }
   free(n);
   close(tar_fd);
-  return 1;
+  return 0;
 }
 
 int ls(char *tar_name, char *name_in_tar) {
