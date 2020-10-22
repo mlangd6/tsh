@@ -364,6 +364,45 @@ int main(int argc, char *argv[]) {
     else
       write(STDOUT_FILENO, "ls : error\n" , 12);
   }
+  /*else{
+    if(strcmp(argv[1], "-l") == 0){
+      printf("A\n");
+      for(int i = 2; i < argc; i++){
+        printf("%d %s\n", i, argv[i]);
+        name = split_tar_abs_path(argv[i]);
+        if(is_tar(tar_name_func(argv[i], tar)) == 1){
+          printf("%d - 1\n", i);
+          write(STDOUT_FILENO, name, strlen(name));
+          write(STDOUT_FILENO, " :\n", 4);
+          ls_l(argv[i], name);
+        }
+        else{
+          printf("%s %d - 2\n",argv[i], i);
+          write(STDOUT_FILENO, argv[i], strlen(argv[i]));
+          write(STDOUT_FILENO, " :\n", 4);
+          execlp(CMD_NAME, CMD_NAME, argv[1], argv[i], NULL);
+        }
+      }
+    }else{
+      printf("B\n");
+      for(int i = 1; i < argc; i++){
+        printf("%d\n", i);
+        name = split_tar_abs_path(argv[i]);
+        if(is_tar(tar_name_func(argv[i], tar)) == 1){
+          printf("%d - 1\n", i);
+          write(STDOUT_FILENO, name, strlen(name));
+          write(STDOUT_FILENO, " :\n", 4);
+          ls(argv[i], name);
+        }
+        else{
+          printf("%d - 2\n", i);
+          write(STDOUT_FILENO, argv[i], strlen(argv[i]));
+          write(STDOUT_FILENO, " :\n", 4);
+          execlp(CMD_NAME, CMD_NAME, argv[i], NULL);
+        }
+      }
+    }
+  }*/
   free(name);
   free(tar);
   return 0;
