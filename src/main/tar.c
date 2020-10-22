@@ -11,7 +11,6 @@
 #include <unistd.h>
 
 #define BUFSIZE 512
-extern int errno;
 
 /* Code for set_checksum(...) and check_checksum(...) are taken from :
    https://gaufre.informatique.univ-paris-diderot.fr/klimann/systL3_2020-2021/blob/master/TP/TP1/tar.h */
@@ -368,6 +367,7 @@ static int tar_shift(int tar_fd, off_t whence, size_t size, off_t where)
   return 0;
 }
 
+/* Check if FILENAME ends with '/' */
 static int is_dir_name(const char *filename)
 {
   int pos_last_char = strlen(filename)-1;
@@ -380,78 +380,114 @@ static int is_prefix(const char *prefix, const char *str)
   return !strncmp(prefix, str, strlen(prefix));
 }
 
-/* Open the tarball TAR_NAME and delete FILENAME if possible */
-int tar_rm_file(const char *tar_name, const char *filename)
+/* Delete all files starting with DIRNAME i.e. delete directory DIRNAME in the tar referenced by TAR_FD.
+   Last character of DIRNAME is '/'
+   Returns :
+   0  if it succeed
+   -1 if a system call failed */
+static int tar_rm_dir(int tar_fd, const char *dirname)
+{
+  unsigned int file_size;
+  struct posix_header file_header;  
+  ssize_t size_read;
+  off_t file_start, file_end, tar_end;
+
+  tar_end = lseek(tar_fd, 0, SEEK_END);
+  
+  lseek(tar_fd, 0, SEEK_SET);
+      
+  while((size_read = read(tar_fd, &file_header, BLOCKSIZE)) > 0)
+    {
+      if(size_read != BLOCKSIZE)
+	{
+	  return -1;
+	}
+      if(file_header.name[0] == '\0')
+	{
+	  ftruncate(tar_fd, tar_end);
+	  return 0;
+	}
+      else if(is_prefix(dirname, file_header.name))
+	{
+	  sscanf(file_header.size, "%o", &file_size);
+
+	  file_start = lseek(tar_fd, -BLOCKSIZE, SEEK_CUR); // on était à la fin d'un header, on se place donc au début
+	  file_end   = file_start + BLOCKSIZE + number_of_block(file_size)*BLOCKSIZE;
+
+	  if( tar_shift(tar_fd, file_end, tar_end - file_end, file_start) < 0) // on décale le contenu
+	    return -1;
+
+	  tar_end -= file_end - file_start;    // on réduit virtuellement la taille
+	  lseek(tar_fd, file_start, SEEK_SET); // on a décalé, on doit se replacer
+	}
+      else
+	{
+	  /* On saute le contenu du fichier */
+	  sscanf(file_header.size, "%o", &file_size);
+	  lseek(tar_fd, number_of_block(file_size) * BLOCKSIZE, SEEK_CUR);
+	}	    
+    }
+
+  return -1; 
+}
+
+/* Delete FILENAME in the tar referenced by TAR_FD.
+   FILENAME is supposed to be a regular file.
+   Returns :
+   0  if it succeed
+   -1 if a system call failed
+   -2 if FILENAME is not in the tar or FILENAME is a directory not finishing with '/' */
+static int tar_rm_file(int tar_fd, const char *filename)
+{
+  unsigned int file_size;
+  struct posix_header file_header;
+  int r = find_header(tar_fd, filename, &file_header);
+  
+  if(r < 0) // erreur
+    {
+      return -1;
+    }
+  else if( r == 0 || (file_header.typeflag != AREGTYPE && file_header.typeflag != REGTYPE)) // Pas trouvé OU un dossier ne se terminant pas par /
+    {
+      return -2;
+    }
+  
+  sscanf(file_header.size, "%o", &file_size);
+  ssize_t file_start = lseek(tar_fd, -BLOCKSIZE, SEEK_CUR), // on était à la fin d'un header, on se place donc au début
+          file_end   = file_start + BLOCKSIZE + number_of_block(file_size)*BLOCKSIZE, 
+          tar_end    = lseek(tar_fd, 0, SEEK_END);
+
+  if(tar_shift(tar_fd, file_end, tar_end - file_end, file_start) < 0)
+    return -1;
+
+  ftruncate(tar_fd, tar_end - (file_end - file_start));
+  return 0;
+}
+
+/* Open the tarball at path TAR_NAME and delete FILENAME if possible */
+int tar_rm(const char *tar_name, const char *filename)
 {
   int tar_fd = open(tar_name, O_RDWR);
 
   if (tar_fd < 0)
     return error_pt(tar_name, &tar_fd, 1);
 
-  unsigned int file_size;
-  struct posix_header file_header;
+  int r;
 
   if(is_dir_name(filename))
     {
-      int n;
-      int file_start, file_end, tar_end;
-
-      tar_end = lseek(tar_fd, 0, SEEK_END);
-      lseek(tar_fd, 0, SEEK_SET);
-      
-      while((n = read(tar_fd, &file_header, BLOCKSIZE)) > 0)
-	{
-	  if(n != BLOCKSIZE)
-	    return error_pt(tar_name, &tar_fd, 1);
-	  if(file_header.name[0] == '\0')
-	    {
-	      ftruncate(tar_fd, tar_end);
-	      close(tar_fd);
-	      return 0;
-	    }
-	  else if(is_prefix(filename, file_header.name))
-	    {
-	      sscanf(file_header.size, "%o", &file_size);
-	      file_start = lseek(tar_fd, -BLOCKSIZE, SEEK_CUR); // on était à la fin d'un header, on se place donc au début
-	      file_end = file_start + BLOCKSIZE + number_of_block(file_size)*BLOCKSIZE;
-	      if( tar_shift(tar_fd, file_end, tar_end - file_end, file_start) < 0)
-		return error_pt(tar_name, &tar_fd, 1);
-	      tar_end -= file_end - file_start;
-	      lseek(tar_fd, file_start, SEEK_SET);
-	    }
-	  else
-	    {
-	      /* On saute le contenu du fichier */
-	      sscanf(file_header.size, "%o", &file_size);
-	      lseek(tar_fd, number_of_block(file_size) * BLOCKSIZE, SEEK_CUR);
-	    }	    
-	}
-
-      return -1;
+      r = tar_rm_dir(tar_fd, filename);
     }
-  
-  int r = find_header(tar_fd, filename, &file_header);
-  
-  if(r < 0) // erreur
-    return error_pt(tar_name, &tar_fd, 1);
-  else if( r == 0 || (file_header.typeflag != AREGTYPE && file_header.typeflag != REGTYPE)) // Pas trouvé OU un dossier ne se terminant pas par /
+  else
     {
-      close(tar_fd);
-      return -1;
+      r = tar_rm_file(tar_fd, filename);
     }
   
-  sscanf(file_header.size, "%o", &file_size);
-  int file_start = lseek(tar_fd, -BLOCKSIZE, SEEK_CUR), // on était à la fin d'un header, on se place donc au début
-      file_end   = file_start + BLOCKSIZE + number_of_block(file_size)*BLOCKSIZE, 
-      tar_end    = lseek(tar_fd, 0, SEEK_END);
-
-  if( tar_shift(tar_fd, file_end, tar_end - file_end, file_start) < 0)
+  if(r == -1) // erreur appel système
     return error_pt(tar_name, &tar_fd, 1);
-
-  ftruncate(tar_fd, tar_end - (file_end - file_start));
-
+  
   close(tar_fd);
-  return 0;
+  return r;
 }
 
 
@@ -483,8 +519,8 @@ int tar_mv_file(const char *tar_name, const char *filename, int fd)
 
   // RM
   int file_start = p - BLOCKSIZE,
-      file_end   = file_start + BLOCKSIZE + number_of_block(file_size)*BLOCKSIZE,
-      tar_end    = lseek(tar_fd, 0, SEEK_END);
+    file_end   = file_start + BLOCKSIZE + number_of_block(file_size)*BLOCKSIZE,
+    tar_end    = lseek(tar_fd, 0, SEEK_END);
 
   if( tar_shift(tar_fd, file_end, tar_end - file_end, file_start) < 0)
     return error_pt(tar_name, &tar_fd, 1);
