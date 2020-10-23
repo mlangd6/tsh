@@ -29,29 +29,34 @@ int read_write_buf_by_buf(int read_fd, int write_fd, size_t count, size_t bufsiz
   return 0;
 }
 
-int fmemmove(int tar_fd, off_t whence, size_t size, off_t where)
+
+/* Copies SIZE bytes from file descriptor FD starting at WHENCE offset to WHERE offset. */
+int fmemmove(int fd, off_t whence, size_t size, off_t where)
 {
-  char *buffer = malloc(size);
+  char *buffer = malloc(size); // TODO: On fait un gros malloc, peut-être en faire plusieurs...
   assert(buffer);
 
-  lseek(tar_fd, whence, SEEK_SET);
-  if( read(tar_fd, buffer, size) < 0 )
+  lseek(fd, whence, SEEK_SET);
+  if( read(fd, buffer, size) < 0 )
     {
       free(buffer);
       return -1;
     }
 
-  lseek(tar_fd, where, SEEK_SET);
-  if( write(tar_fd, buffer, size) < 0)
+  lseek(fd, where, SEEK_SET);
+  if( write(fd, buffer, size) < 0)
     {
       free(buffer);
       return -1;
     }
 
   free(buffer);
-
+  
+  lseek(fd, where, SEEK_SET);
+  
   return 0;
 }
+
 
 /* Check if FILENAME ends with '/' */
 int is_dir_name(const char *filename)
@@ -59,6 +64,7 @@ int is_dir_name(const char *filename)
   int pos_last_char = strlen(filename)-1;
   return filename[pos_last_char] == '/' ? 1 : 0;
 }
+
 
 /* Check if STR starts with PREFIX */
 int is_prefix(const char *prefix, const char *str)

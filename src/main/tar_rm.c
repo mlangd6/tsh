@@ -45,7 +45,6 @@ static int tar_rm_dir(int tar_fd, const char *dirname)
 	    return -1;
 
 	  tar_end -= file_end - file_start;    // on réduit virtuellement la taille
-	  lseek(tar_fd, file_start, SEEK_SET); // on a décalé, on doit se replacer
 	}
       else
 	{
@@ -73,7 +72,7 @@ static int tar_rm_file(int tar_fd, const char *filename)
     {
       return -1;
     }
-  else if( r == 0 || (file_header.typeflag != AREGTYPE && file_header.typeflag != REGTYPE)) // Pas trouvé OU un dossier ne se terminant pas par /
+  else if( r == 0 || (file_header.typeflag == DIRTYPE) ) // Pas trouvé OU un dossier
     {
       return -2;
     }
