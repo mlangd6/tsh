@@ -66,7 +66,7 @@ static int tar_rm_file(int tar_fd, const char *filename)
 {
   unsigned int file_size;
   struct posix_header file_header;
-  int r = find_header(tar_fd, filename, &file_header);
+  int r = seek_header(tar_fd, filename, &file_header);
   
   if(r < 0) // erreur
     {

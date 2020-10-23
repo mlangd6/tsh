@@ -10,8 +10,7 @@
 
 #define BUFSIZE BLOCKSIZE
 
-/* Open the tarball TAR_NAME and copy the content of FILENAME into FD.
-   If FILENAME is not in the tarball or there are errors return -1, otherwise return 0. */
+/* Open the tarball TAR_NAME and copy the content of FILENAME into FD */
 int tar_cp_file(const char *tar_name, const char *filename, int fd) {
   int tar_fd = open(tar_name, O_RDONLY);
 
@@ -20,7 +19,7 @@ int tar_cp_file(const char *tar_name, const char *filename, int fd) {
 
   unsigned int file_size;
   struct posix_header file_header;
-  int r = find_header(tar_fd, filename, &file_header);
+  int r = seek_header(tar_fd, filename, &file_header);
 
   if(r < 0) // erreur
     return error_pt(tar_name, &tar_fd, 1);

@@ -13,9 +13,7 @@
 
 
 
-/* Compute and write the checksum of a header, by adding all (unsigned) bytes in
-   it (while hd->chksum is initially all ' '). Then hd->chksum is set to contain
-   the octal encoding of this sum (on 6 bytes), followed by '\0' and ' '. */
+/* Compute and write the checksum of a header */
 void set_checksum(struct posix_header *hd)
 {
   memset(hd->chksum, ' ', 8);
@@ -26,7 +24,6 @@ void set_checksum(struct posix_header *hd)
   }
   sprintf(hd->chksum, "%06o", sum);
 }
-
 
 
 /* Check that the checksum of a header is correct */
@@ -45,15 +42,10 @@ int check_checksum(struct posix_header *hd) {
 }
 
 
-
-/* Check if the file at PATHNAME is a valid tarball.
-   Return :
-   1  if all header are correct
-   0 if at least one header is invalid or can't read a full block
-   -1 otherwise */
-int is_tar(const char *tar_name)
+/* Check if the file at PATH is a valid tar */
+int is_tar(const char *path)
 {
-  int tar_fd = open(tar_name, O_RDONLY);
+  int tar_fd = open(path, O_RDONLY);
 
   if (tar_fd < 0)
     return -1;
@@ -81,10 +73,8 @@ int is_tar(const char *tar_name)
 }
 
 
-
-/* if FILENAME is in the tar then return 1 and set header accordingly.
-   Else return 0. If there is any kind of error return -1. IN ANY CASE THE CURSOR OF TAR_FD IS MOVED. */
-int find_header(int tar_fd, const char *filename, struct posix_header *header)
+/* Seek FILENAME in the tar referenced by TAR_FD and set HEADER accordingly */
+int seek_header(int tar_fd, const char *filename, struct posix_header *header)
 {
   while (1)
     {
@@ -110,11 +100,14 @@ int find_header(int tar_fd, const char *filename, struct posix_header *header)
 }
 
 
+/* Convert FILESIZE into a number of blocks */
 unsigned int number_of_block(unsigned int filesize)
 {
   return (filesize + BLOCKSIZE - 1) >> BLOCKBITS;
 }
 
+
+/* Return the file size from a given header */
 unsigned int get_file_size(struct posix_header *hd)
 {
   unsigned int file_size = 0;
@@ -122,7 +115,8 @@ unsigned int get_file_size(struct posix_header *hd)
   return file_size;
 }
 
-/* If it succeed returns the number of bytes from the beginning of the file. Otherwise, -1 */
+
+/* Increment the file offset of TAR_FD by file size given in HD */
 int skip_file_content(int tar_fd, struct posix_header *hd)
 {
   size_t file_size = get_file_size(hd);

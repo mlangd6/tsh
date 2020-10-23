@@ -46,43 +46,81 @@ struct posix_header
 #define OLDGNU_MAGIC "ustar  "  /* 7 chars and a null */
 
 
-/* Compute and write the checksum of a header */
+
+/* Compute and write the checksum of a header, by adding all (unsigned) bytes in
+   it (while hd->chksum is initially all ' '). 
+   Then hd->chksum is set to contain the octal encoding of this sum (on 6 bytes), followed by '\0' and ' ' */
 void set_checksum(struct posix_header *hd);
 
-/* Check that the checksum of a header is correct */
+/* Check that the checksum of a header is correct.
+   Return :
+   1 if header is correct
+   0 otherwise */
 int check_checksum(struct posix_header *hd);
 
-/* Check if the file at PATHNAME is a valid tarball */
-int is_tar(const char *tar_name);
+/* Check if the file at PATH is a valid tar.
+   Return :
+   1  if all headers are correct
+   0  if at least one header is invalid or can't read a full block
+   -1 otherwise */
+int is_tar(const char *path);
 
-int find_header(int tar_fd, const char *filename, struct posix_header *header);
+/* Seek FILENAME in the tar referenced by TAR_FD and set HEADER accordingly.
+   Return :
+   1  if FILENAME is in the tar and set HEADER for this file
+   0  if FILENAME is not in the tar
+   -1 if there is any kind of error
+   
+   In any case, the file offset of TAR_FD is moved and memory area at HEADER is changed. 
+   If FILENAME was found (i.e. return 1) then this function guarantees that :
+   - the file offset is moved to the end of the header *and*
+   - HEADER is correctly set for the wanted file */
+int seek_header(int tar_fd, const char *filename, struct posix_header *header);
 
+/* Convert FILESIZE into a number of blocks */
 unsigned int number_of_block(unsigned int filesize);
 
+/* Return the file size from a given header */
 unsigned int get_file_size(struct posix_header *hd);
 
-/* If it succeed returns the number of bytes from the beginning of the file, cursor of tar_fd is moved. Otherwise, -1 */
+/* Increment the file offset of TAR_FD by file size given in HD.
+   This function is intended to be use after reading a header in a tar, when the file offset is moved to the end of HD header.
+   Return :
+   On success, the offset location as measured in bytes from the beginning of the file
+   -1 otherwise */
 int skip_file_content(int tar_fd, struct posix_header *hd);
 
   
 
-/* Add file to tarball */
+/* Add file at path FILENAME to tar at path TAR_NAME
+   Return :
+   0  if FILENAME was added
+   -1 if it couldn't */
 int tar_add_file(const char *tar_name, const char *filename);
 
-/* List the files contained in a faile .tar */
+/* List all files contained in the tar at path TAR_NAME
+   Return :
+   On success, a malloc array of all headers
+   On failure, NULL */
 struct posix_header *tar_ls(const char *tar_name);
 
-/* Open the tarball TAR_NAME and copy the content of FILENAME into FD */
+/* Open the tar at path TAR_NAME and copy the content of FILENAME into FD
+   Return :
+   0  if FILENAME was found and the copy was done without any issue
+   -1 if FILENAME was not found or is not a regular file or a system call failed */
 int tar_cp_file(const char *tar_name, const char *filename, int fd);
 
-/* Open the tarball at path TAR_NAME and delete FILENAME.
-   Returns :
-   0  if it succeed
+/* Open the tarball at path TAR_NAME and delete FILENAME if possible
+   Return
+   0  if FILENAME was successfully deleted from the tar
    -1 if a system call failed
    -2 for other errors such as : FILENAME not in tar, FILENAME is a directory not finishing with '/'... */
 int tar_rm(const char *tar_name, const char *filename);
 
-/* Open the tarball TAR_NAME and copy the content of FILENAME into FD then delete FILENAME */
+/* Open the tar at path TAR_NAME and copy the content of FILENAME into FD then delete FILENAME from the tar
+   Return :
+   0  if FILENAME was found and moving the content was done without any issue
+   -1 if FILENAME was not found or is not a regular file or a system call failed */
 int tar_mv_file(const char *tar_name, const char *filename, int fd);
 
 #endif

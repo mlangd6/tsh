@@ -10,6 +10,7 @@
 
 #define BUFSIZE BLOCKSIZE
 
+/* Open the tar at path TAR_NAME and copy the content of FILENAME into FD then delete FILENAME from the tar */
 int tar_mv_file(const char *tar_name, const char *filename, int fd)
 {
   int tar_fd = open(tar_name, O_RDWR);
@@ -19,7 +20,7 @@ int tar_mv_file(const char *tar_name, const char *filename, int fd)
 
   unsigned int file_size;
   struct posix_header file_header;
-  int r = find_header(tar_fd, filename, &file_header);
+  int r = seek_header(tar_fd, filename, &file_header);
   
   if(r < 0) // erreur
     return error_pt(tar_name, &tar_fd, 1);
@@ -37,9 +38,9 @@ int tar_mv_file(const char *tar_name, const char *filename, int fd)
     return error_pt(tar_name, &tar_fd, 1);
 
   // RM
-  int file_start = p - BLOCKSIZE,
-    file_end   = file_start + BLOCKSIZE + number_of_block(file_size)*BLOCKSIZE,
-    tar_end    = lseek(tar_fd, 0, SEEK_END);
+  off_t file_start = p - BLOCKSIZE,
+        file_end   = file_start + BLOCKSIZE + number_of_block(file_size)*BLOCKSIZE,
+        tar_end    = lseek(tar_fd, 0, SEEK_END);
 
   if( fmemmove(tar_fd, file_end, tar_end - file_end, file_start) < 0)
     return error_pt(tar_name, &tar_fd, 1);

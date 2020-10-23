@@ -89,7 +89,7 @@ static int init_header(struct posix_header *hd, const char *filename) {
 }
 
 
-/* Add two empty block at the end of a tar file */
+/* Add two empty blocks at the end of a tar file */
 static int add_empty_block(int tar_fd) {
   int size = 2 * BLOCKSIZE;
   char buf[size];
@@ -100,7 +100,7 @@ static int add_empty_block(int tar_fd) {
   return 0;
 }
 
-
+/* Add file at path FILENAME to tar at path TAR_NAME */
 int tar_add_file(const char *tar_name, const char *filename) {
   int src_fd = -1;
   if ((src_fd = open(filename, O_RDONLY)) < 0) {
