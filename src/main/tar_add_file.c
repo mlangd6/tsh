@@ -9,16 +9,21 @@
 #include "errors.h"
 #include "tar.h"
 
-static int seek_end_of_tar(int tar_fd, const char *tar_name) {
+static int seek_end_of_tar(int tar_fd) {
+  struct posix_header hd;
+  ssize_t read_size;
   while(1) {
-    struct posix_header hd;
-    memset(&hd, '\0', BLOCKSIZE);
-    read(tar_fd, &hd, BLOCKSIZE);
+    read_size = read(tar_fd, &hd, BLOCKSIZE);
+    
+    if(read_size != BLOCKSIZE)
+      return -1;
+
     if (hd.name[0] != '\0')
       skip_file_content(tar_fd, &hd);
     else
       break;
   }
+  
   lseek(tar_fd, -BLOCKSIZE, SEEK_CUR);
   return 0;
 }
@@ -108,7 +113,7 @@ int tar_add_file(const char *tar_name, const char *filename) {
   }
   struct posix_header hd;
   memset(&hd, '\0', BLOCKSIZE);
-  if (seek_end_of_tar(tar_fd, tar_name) < 0) {
+  if (seek_end_of_tar(tar_fd) < 0) {
     return error_pt(tar_name, fds, 2);
   }
   if(init_header(&hd, filename) < 0) {
