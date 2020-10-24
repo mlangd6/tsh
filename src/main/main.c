@@ -21,7 +21,7 @@ static int is_tar_command(char *s);
 
 char tsh_dir[PATH_MAX];
 char *tar_cmds[NB_TAR_CMD] = {"cat", "ls"};
-char act_path[PATH_MAX];
+char twd[PATH_MAX];
 
 static int count_words(char *s) {
   int res = 1;
