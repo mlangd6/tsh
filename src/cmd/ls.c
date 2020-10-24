@@ -237,6 +237,7 @@ static int write_ls(struct posix_header *header, struct posix_header header_to_w
    file .tar that we want to list */
 int ls_l(char *tar_name, char *name_in_tar) {
   name_in_tar = split_tar_abs_path(tar_name);
+  if(strcmp(name_in_tar, "\0")!=0 && name_in_tar[strlen(name_in_tar)-1] != '/') strcat(name_in_tar, "/");
   struct posix_header *header = tar_ls(tar_name);
   int tar_fd = open(tar_name, O_RDONLY);
   if (tar_fd == -1)
@@ -342,25 +343,54 @@ int main(int argc, char *argv[]) {
 
   else
   {
-    int f = fork(), w;
-    for(int i = 1 ; i < argc; i++)
+    if(argc == 3 && is_tar(tar_name_func(argv[2], tar)) != 1)
+      execvp(CMD_NAME, argv);
+    else
     {
-        switch(f)
-        {
-          case -1 :
-            perror("fork");
-            break;
-          case 0:
-            if(strcmp(argv[1], "-l") == 0 )
-            {
-              if(is_tar(tar_name_func(argv[i], tar)) == 1)
+      int f = fork(), w;
+      for(int i = 1 ; i < argc; i++)
+      {
+          switch(f)
+          {
+            case -1 :
+              perror("fork");
+              break;
+            case 0:
+              if(strcmp(argv[1], "-l") == 0 )
+              {
+                if(is_tar(tar_name_func(argv[i], tar)) == 1)
+                {
+                  write(STDOUT_FILENO, argv[i], strlen(argv[i]));
+                  write(STDOUT_FILENO, ":\n", 2);
+                  ls_l(argv[i], name);
+                  write(STDOUT_FILENO, "\n\n", 2);
+                }
+                else if(i!=1)
+                {
+                  int g = fork(), y;
+                  switch(g){
+                    case -1:
+                      perror("fork");
+                      break;
+                    case 0:
+                      write(STDOUT_FILENO, "\n", 2);
+                      write(STDOUT_FILENO, argv[i], strlen(argv[i]));
+                      write(STDOUT_FILENO, ":\n", 2);
+                      execlp(CMD_NAME, CMD_NAME, argv[1], argv[i], NULL);
+                    default:
+                      wait(&y);
+                  }
+
+                }
+              }
+              else if(is_tar(tar_name_func(argv[i], tar)) == 1)
               {
                 write(STDOUT_FILENO, argv[i], strlen(argv[i]));
                 write(STDOUT_FILENO, ":\n", 2);
-                ls_l(argv[i], name);
+                ls(argv[i], name);
                 write(STDOUT_FILENO, "\n\n", 2);
               }
-              else if(i!=1)
+              else
               {
                 int g = fork(), y;
                 switch(g){
@@ -371,39 +401,16 @@ int main(int argc, char *argv[]) {
                     write(STDOUT_FILENO, "\n", 2);
                     write(STDOUT_FILENO, argv[i], strlen(argv[i]));
                     write(STDOUT_FILENO, ":\n", 2);
-                    execlp(CMD_NAME, CMD_NAME, argv[1], argv[i], NULL);
+                    execlp(CMD_NAME, CMD_NAME, argv[i], NULL);
                   default:
                     wait(&y);
                 }
-
               }
-            }
-            else if(is_tar(tar_name_func(argv[i], tar)) == 1)
-            {
-              write(STDOUT_FILENO, argv[i], strlen(argv[i]));
-              write(STDOUT_FILENO, ":\n", 2);
-              ls(argv[i], name);
-              write(STDOUT_FILENO, "\n\n", 2);
-            }
-            else
-            {
-              int g = fork(), y;
-              switch(g){
-                case -1:
-                  perror("fork");
-                  break;
-                case 0:
-                  write(STDOUT_FILENO, "\n", 2);
-                  write(STDOUT_FILENO, argv[i], strlen(argv[i]));
-                  write(STDOUT_FILENO, ":\n", 2);
-                  execlp(CMD_NAME, CMD_NAME, argv[i], NULL);
-                default:
-                  wait(&y);
-              }
-            }
-          default:
-            wait(&w);
+            default:
+              wait(&w);
+          }
         }
+
     }
   }
   free(name);
