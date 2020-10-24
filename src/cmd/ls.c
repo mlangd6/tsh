@@ -26,6 +26,7 @@ static int nb_link(struct posix_header ph, struct posix_header *header, int n);
 static int nb_of_slash(char *name);
 static char *tar_name_func(char *name, char *name_two);
 static char *cut_name(char *to_cut, char *original, char *the_file_to_list);
+static int is_file(struct posix_header *header, char *name_in_tar, int nb_of_files_in_tar);
 static int write_ls(struct posix_header *header, struct posix_header header_to_write, char *name, int nb_of_files_in_tar);
 
 
@@ -195,6 +196,7 @@ static char *tar_name_func(char *name, char *n){
 /* remove the name of origin "original" in to_cut and stock this result in the_file_to_list which is return
    example : cut_name("tttt.tar/toto/tata/titi", "tttt.tar", "") == "titi"   */
 static char *cut_name(char *to_cut, char *original, char *the_file_to_list){
+  printf("%s | %s | %s\n", to_cut, original, the_file_to_list);
   int i = 0, j = 0;
   int size = strlen(to_cut) - strlen(original) + 1;
   while(to_cut[i] == original[i]){
@@ -204,7 +206,25 @@ static char *cut_name(char *to_cut, char *original, char *the_file_to_list){
     the_file_to_list[j] = to_cut[i++];
   }
   the_file_to_list[j] = '\0';
+  printf("%s | %s | %s\n", to_cut, original, the_file_to_list);
   return the_file_to_list;
+}
+
+/* list the name if the name input is a file. Return boolean. */
+static int is_file(struct posix_header *header, char *name_in_tar, int nb_of_files_in_tar){
+  for(int i = 0; i < nb_of_files_in_tar; i++)
+  {
+      if(strcmp(name_in_tar, header[i].name)==0)
+      {
+        char *file_to_list = malloc(strlen(name_in_tar));
+        file_to_list = strchr(name_in_tar, '/');
+        printf("%s\n%s\n", file_to_list+1, name_in_tar);
+        write_ls(header, header[i], file_to_list+1, nb_of_files_in_tar);
+        free(file_to_list);
+        return 1;
+      }
+  }
+  return 0;
 }
 
 /* Write all the informations for "ls -l" */
@@ -237,14 +257,19 @@ static int write_ls(struct posix_header *header, struct posix_header header_to_w
    file .tar that we want to list */
 int ls_l(char *tar_name, char *name_in_tar) {
   name_in_tar = split_tar_abs_path(tar_name);
-  if(strcmp(name_in_tar, "\0")!=0 && name_in_tar[strlen(name_in_tar)-1] != '/') strcat(name_in_tar, "/");
   struct posix_header *header = tar_ls(tar_name);
   int tar_fd = open(tar_name, O_RDONLY);
   if (tar_fd == -1)
     return error_pt(tar_name, &tar_fd, 1);
   int nb_of_files_in_tar = nb_files_in_tar(tar_fd);
 
+  if(is_file(header, name_in_tar, nb_of_files_in_tar))
+  {
+    close(tar_fd);
+    return 0;
+  }
   if(strcmp(name_in_tar, "\0") != 0){
+    if(name_in_tar[strlen(name_in_tar)-1] != '/') strcat(name_in_tar, "/");
     for(int i = 0; i < nb_of_files_in_tar; i++)
     {
       char *c = NULL;
