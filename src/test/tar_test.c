@@ -8,7 +8,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
-#define TAR_TEST_SIZE 6
+#define TAR_TEST_SIZE 7
 #define TAR_ADD_TEST_SIZE_BUF 700
 
 
@@ -16,12 +16,13 @@ static char *tar_add_file_test();
 static char *test_tar_ls();
 static char *is_tar_test();
 static char *tar_cp_test();
-static char *tar_rm_test();
+static char *tar_rm_file_test();
+static char *tar_rm_dir_test();
 static char *tar_mv_test();
 
 extern int tests_run;
 
-static char *(*tests[])(void) = { tar_add_file_test, test_tar_ls, is_tar_test, tar_cp_test, tar_rm_test, tar_mv_test};
+static char *(*tests[])(void) = { tar_add_file_test, test_tar_ls, is_tar_test, tar_cp_test, tar_rm_file_test, tar_rm_dir_test, tar_mv_test};
 
 static char *stat_equals(struct stat *s1, struct stat *s2) {
   mu_assert("tar_add_file_test: error: st_mode", s1 -> st_mode == s2 -> st_mode);
@@ -117,15 +118,25 @@ static char *tar_cp_test() {
   return 0;
 }
 
-static char *tar_rm_test()
-{
-  mu_assert("Couldn't remove man_dir/open2", tar_rm_file("/tmp/tsh_test/test.tar", "man_dir/open2") == 0);
-  mu_assert("Error tar_rm_file corrupted the tar", is_tar("/tmp/tsh_test/test.tar") == 1);
+static char *tar_rm_file_test()
+{  
+  mu_assert("Couldn't remove man_dir/open2", tar_rm("/tmp/tsh_test/test.tar", "man_dir/open2") == 0);
+  mu_assert("Error tar_rm corrupted the tar", is_tar("/tmp/tsh_test/test.tar") == 1);
 
-  mu_assert("tar_rm_file(\"/tmp/tsh_test/test.tar\", \"man_dir/open2\") != -1", tar_rm_file("/tmp/tsh_test/test.tar", "man_dir/open2") == -1);
-
+  mu_assert("tar_rm(\"/tmp/tsh_test/test.tar\", \"man_dir/open2\") != -2", tar_rm("/tmp/tsh_test/test.tar", "man_dir/open2") == -2);
+  
   return 0;
 }
+
+static char *tar_rm_dir_test()
+{
+  mu_assert("Couldn't remove dir1/", tar_rm("/tmp/tsh_test/test.tar","dir1/") == 0);
+  mu_assert("Error tar_rm corrupted the tar", is_tar("/tmp/tsh_test/test.tar") == 1);
+  
+  return 0;
+}
+
+
 
 static char *tar_mv_test()
 {

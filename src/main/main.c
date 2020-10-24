@@ -44,7 +44,7 @@ static char **split(char *s, int *is_tar_cmd) {
       if (res[i][0] != '-') { // Not an option
         if (res[i][0] != '/') { // Relative path
           char *tmp = malloc(PATH_MAX);
-          strcpy(tmp, act_path);
+          strcpy(tmp, twd);
           strcat(tmp, "/");
           strcat(tmp, res[i]);
           res[i] = tmp;
@@ -68,7 +68,7 @@ static char **split(char *s, int *is_tar_cmd) {
 }
 
 static void init_tsh() {
-  getcwd(act_path, PATH_MAX);
+  getcwd(twd, PATH_MAX);
   char *home = getenv("HOME");
   strcpy(tsh_dir, home);
   strcat(tsh_dir, "/.tsh");
