@@ -179,7 +179,7 @@ int tar_add_file(const char *tar_name, const char *filename) {
 
 
 /* count the number of file in a file .tar */
-static int nb_file_in_tar(int tar_fd)
+int nb_files_in_tar(int tar_fd)
 {
   int i = 0;
   int n;
@@ -199,18 +199,15 @@ static int nb_file_in_tar(int tar_fd)
   return i;
 }
 
-
 struct posix_header *tar_ls(const char *tar_name)
 {
   int tar_fd = open(tar_name, O_RDONLY);
   if (tar_fd == -1)
-    {
-      return error_p(tar_name, &tar_fd, 1);
-    }
+    return error_p(tar_name, &tar_fd, 1);
   int n;
   int i = 0;
   struct posix_header header;
-  struct posix_header *list_header = malloc(nb_file_in_tar(tar_fd)*sizeof(struct posix_header));
+  struct posix_header *list_header = malloc(nb_files_in_tar(tar_fd)*sizeof(struct posix_header));
   assert(list_header);
 
   while ( (n = read(tar_fd, &header, BLOCKSIZE)) > 0 )
