@@ -122,3 +122,26 @@ int skip_file_content(int tar_fd, struct posix_header *hd)
   size_t file_size = get_file_size(hd);
   return lseek(tar_fd, number_of_block(file_size) * BLOCKSIZE, SEEK_CUR);
 }
+
+/* Count the number of file in the tar referenced by TAR_FD */
+int nb_files_in_tar(int tar_fd)
+{
+  ssize_t size_read;
+  int nb = 0;
+  struct posix_header header;
+
+  while ((size_read = read(tar_fd, &header, BLOCKSIZE)) > 0 )
+    {
+      if(size_read != BLOCKSIZE)
+	return -1;
+      if(header.name[0] == '\0')
+	break;
+      else
+	nb++;
+      
+      skip_file_content(tar_fd, &header);
+    }
+
+  lseek(tar_fd, 0, SEEK_SET);
+  return nb;
+}

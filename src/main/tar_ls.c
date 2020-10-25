@@ -7,28 +7,6 @@
 #include "tar.h"
 
 
-/* Count the number of file in the tar referenced by TAR_FD */
-static int nb_file_in_tar(int tar_fd)
-{
-  ssize_t size_read;
-  int nb = 0;
-  struct posix_header header;
-
-  while ((size_read = read(tar_fd, &header, BLOCKSIZE)) > 0 )
-    {
-      if(size_read != BLOCKSIZE)
-	return -1;
-      if(header.name[0] == '\0')
-	break;
-      else
-	nb++;
-      
-      skip_file_content(tar_fd, &header);
-    }
-
-  lseek(tar_fd, 0, SEEK_SET);
-  return nb;
-}
 
 
 /* List all files contained in the tar at path TAR_NAME */
@@ -38,7 +16,7 @@ struct posix_header *tar_ls(const char *tar_name)
   if (tar_fd < 0)
     return error_p(tar_name, &tar_fd, 1);
 
-  int nb_file = nb_file_in_tar(tar_fd);
+  int nb_file = nb_files_in_tar(tar_fd);
   if(nb_file < 0)
     return error_p(tar_name, &tar_fd, 1);
   

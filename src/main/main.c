@@ -12,7 +12,7 @@
 #define PROMPT "$ "
 #define CMD_NOT_FOUND " : command not found\n"
 #define CMD_NOT_FOUND_SIZE 22
-#define NB_TAR_CMD 1
+#define NB_TAR_CMD 2
 
 static int count_words(char *s);
 static char **split(char *s, int *is_tar_cmd);
@@ -20,8 +20,8 @@ static void init_tsh();
 static int is_tar_command(char *s);
 
 char tsh_dir[PATH_MAX];
-char *tar_cmds[NB_TAR_CMD] = {"cat"};
-char act_path[PATH_MAX];
+char *tar_cmds[NB_TAR_CMD] = {"cat", "ls"};
+char twd[PATH_MAX];
 
 static int count_words(char *s) {
   int res = 1;
@@ -44,7 +44,7 @@ static char **split(char *s, int *is_tar_cmd) {
       if (res[i][0] != '-') { // Not an option
         if (res[i][0] != '/') { // Relative path
           char *tmp = malloc(PATH_MAX);
-          strcpy(tmp, act_path);
+          strcpy(tmp, twd);
           strcat(tmp, "/");
           strcat(tmp, res[i]);
           res[i] = tmp;
@@ -68,7 +68,7 @@ static char **split(char *s, int *is_tar_cmd) {
 }
 
 static void init_tsh() {
-  getcwd(act_path, PATH_MAX);
+  getcwd(twd, PATH_MAX);
   char *home = getenv("HOME");
   strcpy(tsh_dir, home);
   strcat(tsh_dir, "/.tsh");

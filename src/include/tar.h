@@ -98,6 +98,9 @@ int skip_file_content(int tar_fd, struct posix_header *hd);
    -1 if it couldn't */
 int tar_add_file(const char *tar_name, const char *filename);
 
+/* Return the number of files in the tar referenced by TAR_FD */
+int nb_files_in_tar(int tar_fd);
+
 /* List all files contained in the tar at path TAR_NAME
    Return :
    On success, a malloc array of all headers
