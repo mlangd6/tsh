@@ -30,5 +30,6 @@ int write_error(const char *pre_error, const char *arg, const char *post_error) 
   memcpy(error, arg, strlen(arg));
   memcpy(error, post_error, strlen(post_error) + 1);
   write(STDERR_FILENO, error, strlen(error) + 1);
+  free(error);
   return EXIT_FAILURE;
 }
