@@ -13,15 +13,26 @@
 #define CMD_NOT_FOUND " : command not found\n"
 #define CMD_NOT_FOUND_SIZE 22
 #define NB_TAR_CMD 1
+#define NB_TSH_FUNC 1
+#define TAR_CMD 1
+#define TSH_FUNC 2
+#define MAX_TSH_FUNC_SIZE 3
+#define SET_TSH_FUNC 1
+#define NO_SET_TSH_FUNC 0
 
 static int count_words(char *s);
 static char **split(char *s, int *is_tar_cmd);
 static void init_tsh();
-static int is_tar_command(char *s);
+static int special_command(char *s, char **tab, int tab_l, int set_tsh_func);
+static int launch_tsh_func(char **argv);
+static int cd(char **argv);
+static int count_argc(char **argv);
 
 char tsh_dir[PATH_MAX];
 char *tar_cmds[NB_TAR_CMD] = {"cat"};
+char *tsh_funcs[NB_TSH_FUNC] = {"cd"};
 char twd[PATH_MAX];
+char tsh_func[MAX_TSH_FUNC_SIZE];
 
 static int count_words(char *s) {
   int res = 1;
@@ -32,15 +43,16 @@ static int count_words(char *s) {
   return res;
 }
 
-static char **split(char *s, int *is_tar_cmd) {
+static char **split(char *s, int *spec) {
   int nb_tokens = count_words(s);
   char delim[] = " ";
   char **res = malloc((nb_tokens+1) * sizeof(char *));
   res[0] = strtok(s, delim);
-  *is_tar_cmd = is_tar_command(res[0]);
+  *spec = (special_command(res[0], tar_cmds, NB_TAR_CMD, NO_SET_TSH_FUNC)) ? TAR_CMD :
+    (special_command(res[0], tsh_funcs, NB_TSH_FUNC, SET_TSH_FUNC)) ? TSH_FUNC : 0;
   for (int i = 1; i < nb_tokens; i++) {
     res[i] = strtok(NULL, delim);
-    if (*is_tar_cmd) {
+    if (*spec) {
       if (res[i][0] != '-') { // Not an option
         if (res[i][0] != '/') { // Relative path
           char *tmp = malloc(PATH_MAX);
@@ -74,9 +86,12 @@ static void init_tsh() {
   strcat(tsh_dir, "/.tsh");
 }
 
-static int is_tar_command(char *s) {
-  for (int i = 0; i < NB_TAR_CMD; i++) {
-    if (strcmp(s, tar_cmds[i]) == 0) {
+static int special_command(char *s, char **tab, int tab_l, int set_tsh_func) {
+  for (int i = 0; i < tab_l; i++) {
+    if (strcmp(s, tab[i]) == 0) {
+      if (set_tsh_func) {
+        memcpy(tsh_func, tab[i], strlen(tab[i]) + 1);
+      }
       return 1;
     }
   }
@@ -86,24 +101,27 @@ static int is_tar_command(char *s) {
 int main(int argc, char *argv[]){
   init_tsh();
   char *buf;
-  int is_tar_cmd;
+  int spec;
   while((buf = readline(PROMPT))) {
     if (strlen(buf) > 0) {
       add_history(buf);
     }
-    char **tokens = split(buf, &is_tar_cmd);
+    char **tokens = split(buf, &spec);
     int p = fork(), w;
     switch (p) {
       case -1:
         perror("fork");
         exit(EXIT_FAILURE);
       case 0: //son
-        if (is_tar_cmd) {
+        if (spec == TAR_CMD) {
           char cmd_exec[PATH_MAX];
           strcpy(cmd_exec, tsh_dir);
           strcat(cmd_exec, "/bin/");
           strcat(cmd_exec, tokens[0]);
           execv(cmd_exec, tokens);
+        }
+        else if (spec == TSH_FUNC) {
+          launch_tsh_func(tokens);
         }
         else {
           execvp(tokens[0], tokens);
@@ -120,7 +138,7 @@ int main(int argc, char *argv[]){
         wait(&w);
 
     }
-    if (is_tar_cmd) {
+    if (spec) {
       for (int i = 1; tokens[i] != NULL; i++) {
         free(tokens[i]);
       }
