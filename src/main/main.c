@@ -27,6 +27,7 @@ static int special_command(char *s, char **tab, int tab_l, int set_tsh_func);
 static int launch_tsh_func(char **argv);
 static int cd(char **argv);
 static int count_argc(char **argv);
+static void set_pwd(char *new_pwd);
 
 char tsh_dir[PATH_MAX];
 char *tar_cmds[NB_TAR_CMD] = {"cat"};
@@ -98,6 +99,79 @@ static int special_command(char *s, char **tab, int tab_l, int set_tsh_func) {
   return 0;
 }
 
+static int launch_tsh_func(char **argv) {
+  if (strcmp(argv[0], "cd") == 0) {
+    return cd(argv);
+  }
+  return 1;
+}
+
+static int count_argc(char **argv) {
+  int i = 0;
+  while (argv[i++] != NULL) ;
+  return i-1;
+}
+
+static void set_pwd(char *new_pwd) {
+  char *pwd = malloc (5 + strlen(new_pwd));
+  memcpy(pwd, "PWD=", 4);
+  memcpy(pwd, new_pwd, strlen(new_pwd) + 1);
+  putenv(pwd);
+  printf("PWD: %s\n", pwd);
+  free(pwd);
+}
+
+static int cd(char **argv) {
+  char *pre_error = "tsh: cd: ";
+  int argc = count_argc(argv);
+  if (argc == 1) {
+    char *home = getenv("HOME");
+    if (home == NULL) {
+      char *error = "tsh: cd: HOME not set\n";
+      write(STDERR_FILENO, error, strlen(error) + 1);
+      return EXIT_FAILURE;
+    }
+    if (chdir(home) != 0) {
+      return EXIT_FAILURE;
+    }
+    set_pwd(home);
+    memcpy(twd, home, strlen(home) + 1);
+    return EXIT_SUCCESS;
+  }
+  else if (argc == 2) {
+    char *in_tar = split_tar_abs_path(argv[1]);
+    int is_tar_dir = is_tar(argv[1]);
+    if (*in_tar == '\0' && is_tar_dir != 1) { // Not tar implied
+      if (chdir(argv[1]) != 0) {
+        write(STDERR_FILENO, pre_error, strlen(pre_error));
+        perror(argv[1]);
+        return EXIT_FAILURE;
+      }
+      set_pwd(argv[1]);
+      memcpy(twd, argv[1], strlen(argv[1]) + 1);
+    }
+    else { // in tar => path is valid (but not necessarily in_tar)
+
+      if (*in_tar != '\0') { // path inside tar file
+        printf("%s\n", "1");
+        int len_in_tar = strlen(in_tar);
+        in_tar[len_in_tar] = '/';
+        // TODO
+      }
+      else {
+        printf("2: %s\n", argv[1]);
+        set_pwd(argv[1]);
+        memcpy(twd, argv[1], strlen(argv[1]) + 1);
+        printf("twd %s\n", twd);
+      }
+      char *bef_tar = strrchr(argv[1], '/'); // Not NULL
+      *bef_tar = '\0';
+      chdir(argv[1]);
+    }
+  }
+  return EXIT_SUCCESS;
+}
+
 int main(int argc, char *argv[]){
   init_tsh();
   char *buf;
@@ -107,37 +181,38 @@ int main(int argc, char *argv[]){
       add_history(buf);
     }
     char **tokens = split(buf, &spec);
-    int p = fork(), w;
-    switch (p) {
-      case -1:
-        perror("fork");
-        exit(EXIT_FAILURE);
-      case 0: //son
-        if (spec == TAR_CMD) {
-          char cmd_exec[PATH_MAX];
-          strcpy(cmd_exec, tsh_dir);
-          strcat(cmd_exec, "/bin/");
-          strcat(cmd_exec, tokens[0]);
-          execv(cmd_exec, tokens);
-        }
-        else if (spec == TSH_FUNC) {
-          launch_tsh_func(tokens);
-        }
-        else {
-          execvp(tokens[0], tokens);
-        }
-        if (errno == ENOENT) {
-          int size = strlen(tokens[0]) + CMD_NOT_FOUND_SIZE;
-          char error_msg[size];
-          strcpy(error_msg, tokens[0]);
-          strcat(error_msg, CMD_NOT_FOUND);
-          write(STDOUT_FILENO, error_msg, size);
-        }
-        exit(EXIT_FAILURE);
-      default: // father
-        wait(&w);
-
+    if (spec == TSH_FUNC) {
+      launch_tsh_func(tokens);
     }
+    else {
+      int p = fork(), w;
+      switch (p) {
+        case -1:
+          perror("fork");
+          exit(EXIT_FAILURE);
+          case 0: //son
+          if (spec == TAR_CMD) {
+            char cmd_exec[PATH_MAX];
+            strcpy(cmd_exec, tsh_dir);
+            strcat(cmd_exec, "/bin/");
+            strcat(cmd_exec, tokens[0]);
+            execv(cmd_exec, tokens);
+          }
+          else {
+            execvp(tokens[0], tokens);
+          }
+          if (errno == ENOENT) {
+            int size = strlen(tokens[0]) + CMD_NOT_FOUND_SIZE;
+            char error_msg[size];
+            strcpy(error_msg, tokens[0]);
+            strcat(error_msg, CMD_NOT_FOUND);
+            write(STDERR_FILENO, error_msg, size);
+          }
+          exit(EXIT_FAILURE);
+          default: // father
+          wait(&w);
+        }
+      }
     if (spec) {
       for (int i = 1; tokens[i] != NULL; i++) {
         free(tokens[i]);
