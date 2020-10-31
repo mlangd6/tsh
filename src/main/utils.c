@@ -5,6 +5,7 @@
 
 #include "utils.h"
 
+#define BUFFER_SIZE 4096
 
 /* Read buffer by buffer of size BUFSIZE from READ_FD and write to WRITE_FD up to COUNT. */
 int read_write_buf_by_buf(int read_fd, int write_fd, size_t count, size_t bufsize)
@@ -33,27 +34,25 @@ int read_write_buf_by_buf(int read_fd, int write_fd, size_t count, size_t bufsiz
 /* Copies SIZE bytes from file descriptor FD starting at WHENCE offset to WHERE offset. */
 int fmemmove(int fd, off_t whence, size_t size, off_t where)
 {
-  char *buffer = malloc(size); // TODO: On fait un gros malloc, peut-être en faire plusieurs...
-  assert(buffer);
-
-  lseek(fd, whence, SEEK_SET);
-  if( read(fd, buffer, size) < 0 )
-    {
-      free(buffer);
+  char buffer[BUFFER_SIZE];
+  size_t read_size;
+  size_t total_read = 0;
+  size_t end;
+  while((end = size - total_read) > 0) {
+    lseek(fd, whence + total_read, SEEK_SET);
+    size_t count = (BUFFER_SIZE > end) ? end : BUFFER_SIZE;
+    if( (read_size = read(fd, buffer, count)) < 0 ) {
       return -1;
     }
 
-  lseek(fd, where, SEEK_SET);
-  if( write(fd, buffer, size) < 0)
-    {
-      free(buffer);
+    lseek(fd, where + total_read, SEEK_SET);
+    if( write(fd, buffer, read_size) < 0) {
       return -1;
     }
-
-  free(buffer);
-  
+    total_read += read_size;
+  }
   lseek(fd, where, SEEK_SET);
-  
+
   return 0;
 }
 
