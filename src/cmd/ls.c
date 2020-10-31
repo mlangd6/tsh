@@ -256,7 +256,7 @@ int ls_l(char *tar_name, char *name_in_tar) {
   struct posix_header *header = tar_ls(tar_name);
   int tar_fd = open(tar_name, O_RDONLY);
   if (tar_fd == -1)
-    return error_pt(tar_name, &tar_fd, 1);
+    return error_pt(&tar_fd, 1);
   int nb_of_files_in_tar = nb_files_in_tar(tar_fd);
 
   if(is_file(header, name_in_tar, nb_of_files_in_tar, 1))
@@ -303,7 +303,7 @@ int ls(char *tar_name, char *name_in_tar) {
   struct posix_header *header = tar_ls(tar_name);
   int tar_fd = open(tar_name, O_RDONLY);
   if (tar_fd == -1)
-    return error_pt(tar_name, &tar_fd, 1);
+    return error_pt(&tar_fd, 1);
   int nb_of_files_in_tar = nb_files_in_tar(tar_fd);
   int empty = 1;
 

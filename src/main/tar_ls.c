@@ -14,12 +14,12 @@ struct posix_header *tar_ls(const char *tar_name)
 {
   int tar_fd = open(tar_name, O_RDONLY);
   if (tar_fd < 0)
-    return error_p(tar_name, &tar_fd, 1);
+    return error_p(&tar_fd, 1);
 
   int nb_file = nb_files_in_tar(tar_fd);
   if(nb_file < 0)
-    return error_p(tar_name, &tar_fd, 1);
-  
+    return error_p(&tar_fd, 1);
+
   ssize_t size_read;
 
   struct posix_header *list_header = malloc(nb_file * sizeof(struct posix_header));
@@ -32,12 +32,12 @@ struct posix_header *tar_ls(const char *tar_name)
       if(size_read != BLOCKSIZE)
 	{
 	  free(list_header);
-	  return error_p(tar_name, &tar_fd, 1);
+	  return error_p(&tar_fd, 1);
 	}
-      
+
       skip_file_content(tar_fd, list_header+i);
     }
-  
+
   close(tar_fd);
   return list_header;
 }

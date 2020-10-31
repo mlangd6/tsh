@@ -14,7 +14,7 @@ static int seek_end_of_tar(int tar_fd) {
   ssize_t read_size;
   while(1) {
     read_size = read(tar_fd, &hd, BLOCKSIZE);
-    
+
     if(read_size != BLOCKSIZE)
       return -1;
 
@@ -23,7 +23,7 @@ static int seek_end_of_tar(int tar_fd) {
     else
       break;
   }
-  
+
   lseek(tar_fd, -BLOCKSIZE, SEEK_CUR);
   return 0;
 }
@@ -104,23 +104,23 @@ static int add_empty_block(int tar_fd) {
 int tar_add_file(const char *tar_name, const char *filename) {
   int src_fd = -1;
   if ((src_fd = open(filename, O_RDONLY)) < 0) {
-    return error_pt(filename, &src_fd, 1);
+    return error_pt(&src_fd, 1);
   }
   int tar_fd = open(tar_name, O_RDWR);
   int fds[2] = {src_fd, tar_fd};
   if ( tar_fd < 0) {
-    return error_pt(tar_name, fds, 2);
+    return error_pt(fds, 2);
   }
   struct posix_header hd;
   memset(&hd, '\0', BLOCKSIZE);
   if (seek_end_of_tar(tar_fd) < 0) {
-    return error_pt(tar_name, fds, 2);
+    return error_pt(fds, 2);
   }
   if(init_header(&hd, filename) < 0) {
-    return error_pt(filename, fds, 2);
+    return error_pt(fds, 2);
   }
   if (write(tar_fd, &hd, BLOCKSIZE) < 0) {
-    return error_pt(tar_name, fds, 2);
+    return error_pt(fds, 2);
   }
 
   char buffer[BLOCKSIZE];
@@ -130,12 +130,12 @@ int tar_add_file(const char *tar_name, const char *filename) {
       memset(buffer + read_size, '\0', BLOCKSIZE - read_size);
     }
     if (write(tar_fd, buffer, BLOCKSIZE) < 0) {
-      return error_pt(tar_name, fds, 2);
+      return error_pt(fds, 2);
     }
   }
   if (read_size < 0) {
     int fds[2] ={src_fd, tar_fd};
-    return error_pt(filename, fds, 2);
+    return error_pt(fds, 2);
   }
   add_empty_block(tar_fd);
   return 0;
