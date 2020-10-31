@@ -35,12 +35,12 @@ int read_write_buf_by_buf(int read_fd, int write_fd, size_t count, size_t bufsiz
 int fmemmove(int fd, off_t whence, size_t size, off_t where)
 {
   char buffer[BUFFER_SIZE];
-  size_t read_size;
-  size_t total_read = 0;
-  size_t end;
+  ssize_t read_size;
+  ssize_t total_read = 0;
+  ssize_t end;
   while((end = size - total_read) > 0) {
     lseek(fd, whence + total_read, SEEK_SET);
-    size_t count = (BUFFER_SIZE > end) ? end : BUFFER_SIZE;
+    ssize_t count = (BUFFER_SIZE > end) ? end : BUFFER_SIZE;
     if( (read_size = read(fd, buffer, count)) < 0 ) {
       return -1;
     }
