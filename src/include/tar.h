@@ -48,7 +48,7 @@ struct posix_header
 
 
 /* Compute and write the checksum of a header, by adding all (unsigned) bytes in
-   it (while hd->chksum is initially all ' '). 
+   it (while hd->chksum is initially all ' ').
    Then hd->chksum is set to contain the octal encoding of this sum (on 6 bytes), followed by '\0' and ' ' */
 void set_checksum(struct posix_header *hd);
 
@@ -70,8 +70,8 @@ int is_tar(const char *path);
    1  if FILENAME is in the tar and set HEADER for this file
    0  if FILENAME is not in the tar
    -1 if there is any kind of error
-   
-   In any case, the file offset of TAR_FD is moved and memory area at HEADER is changed. 
+
+   In any case, the file offset of TAR_FD is moved and memory area at HEADER is changed.
    If FILENAME was found (i.e. return 1) then this function guarantees that :
    - the file offset is moved to the end of the header *and*
    - HEADER is correctly set for the wanted file */
@@ -90,7 +90,7 @@ unsigned int get_file_size(struct posix_header *hd);
    -1 otherwise */
 int skip_file_content(int tar_fd, struct posix_header *hd);
 
-  
+
 
 /* Add file at path FILENAME to tar at path TAR_NAME
    Return :
@@ -100,6 +100,9 @@ int tar_add_file(const char *tar_name, const char *filename);
 
 /* Return the number of files in the tar referenced by TAR_FD */
 int nb_files_in_tar(int tar_fd);
+
+/* Return the number of files in the tar TAR_NAME */
+int nb_files_in_tar_c(char *tar_name);
 
 /* List all files contained in the tar at path TAR_NAME
    Return :
