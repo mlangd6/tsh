@@ -1,3 +1,4 @@
+#include <errno.h>
 #include <fcntl.h>
 #include <stdio.h>
 #include <string.h>
@@ -5,7 +6,9 @@
 #include <sys/types.h>
 #include <unistd.h>
 
+#include "errors.h"
 #include "tar.h"
+#include "utils.h"
 
 
 /* Code for set_checksum(...) and check_checksum(...) are taken from :

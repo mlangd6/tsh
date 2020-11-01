@@ -126,4 +126,18 @@ int tar_rm(const char *tar_name, const char *filename);
    -1 if FILENAME was not found or is not a regular file or a system call failed */
 int tar_mv_file(const char *tar_name, const char *filename, int fd);
 
+/* Check user's permissions for file FILE_NAME in tar at path TAR_NAME
+
+   The  mode  specifies the accessibility check(s) to be performed, and is the value F_OK
+   F_OK tests for the existence of the file.
+
+   RETURN :
+   On success, 1 is returned if FILE_NAME was exactly found in hte tar, or 2 is returned if FILE_NAME is finishing with a / (i.e. is a directory) and was found existing only through its subfiles.
+   On error, -1 is returned and errno is set appropriately.
+
+   ERRORS :
+   ENOENT A component of FILE_NAME does not exist
+   EINVAL MODE was incorrectly specified. */
+int tar_access(const char *tar_name, const char *file_name, int mode);
+
 #endif
