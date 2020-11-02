@@ -139,7 +139,8 @@ static int add_empty_block(int tar_fd) {
   return 0;
 }
 
-/* Add file at path FILENAME to tar at path TAR_NAME */
+/* Add file SOURCE to tar at path TAR_NAME/FILENAME
+   Or create file FILENAME to tar at path TAR_NAME/FILENAME */
 int tar_add_file(const char *tar_name, const char *source, const char *filename) {
   int src_fd = -1;
   if ((src_fd = open(source, O_RDONLY)) < 0) {
@@ -155,18 +156,17 @@ int tar_add_file(const char *tar_name, const char *source, const char *filename)
   if (seek_end_of_tar(tar_fd) < 0) {
     return error_pt(tar_name, fds, 2);
   }
-  if(source != NULL){
-    if(init_header(&hd, source, filename) < 0) {
+  if(source != NULL)
+  {
+    if(init_header(&hd, source, filename) < 0)
       return error_pt(filename, fds, 2);
-    }
   }
-  else if(source == NULL){
-    if(filename[strlen(filename)-1] == '/'){
+  else if(source == NULL)
+  {
+    if(filename[strlen(filename)-1] == '/')
       init_header_empty_file(&hd, filename);
-    }
-    else{
+    else
       init_header_new_repertory(&hd, filename);
-    }
   }
   if (write(tar_fd, &hd, BLOCKSIZE) < 0) {
     return error_pt(tar_name, fds, 2);
@@ -174,7 +174,7 @@ int tar_add_file(const char *tar_name, const char *source, const char *filename)
 
   char buffer[BLOCKSIZE];
   ssize_t read_size;
-  while((read_size = read(src_fd, buffer, BLOCKSIZE)) > 0) {
+  while((read_size = read(src_fd, buffer, BLOCKSIZE)) > 0 ) {
     if (read_size < BLOCKSIZE) {
       memset(buffer + read_size, '\0', BLOCKSIZE - read_size);
     }
@@ -182,7 +182,7 @@ int tar_add_file(const char *tar_name, const char *source, const char *filename)
       return error_pt(tar_name, fds, 2);
     }
   }
-  if (read_size < 0) {
+  if (read_size < 0 && hd.size > 0) {
     int fds[2] ={src_fd, tar_fd};
     return error_pt(filename, fds, 2);
   }
