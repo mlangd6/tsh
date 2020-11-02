@@ -9,12 +9,13 @@
 #include "errors.h"
 #include "tar.h"
 
+
 static int seek_end_of_tar(int tar_fd) {
   struct posix_header hd;
   ssize_t read_size;
   while(1) {
     read_size = read(tar_fd, &hd, BLOCKSIZE);
-    
+
     if(read_size != BLOCKSIZE)
       return -1;
 
@@ -23,7 +24,7 @@ static int seek_end_of_tar(int tar_fd) {
     else
       break;
   }
-  
+
   lseek(tar_fd, -BLOCKSIZE, SEEK_CUR);
   return 0;
 }
@@ -139,4 +140,25 @@ int tar_add_file(const char *tar_name, const char *filename) {
   }
   add_empty_block(tar_fd);
   return 0;
+}
+
+int tar_append_file(const char *tar_name, const char *filename, int src_fd) {
+  int tar_fd = open(tar_name, O_RDWR);
+  if (tar_fd < 0) {
+    return -1;
+  }
+  struct posix_header hd;
+  if (seek_header(tar_fd, filename, &hd) != 1) {
+    return error_pt(filename, &tar_fd, 1);
+  }
+
+  int padding = BLOCKSIZE - (hd.size % BLOCKSIZE);
+  off_t beg = lseek(tar_fd, hd.size, SEEK_CUR);
+  off_t tar_size = lseek(tar_fd, 0, SEEK_END);
+  off_t src_cur = lseek(src_fd, SEEK_CUR, 0);
+  off_t src_size = lseek(src_fd, SEEK_END, 0);
+  fmemmove(tar_fd, beg + padding, tar_size - beg + padding, beg + src_size);
+  lseek(tar_fd, beg, SEEK_SET);
+  lseek(src_fd, src_cur, SEEK_SET);
+  return read_write_buf_by_buf(src_fd, tar_fd, src_size, 512);
 }
