@@ -8,6 +8,7 @@
 
 #include "errors.h"
 #include "tar.h"
+#include "utils.h"
 
 
 static int seek_end_of_tar(int tar_fd) {
@@ -151,9 +152,9 @@ int tar_append_file(const char *tar_name, const char *filename, int src_fd) {
   if (seek_header(tar_fd, filename, &hd) != 1) {
     return error_pt(filename, &tar_fd, 1);
   }
-
-  int padding = BLOCKSIZE - (hd.size % BLOCKSIZE);
-  off_t beg = lseek(tar_fd, hd.size, SEEK_CUR);
+  int size = get_file_size(&hd);
+  int padding = BLOCKSIZE - (size % BLOCKSIZE);
+  off_t beg = lseek(tar_fd, size, SEEK_CUR);
   off_t tar_size = lseek(tar_fd, 0, SEEK_END);
   off_t src_cur = lseek(src_fd, SEEK_CUR, 0);
   off_t src_size = lseek(src_fd, SEEK_END, 0);
