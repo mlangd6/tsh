@@ -43,7 +43,7 @@ static char *tar_add_file_test() {
   close(fd);
   struct stat s1, s2;
   stat("tar_test", &s1);
-  tar_add_file("test.tar", "tar_test");
+  tar_add_file("test.tar", "tar_test", "tar_test");
   system("rm tar_test");
   system("tar -xf test.tar tar_test");
 
@@ -119,12 +119,12 @@ static char *tar_cp_test() {
 }
 
 static char *tar_rm_file_test()
-{  
+{
   mu_assert("Couldn't remove man_dir/open2", tar_rm("/tmp/tsh_test/test.tar", "man_dir/open2") == 0);
   mu_assert("Error tar_rm corrupted the tar", is_tar("/tmp/tsh_test/test.tar") == 1);
 
   mu_assert("tar_rm(\"/tmp/tsh_test/test.tar\", \"man_dir/open2\") != -2", tar_rm("/tmp/tsh_test/test.tar", "man_dir/open2") == -2);
-  
+
   return 0;
 }
 
@@ -132,7 +132,7 @@ static char *tar_rm_dir_test()
 {
   mu_assert("Couldn't remove dir1/", tar_rm("/tmp/tsh_test/test.tar","dir1/") == 0);
   mu_assert("Error tar_rm corrupted the tar", is_tar("/tmp/tsh_test/test.tar") == 1);
-  
+
   return 0;
 }
 

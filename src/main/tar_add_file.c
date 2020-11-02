@@ -14,7 +14,7 @@ static int seek_end_of_tar(int tar_fd) {
   ssize_t read_size;
   while(1) {
     read_size = read(tar_fd, &hd, BLOCKSIZE);
-    
+
     if(read_size != BLOCKSIZE)
       return -1;
 
@@ -23,7 +23,7 @@ static int seek_end_of_tar(int tar_fd) {
     else
       break;
   }
-  
+
   lseek(tar_fd, -BLOCKSIZE, SEEK_CUR);
   return 0;
 }
@@ -60,16 +60,17 @@ static void init_mode(struct posix_header *hd, struct stat *s) {
   u_rights += (S_IXUSR & s -> st_mode) ? 1 : 0;
   g_rights += (S_IXGRP & s -> st_mode) ? 1 : 0;
   o_rights += (S_IXOTH & s -> st_mode) ? 1 : 0;
-  hd -> mode[5] = '0' + u_rights;
-  hd -> mode[6] = '0' + g_rights;
-  hd -> mode[7] = '0' + o_rights;
+  hd -> mode[4] = '0' + u_rights;
+  hd -> mode[5] = '0' + g_rights;
+  hd -> mode[6] = '0' + o_rights;
+  hd -> mode[7] = '\0';
 }
 
-static int init_header(struct posix_header *hd, const char *filename) {
+static int init_header(struct posix_header *hd, const char *source, const char *filename) {
   struct stat s;
   time_t act_time;
   time(&act_time);
-  if (stat(filename, &s) < 0) {
+  if (stat(source, &s) < 0) {
     return -1;
   }
   strcpy(hd -> name, filename);
@@ -85,9 +86,47 @@ static int init_header(struct posix_header *hd, const char *filename) {
   // uname and gname are not added yet !
   set_checksum(hd);
   return 0;
-
 }
 
+static int init_header_empty_file(struct posix_header *hd, const char *filename){
+  time_t act_time;
+  time(&act_time);
+
+  strcpy(hd -> name, filename);
+  strcpy(hd -> mode, "0000644");
+  sprintf(hd -> uid, "%07o", getuid());
+  sprintf(hd -> gid, "%07o", getgid());
+  strcpy(hd -> size, "0");
+  sprintf(hd -> mtime, "%011o", (unsigned int) act_time);
+  strcpy(hd -> typeflag, REGTYPE);
+  strcpy(hd -> magic, TMAGIC);
+  hd -> version[0] = '0';
+  hd -> version[1] = '0';
+  //uname and gname are not added yet
+  //devmajor devminor prefix junk
+  set_checksum(hd);
+  return 0;
+}
+
+static int init_header_new_repertory(struct posix_header *hd, const char *filename){
+  time_t act_time;
+  time(&act_time);
+
+  strcpy(hd -> name, filename);
+  strcpy(hd -> mode, "0000755");
+  sprintf(hd -> uid, "%07o", getuid());
+  sprintf(hd -> gid, "%07o", getgid());
+  strcpy(hd -> size, "0");
+  sprintf(hd -> mtime, "%011o", (unsigned int) act_time);
+  strcpy(hd -> typeflag, DIRTYPE);
+  strcpy(hd -> magic, TMAGIC);
+  hd -> version[0] = '0';
+  hd -> version[1] = '0';
+  //uname and gname are not added yet
+  //devmajor devminor prefix junk
+  set_checksum(hd);
+  return 0;
+}
 
 /* Add two empty blocks at the end of a tar file */
 static int add_empty_block(int tar_fd) {
@@ -101,10 +140,10 @@ static int add_empty_block(int tar_fd) {
 }
 
 /* Add file at path FILENAME to tar at path TAR_NAME */
-int tar_add_file(const char *tar_name, const char *filename) {
+int tar_add_file(const char *tar_name, const char *source, const char *filename) {
   int src_fd = -1;
-  if ((src_fd = open(filename, O_RDONLY)) < 0) {
-    return error_pt(filename, &src_fd, 1);
+  if ((src_fd = open(source, O_RDONLY)) < 0) {
+    return error_pt(source, &src_fd, 1);
   }
   int tar_fd = open(tar_name, O_RDWR);
   int fds[2] = {src_fd, tar_fd};
@@ -116,8 +155,18 @@ int tar_add_file(const char *tar_name, const char *filename) {
   if (seek_end_of_tar(tar_fd) < 0) {
     return error_pt(tar_name, fds, 2);
   }
-  if(init_header(&hd, filename) < 0) {
-    return error_pt(filename, fds, 2);
+  if(source != NULL){
+    if(init_header(&hd, source, filename) < 0) {
+      return error_pt(filename, fds, 2);
+    }
+  }
+  else if(source == NULL){
+    if(filename[strlen(filename)-1] == '/'){
+      init_header_empty_file(&hd, filename);
+    }
+    else{
+      init_header_new_repertory(&hd, filename);
+    }
   }
   if (write(tar_fd, &hd, BLOCKSIZE) < 0) {
     return error_pt(tar_name, fds, 2);
