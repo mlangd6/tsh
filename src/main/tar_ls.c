@@ -18,7 +18,7 @@ struct posix_header *tar_ls(const char *tar_name)
 
   int nb_file = nb_files_in_tar(tar_fd);
   if(nb_file < 0)
-    return error_p(&tar_fd, 1);
+    return error_p(&tar_fd, 1); // TODO Set errno (tar corrupted)
 
   ssize_t size_read;
 
@@ -32,7 +32,7 @@ struct posix_header *tar_ls(const char *tar_name)
       if(size_read != BLOCKSIZE)
 	{
 	  free(list_header);
-	  return error_p(&tar_fd, 1);
+	  return error_p(&tar_fd, 1); // TODO Set errno (tar corrupted)
 	}
 
       skip_file_content(tar_fd, list_header+i);

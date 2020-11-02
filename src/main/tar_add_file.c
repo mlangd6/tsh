@@ -16,7 +16,7 @@ static int seek_end_of_tar(int tar_fd) {
     read_size = read(tar_fd, &hd, BLOCKSIZE);
 
     if(read_size != BLOCKSIZE)
-      return -1;
+      return -1; // TODO tar corrupted
 
     if (hd.name[0] != '\0')
       skip_file_content(tar_fd, &hd);
@@ -82,7 +82,7 @@ static int init_header(struct posix_header *hd, const char *filename) {
   strcpy(hd -> magic, TMAGIC);
   hd -> version[0] = '0';
   hd -> version[1] = '0';
-  // uname and gname are not added yet !
+  // TODO uname and gname are not added yet !
   set_checksum(hd);
   return 0;
 
