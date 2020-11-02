@@ -126,5 +126,9 @@ int tar_rm(const char *tar_name, const char *filename);
    -1 if FILENAME was not found or is not a regular file or a system call failed */
 int tar_mv_file(const char *tar_name, const char *filename, int fd);
 
+/* Append file name FILENAME in tarball TAR_NAME with the content of SRC_FD
+   Return :
+   0 if everything worked
+   -1 if a system call failed */
 int tar_append_file(const char *tar_name, const char *filename, int src_fd);
 #endif

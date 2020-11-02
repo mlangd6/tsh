@@ -148,6 +148,7 @@ int tar_add_file(const char *tar_name, const char *filename) {
   return 0;
 }
 
+/* Append file name FILENAME in tarball TAR_NAME with the content of SRC_FD */
 int tar_append_file(const char *tar_name, const char *filename, int src_fd) {
   int tar_fd = open(tar_name, O_RDWR);
   if (tar_fd < 0) {
