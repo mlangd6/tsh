@@ -8,6 +8,8 @@
 
 #include "errors.h"
 #include "tar.h"
+#include "utils.h"
+
 
 static int seek_end_of_tar(int tar_fd) {
   struct posix_header hd;
@@ -26,6 +28,13 @@ static int seek_end_of_tar(int tar_fd) {
 
   lseek(tar_fd, -BLOCKSIZE, SEEK_CUR);
   return 0;
+}
+
+/* Set mtime of header to actual time */
+static void set_hd_time(struct posix_header *hd) {
+  time_t now;
+  time(&now);
+  sprintf(hd -> mtime, "%011o", (unsigned int) now);
 }
 
 static void init_type(struct posix_header *hd, struct stat *s) {
@@ -68,9 +77,7 @@ static void init_mode(struct posix_header *hd, struct stat *s) {
 
 static int init_header(struct posix_header *hd, const char *source, const char *filename) {
   struct stat s;
-  time_t act_time;
-  time(&act_time);
-  if (stat(source, &s) < 0) {
+  if (stat(filename, &s) < 0) {
     return -1;
   }
   strcpy(hd -> name, filename);
@@ -78,9 +85,9 @@ static int init_header(struct posix_header *hd, const char *source, const char *
   sprintf(hd -> uid, "%07o", s.st_uid);
   sprintf(hd -> gid, "%07o" ,s.st_gid);
   sprintf(hd -> size, "%011lo", s.st_size);
-  sprintf(hd -> mtime, "%011o", (unsigned int) act_time);
   init_type(hd, &s);
   strcpy(hd -> magic, TMAGIC);
+  set_hd_time(hd);
   hd -> version[0] = '0';
   hd -> version[1] = '0';
   // uname and gname are not added yet !
@@ -93,7 +100,7 @@ static int init_header_empty_file(struct posix_header *hd, const char *filename,
   time(&act_time);
 
   strcpy(hd -> name, filename);
-  if(is_dir) strcpy(hd -> mode, "0000755"); 
+  if(is_dir) strcpy(hd -> mode, "0000755");
   else strcpy(hd -> mode, "0000644");
   sprintf(hd -> uid, "%07o", getuid());
   sprintf(hd -> gid, "%07o", getgid());
@@ -180,5 +187,44 @@ int tar_add_file(const char *tar_name, const char *source, const char *filename)
       return error_pt(tar_name, &tar_fd, 1);
     }
   }
+  return 0;
+}
+
+/* Append file name FILENAME in tarball TAR_NAME with the content of SRC_FD */
+int tar_append_file(const char *tar_name, const char *filename, int src_fd) {
+  int tar_fd = open(tar_name, O_RDWR);
+  if (tar_fd < 0) {
+    return -1;
+  }
+  struct posix_header hd;
+  if (seek_header(tar_fd, filename, &hd) != 1) {
+    return error_pt(filename, &tar_fd, 1);
+  }
+  int size = get_file_size(&hd);
+  off_t src_cur = lseek(src_fd, 0, SEEK_CUR);
+  off_t src_size = lseek(src_fd, 0, SEEK_END) - src_cur;
+  long unsigned int new_size = src_size + size;
+  lseek(tar_fd, -BLOCKSIZE, SEEK_CUR);
+  set_hd_time(&hd);
+  sprintf(hd.size, "%011lo", new_size);
+  set_checksum(&hd);
+  write(tar_fd, &hd, BLOCKSIZE);
+  int padding = BLOCKSIZE - (size % BLOCKSIZE);
+  off_t beg = lseek(tar_fd, size, SEEK_CUR);
+  off_t tar_size = lseek(tar_fd, 0, SEEK_END);
+
+  int required_blocks = src_size <= padding ? 0 : number_of_block(src_size);
+  if (fmemmove(tar_fd, beg + padding, tar_size - (beg + padding), beg + padding + required_blocks*BLOCKSIZE)) {
+    close(tar_fd);
+    return -1;
+  }
+  lseek(tar_fd, beg, SEEK_SET);
+  lseek(src_fd, src_cur, SEEK_SET);
+  if (read_write_buf_by_buf(src_fd, tar_fd, src_size, 512) != 0) {
+    close(tar_fd);
+    return -1;
+  }
+
+  close(tar_fd);
   return 0;
 }
