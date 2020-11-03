@@ -14,7 +14,7 @@ static int seek_end_of_tar(int tar_fd) {
   ssize_t read_size;
   while(1) {
     read_size = read(tar_fd, &hd, BLOCKSIZE);
-    
+
     if(read_size != BLOCKSIZE)
       return -1;
 
@@ -23,7 +23,7 @@ static int seek_end_of_tar(int tar_fd) {
     else
       break;
   }
-  
+
   lseek(tar_fd, -BLOCKSIZE, SEEK_CUR);
   return 0;
 }
@@ -138,5 +138,16 @@ int tar_add_file(const char *tar_name, const char *filename) {
     return error_pt(filename, fds, 2);
   }
   add_empty_block(tar_fd);
+  return 0;
+}
+
+int tar_add_file_rec(const char *tar_name, const char *filename, const char *inside_tar_name){
+  struct stat s;
+  if (stat(filename, &s) < 0)
+    return -1;
+  if(s.st_mode != DIRTYPE){
+    write(STDERR_FILENO, "This file isn't a directory\n", 28);
+    return -1;
+  }
   return 0;
 }
