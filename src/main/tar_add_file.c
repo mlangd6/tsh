@@ -99,8 +99,8 @@ static int init_header(struct posix_header *hd, const char *source, const char *
 static int init_header_empty_file(struct posix_header *hd, const char *filename, int is_dir){
 
   strcpy(hd -> name, filename);
-  if(is_dir) sprintf(hd -> mode, "%07o", 0777 - getumask());
-  else sprintf(hd -> mode, "%07o", 0666 - getumask());
+  if(is_dir) sprintf(hd -> mode, "%07o", 0777 & ~getumask());
+  else sprintf(hd -> mode, "%07o", 0666 & ~getumask());
   sprintf(hd -> uid, "%07o", getuid());
   sprintf(hd -> gid, "%07o", getgid());
   strcpy(hd -> size, "0");
