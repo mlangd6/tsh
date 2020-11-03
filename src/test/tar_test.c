@@ -8,7 +8,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
-#define TAR_TEST_SIZE 7
+#define TAR_TEST_SIZE 8
 #define TAR_ADD_TEST_SIZE_BUF 700
 
 
@@ -19,10 +19,20 @@ static char *tar_cp_test();
 static char *tar_rm_file_test();
 static char *tar_rm_dir_test();
 static char *tar_mv_test();
+static char *tar_append_file_test();
 
 extern int tests_run;
 
-static char *(*tests[])(void) = { tar_add_file_test, test_tar_ls, is_tar_test, tar_cp_test, tar_rm_file_test, tar_rm_dir_test, tar_mv_test};
+static char *(*tests[])(void) = {
+  tar_add_file_test,
+  test_tar_ls,
+  is_tar_test,
+  tar_cp_test,
+  tar_rm_file_test,
+  tar_rm_dir_test,
+  tar_mv_test,
+  tar_append_file_test
+};
 
 static char *stat_equals(struct stat *s1, struct stat *s2) {
   mu_assert("tar_add_file_test: error: st_mode", s1 -> st_mode == s2 -> st_mode);
@@ -119,12 +129,12 @@ static char *tar_cp_test() {
 }
 
 static char *tar_rm_file_test()
-{  
+{
   mu_assert("Couldn't remove man_dir/open2", tar_rm("/tmp/tsh_test/test.tar", "man_dir/open2") == 0);
   mu_assert("Error tar_rm corrupted the tar", is_tar("/tmp/tsh_test/test.tar") == 1);
 
   mu_assert("tar_rm(\"/tmp/tsh_test/test.tar\", \"man_dir/open2\") != -2", tar_rm("/tmp/tsh_test/test.tar", "man_dir/open2") == -2);
-  
+
   return 0;
 }
 
@@ -132,7 +142,7 @@ static char *tar_rm_dir_test()
 {
   mu_assert("Couldn't remove dir1/", tar_rm("/tmp/tsh_test/test.tar","dir1/") == 0);
   mu_assert("Error tar_rm corrupted the tar", is_tar("/tmp/tsh_test/test.tar") == 1);
-  
+
   return 0;
 }
 
@@ -152,6 +162,27 @@ static char *tar_mv_test()
 
   close(fd);
 
+  return 0;
+}
+
+static char *tar_append_file_test() {
+  system("echo TEST> /tmp/tsh_test/append");
+  system("truncate -s 50 /tmp/tsh_test/titi_append");
+  system("echo TEST>>/tmp/tsh_test/titi_append");
+  system("echo \"Hello World!\nTEST\"> /tmp/tsh_test/hello_append_test");
+  int fd = open("/tmp/tsh_test/append", O_RDONLY);
+  if (fd < 0) {
+    mu_assert("open failed", 0);
+  }
+  tar_append_file("/tmp/tsh_test/test.tar", "titi", fd);
+  lseek(fd, 0, SEEK_SET);
+  tar_append_file("/tmp/tsh_test/test.tar", "dir1/subdir/subsubdir/hello", fd);
+  mu_assert("append tar corrupted the tar", is_tar("/tmp/tsh_test/test.tar") == 1);
+  system("tar -xf /tmp/tsh_test/test.tar -C /tmp/tsh_test/");
+
+  // Error msg will be made by cmp command if needed
+  mu_assert("", system("cmp /tmp/tsh_test/titi_append /tmp/tsh_test/titi") == 0);
+  mu_assert("", system("cmp /tmp/tsh_test/hello_append_test /tmp/tsh_test/dir1/subdir/subsubdir/hello") == 0);
   return 0;
 }
 
