@@ -96,7 +96,7 @@ int skip_file_content(int tar_fd, struct posix_header *hd);
    Return :
    0  if FILENAME was added
    -1 if it couldn't */
-int tar_add_file(const char *tar_name, const char *filename);
+int tar_add_file(const char *tar_name, const char *source, const char *filename);
 
 /* Return the number of files in the tar referenced by TAR_FD */
 int nb_files_in_tar(int tar_fd);

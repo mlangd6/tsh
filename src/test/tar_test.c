@@ -58,7 +58,7 @@ static char *tar_add_file_test() {
   close(fd);
   struct stat s1, s2;
   stat("tar_test", &s1);
-  tar_add_file("test.tar", "tar_test");
+  tar_add_file("test.tar", "tar_test", "tar_test");
   system("rm tar_test");
   system("tar -xf test.tar tar_test");
 
@@ -72,6 +72,11 @@ static char *tar_add_file_test() {
     return s;
   }
   mu_assert("tar_add_file_test: error: content of file", strncmp(buff1, buff2, TAR_ADD_TEST_SIZE_BUF) == 0);
+  tar_add_file("test.tar", NULL, "toto_test");
+  tar_add_file("test.tar", NULL, "dir1/dir_test/");
+  struct posix_header *a_tester = tar_ls("/tmp/tsh_test/test.tar");
+  mu_assert("tar_add_file_test: error: \"toto_test\" isn't add in the tar", strcmp("toto_test", a_tester[15].name) == 0);
+  mu_assert("tar_add_file_test: error: \"dir1/titi_test/\" isn't add in the tar", strcmp("dir1/dir_test/", a_tester[16].name) == 0);
   chdir(tmp);
   free(tmp);
   return 0;
@@ -182,7 +187,7 @@ static char *tar_access_test()
   errno = 0;
   mu_assert("tar_access(\"/tmp/tsh_test/test.tar\", \"man_dir/titi_link\", F_OK) != -1", tar_access("/tmp/tsh_test/test.tar", "man_dir/titi_link", F_OK) == -1);
   mu_assert("errno != ENOENT", errno == ENOENT);
-  
+
   mu_assert("tar_access(\"/tmp/tsh_test/test.tar\", \"dir1/\", F_OK) != 1", tar_access("/tmp/tsh_test/test.tar", "dir1/", F_OK) == 1);
 
   errno = 0;
@@ -194,7 +199,7 @@ static char *tar_access_test()
   mu_assert("tar_access(\"/tmp/tsh_test/test.tar\", \"dir2/fic1\", F_OK) != 1", tar_access("/tmp/tsh_test/test.tar", "dir2/fic1", F_OK) == 1);
   return 0;
 }
-  
+
 static char *tar_append_file_test() {
   system("echo TEST> /tmp/tsh_test/append");
   system("truncate -s 50 /tmp/tsh_test/titi_append");

@@ -1,8 +1,8 @@
 #include <fcntl.h>
 #include <stdio.h>
 #include <string.h>
-#include <sys/stat.h>
 #include <sys/types.h>
+#include <sys/stat.h>
 #include <time.h>
 #include <unistd.h>
 
@@ -69,12 +69,13 @@ static void init_mode(struct posix_header *hd, struct stat *s) {
   u_rights += (S_IXUSR & s -> st_mode) ? 1 : 0;
   g_rights += (S_IXGRP & s -> st_mode) ? 1 : 0;
   o_rights += (S_IXOTH & s -> st_mode) ? 1 : 0;
-  hd -> mode[5] = '0' + u_rights;
-  hd -> mode[6] = '0' + g_rights;
-  hd -> mode[7] = '0' + o_rights;
+  hd -> mode[4] = '0' + u_rights;
+  hd -> mode[5] = '0' + g_rights;
+  hd -> mode[6] = '0' + o_rights;
+  hd -> mode[7] = '\0';
 }
 
-static int init_header(struct posix_header *hd, const char *filename) {
+static int init_header(struct posix_header *hd, const char *source, const char *filename) {
   struct stat s;
   if (stat(filename, &s) < 0) {
     return -1;
@@ -92,9 +93,27 @@ static int init_header(struct posix_header *hd, const char *filename) {
   // uname and gname are not added yet !
   set_checksum(hd);
   return 0;
-
 }
 
+
+static int init_header_empty_file(struct posix_header *hd, const char *filename, int is_dir){
+
+  strcpy(hd -> name, filename);
+  if(is_dir) sprintf(hd -> mode, "%07o", 0777 & ~getumask());
+  else sprintf(hd -> mode, "%07o", 0666 & ~getumask());
+  sprintf(hd -> uid, "%07o", getuid());
+  sprintf(hd -> gid, "%07o", getgid());
+  strcpy(hd -> size, "0");
+  set_hd_time(hd);
+  hd -> typeflag = (is_dir)? DIRTYPE : REGTYPE;
+  strcpy(hd -> magic, TMAGIC);
+  hd -> version[0] = '0';
+  hd -> version[1] = '0';
+  //uname and gname are not added yet
+  //devmajor devminor prefix junk
+  set_checksum(hd);
+  return 0;
+}
 
 /* Add two empty blocks at the end of a tar file */
 static int add_empty_block(int tar_fd) {
@@ -107,44 +126,60 @@ static int add_empty_block(int tar_fd) {
   return 0;
 }
 
-/* Add file at path FILENAME to tar at path TAR_NAME */
-int tar_add_file(const char *tar_name, const char *filename) {
-  int src_fd = -1;
-  if ((src_fd = open(filename, O_RDONLY)) < 0) {
-    return error_pt(filename, &src_fd, 1);
-  }
+/* Add file SOURCE to tar at path TAR_NAME/FILENAME
+   Or create file FILENAME to tar at path TAR_NAME/FILENAME */
+int tar_add_file(const char *tar_name, const char *source, const char *filename) {
   int tar_fd = open(tar_name, O_RDWR);
-  int fds[2] = {src_fd, tar_fd};
   if ( tar_fd < 0) {
-    return error_pt(tar_name, fds, 2);
+    return error_pt(tar_name, &tar_fd, 1);
   }
   struct posix_header hd;
   memset(&hd, '\0', BLOCKSIZE);
   if (seek_end_of_tar(tar_fd) < 0) {
-    return error_pt(tar_name, fds, 2);
-  }
-  if(init_header(&hd, filename) < 0) {
-    return error_pt(filename, fds, 2);
-  }
-  if (write(tar_fd, &hd, BLOCKSIZE) < 0) {
-    return error_pt(tar_name, fds, 2);
+    return error_pt(tar_name, &tar_fd, 1);
   }
 
-  char buffer[BLOCKSIZE];
-  ssize_t read_size;
-  while((read_size = read(src_fd, buffer, BLOCKSIZE)) > 0) {
-    if (read_size < BLOCKSIZE) {
-      memset(buffer + read_size, '\0', BLOCKSIZE - read_size);
+  if(source != NULL){
+    int src_fd = -1;
+    if ((src_fd = open(source, O_RDONLY)) < 0) {
+      return error_pt(source, &src_fd, 1);
     }
-    if (write(tar_fd, buffer, BLOCKSIZE) < 0) {
+    int fds[2] = {src_fd, tar_fd};
+    if(init_header(&hd, source, filename) < 0)
+      return error_pt(filename, fds, 2);
+    if (write(tar_fd, &hd, BLOCKSIZE) < 0) {
       return error_pt(tar_name, fds, 2);
     }
+
+    char buffer[BLOCKSIZE];
+    ssize_t read_size;
+    while((read_size = read(src_fd, buffer, BLOCKSIZE)) > 0 ) {
+      if (read_size < BLOCKSIZE) {
+        memset(buffer + read_size, '\0', BLOCKSIZE - read_size);
+      }
+      if (write(tar_fd, buffer, BLOCKSIZE) < 0) {
+        return error_pt(tar_name, fds, 2);
+      }
+    }
+    if (read_size < 0 && hd.size > 0) {
+      int fds[2] ={src_fd, tar_fd};
+      return error_pt(filename, fds, 2);
+    }
+    add_empty_block(tar_fd);
+    close(src_fd);
   }
-  if (read_size < 0) {
-    int fds[2] ={src_fd, tar_fd};
-    return error_pt(filename, fds, 2);
+
+  else
+  {
+    if(filename[strlen(filename)-1] == '/')
+      init_header_empty_file(&hd, filename, 1);
+    else
+      init_header_empty_file(&hd, filename, 0);
+    if (write(tar_fd, &hd, BLOCKSIZE) < 0) {
+      return error_pt(tar_name, &tar_fd, 1);
+    }
   }
-  add_empty_block(tar_fd);
+  close(tar_fd);
   return 0;
 }
 
