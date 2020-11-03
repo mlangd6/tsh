@@ -171,7 +171,8 @@ int tar_append_file(const char *tar_name, const char *filename, int src_fd) {
   off_t beg = lseek(tar_fd, size, SEEK_CUR);
   off_t tar_size = lseek(tar_fd, 0, SEEK_END);
 
-  if (fmemmove(tar_fd, beg + padding, tar_size - beg + padding, beg + src_size)) {
+  int required_blocks = src_size <= padding ? 0 : number_of_block(src_size);
+  if (fmemmove(tar_fd, beg + padding, tar_size - (beg + padding), beg + padding + required_blocks*BLOCKSIZE)) {
     close(tar_fd);
     return -1;
   }
@@ -181,10 +182,7 @@ int tar_append_file(const char *tar_name, const char *filename, int src_fd) {
     close(tar_fd);
     return -1;
   }
-  // Add junk to finish block
-  off_t cur = lseek(tar_fd, 0, SEEK_CUR);
-  off_t move_size = lseek(tar_fd, 0, SEEK_END) - cur;
-  int ret = fmemmove(tar_fd, cur, move_size, cur + BLOCKSIZE - (new_size % BLOCKSIZE));
+
   close(tar_fd);
-  return ret;
+  return 0;
 }
