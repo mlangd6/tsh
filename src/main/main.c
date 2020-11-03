@@ -118,7 +118,6 @@ static void set_pwd(char *new_pwd) {
   memcpy(pwd, "PWD=", 4);
   memcpy(pwd, new_pwd, strlen(new_pwd) + 1);
   putenv(pwd);
-  printf("PWD: %s\n", pwd);
   free(pwd);
 }
 
@@ -152,18 +151,22 @@ static int cd(char **argv) {
       memcpy(twd, argv[1], strlen(argv[1]) + 1);
     }
     else { // in tar => path is valid (but not necessarily in_tar)
-
       if (*in_tar != '\0') { // path inside tar file
-        printf("%s\n", "1");
-        int len_in_tar = strlen(in_tar);
-        in_tar[len_in_tar] = '/';
-        // TODO
+        if (tar_access(argv[1], in_tar, F_OK) != -1) {
+          in_tar[-1] = '/';
+          set_pwd(argv[1]);
+          memcpy(twd, argv[1], strlen(argv[1]) + 1);
+          in_tar[-1] = '\0';
+        }
+        else {
+          in_tar[-1] = '/';
+          perror(argv[1]);
+          return EXIT_FAILURE;
+        }
       }
       else {
-        printf("2: %s\n", argv[1]);
         set_pwd(argv[1]);
         memcpy(twd, argv[1], strlen(argv[1]) + 1);
-        printf("twd %s\n", twd);
       }
       char *bef_tar = strrchr(argv[1], '/'); // Not NULL
       *bef_tar = '\0';
