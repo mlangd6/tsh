@@ -98,7 +98,7 @@ static int init_header_empty_file(struct posix_header *hd, const char *filename)
   sprintf(hd -> gid, "%07o", getgid());
   strcpy(hd -> size, "0");
   sprintf(hd -> mtime, "%011o", (unsigned int) act_time);
-  strcpy(hd -> typeflag, REGTYPE);
+  hd -> typeflag = REGTYPE;
   strcpy(hd -> magic, TMAGIC);
   hd -> version[0] = '0';
   hd -> version[1] = '0';
@@ -118,7 +118,7 @@ static int init_header_new_repertory(struct posix_header *hd, const char *filena
   sprintf(hd -> gid, "%07o", getgid());
   strcpy(hd -> size, "0");
   sprintf(hd -> mtime, "%011o", (unsigned int) act_time);
-  strcpy(hd -> typeflag, DIRTYPE);
+  hd -> typeflag = DIRTYPE;
   strcpy(hd -> magic, TMAGIC);
   hd -> version[0] = '0';
   hd -> version[1] = '0';
@@ -142,50 +142,62 @@ static int add_empty_block(int tar_fd) {
 /* Add file SOURCE to tar at path TAR_NAME/FILENAME
    Or create file FILENAME to tar at path TAR_NAME/FILENAME */
 int tar_add_file(const char *tar_name, const char *source, const char *filename) {
-  int src_fd = -1;
-  if ((src_fd = open(source, O_RDONLY)) < 0) {
-    return error_pt(source, &src_fd, 1);
-  }
-  int tar_fd = open(tar_name, O_RDWR);
-  int fds[2] = {src_fd, tar_fd};
-  if ( tar_fd < 0) {
-    return error_pt(tar_name, fds, 2);
-  }
-  struct posix_header hd;
-  memset(&hd, '\0', BLOCKSIZE);
-  if (seek_end_of_tar(tar_fd) < 0) {
-    return error_pt(tar_name, fds, 2);
-  }
-  if(source != NULL)
-  {
-    if(init_header(&hd, source, filename) < 0)
-      return error_pt(filename, fds, 2);
-  }
-  else if(source == NULL)
-  {
-    if(filename[strlen(filename)-1] == '/')
-      init_header_empty_file(&hd, filename);
-    else
-      init_header_new_repertory(&hd, filename);
-  }
-  if (write(tar_fd, &hd, BLOCKSIZE) < 0) {
-    return error_pt(tar_name, fds, 2);
-  }
-
-  char buffer[BLOCKSIZE];
-  ssize_t read_size;
-  while((read_size = read(src_fd, buffer, BLOCKSIZE)) > 0 ) {
-    if (read_size < BLOCKSIZE) {
-      memset(buffer + read_size, '\0', BLOCKSIZE - read_size);
+  if(source != NULL){
+    int src_fd = -1;
+    if ((src_fd = open(source, O_RDONLY)) < 0) {
+      return error_pt(source, &src_fd, 1);
     }
-    if (write(tar_fd, buffer, BLOCKSIZE) < 0) {
+    int tar_fd = open(tar_name, O_RDWR);
+    int fds[2] = {src_fd, tar_fd};
+    if ( tar_fd < 0) {
       return error_pt(tar_name, fds, 2);
     }
+    struct posix_header hd;
+    memset(&hd, '\0', BLOCKSIZE);
+    if (seek_end_of_tar(tar_fd) < 0) {
+      return error_pt(tar_name, fds, 2);
+    }
+    if(init_header(&hd, source, filename) < 0)
+      return error_pt(filename, fds, 2);
+    if (write(tar_fd, &hd, BLOCKSIZE) < 0) {
+      return error_pt(tar_name, fds, 2);
+    }
+
+    char buffer[BLOCKSIZE];
+    ssize_t read_size;
+    while((read_size = read(src_fd, buffer, BLOCKSIZE)) > 0 ) {
+      if (read_size < BLOCKSIZE) {
+        memset(buffer + read_size, '\0', BLOCKSIZE - read_size);
+      }
+      if (write(tar_fd, buffer, BLOCKSIZE) < 0) {
+        return error_pt(tar_name, fds, 2);
+      }
+    }
+    if (read_size < 0 && hd.size > 0) {
+      int fds[2] ={src_fd, tar_fd};
+      return error_pt(filename, fds, 2);
+    }
+    add_empty_block(tar_fd);
   }
-  if (read_size < 0 && hd.size > 0) {
-    int fds[2] ={src_fd, tar_fd};
-    return error_pt(filename, fds, 2);
+  
+  else if(source == NULL)
+  {
+    int tar_fd = open(tar_name, O_RDWR);
+    if ( tar_fd < 0) {
+      return error_pt(tar_name, &tar_fd, 1);
+    }
+    struct posix_header hd;
+    memset(&hd, '\0', BLOCKSIZE);
+    if (seek_end_of_tar(tar_fd) < 0) {
+      return error_pt(tar_name, &tar_fd, 1);
+    }
+    if(filename[strlen(filename)-1] == '/')
+      init_header_new_repertory(&hd, filename);
+    else
+      init_header_empty_file(&hd, filename);
+    if (write(tar_fd, &hd, BLOCKSIZE) < 0) {
+      return error_pt(tar_name, &tar_fd, 1);
+    }
   }
-  add_empty_block(tar_fd);
   return 0;
 }
