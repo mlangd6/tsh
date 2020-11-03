@@ -2,10 +2,19 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <sys/types.h>
+#include <sys/stat.h>
 
 #include "utils.h"
 
 #define BUFFER_SIZE 4096
+
+/* return the umask */
+mode_t getumask(void){
+  mode_t mask = umask(0);
+  umask(mask);
+  return mask;
+}
 
 /* Read buffer by buffer of size BUFSIZE from READ_FD and write to WRITE_FD up to COUNT. */
 int read_write_buf_by_buf(int read_fd, int write_fd, size_t count, size_t bufsize)
