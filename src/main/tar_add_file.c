@@ -88,37 +88,18 @@ static int init_header(struct posix_header *hd, const char *source, const char *
   return 0;
 }
 
-static int init_header_empty_file(struct posix_header *hd, const char *filename){
+static int init_header_empty_file(struct posix_header *hd, const char *filename, int is_dir){
   time_t act_time;
   time(&act_time);
 
   strcpy(hd -> name, filename);
-  strcpy(hd -> mode, "0000644");
+  if(is_dir) strcpy(hd -> mode, "0000755"); 
+  else strcpy(hd -> mode, "0000644");
   sprintf(hd -> uid, "%07o", getuid());
   sprintf(hd -> gid, "%07o", getgid());
   strcpy(hd -> size, "0");
   sprintf(hd -> mtime, "%011o", (unsigned int) act_time);
-  hd -> typeflag = REGTYPE;
-  strcpy(hd -> magic, TMAGIC);
-  hd -> version[0] = '0';
-  hd -> version[1] = '0';
-  //uname and gname are not added yet
-  //devmajor devminor prefix junk
-  set_checksum(hd);
-  return 0;
-}
-
-static int init_header_new_repertory(struct posix_header *hd, const char *filename){
-  time_t act_time;
-  time(&act_time);
-
-  strcpy(hd -> name, filename);
-  strcpy(hd -> mode, "0000755");
-  sprintf(hd -> uid, "%07o", getuid());
-  sprintf(hd -> gid, "%07o", getgid());
-  strcpy(hd -> size, "0");
-  sprintf(hd -> mtime, "%011o", (unsigned int) act_time);
-  hd -> typeflag = DIRTYPE;
+  hd -> typeflag = (is_dir)? DIRTYPE : REGTYPE;
   strcpy(hd -> magic, TMAGIC);
   hd -> version[0] = '0';
   hd -> version[1] = '0';
@@ -179,8 +160,8 @@ int tar_add_file(const char *tar_name, const char *source, const char *filename)
     }
     add_empty_block(tar_fd);
   }
-  
-  else if(source == NULL)
+
+  else
   {
     int tar_fd = open(tar_name, O_RDWR);
     if ( tar_fd < 0) {
@@ -192,9 +173,9 @@ int tar_add_file(const char *tar_name, const char *source, const char *filename)
       return error_pt(tar_name, &tar_fd, 1);
     }
     if(filename[strlen(filename)-1] == '/')
-      init_header_new_repertory(&hd, filename);
+      init_header_empty_file(&hd, filename, 1);
     else
-      init_header_empty_file(&hd, filename);
+      init_header_empty_file(&hd, filename, 0);
     if (write(tar_fd, &hd, BLOCKSIZE) < 0) {
       return error_pt(tar_name, &tar_fd, 1);
     }
