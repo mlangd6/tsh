@@ -164,14 +164,17 @@ static char *tar_access_test()
 {
   mu_assert("tar_access(\"/tmp/tsh_test/test.tar\", \"titi_link\", F_OK) != 1", tar_access("/tmp/tsh_test/test.tar", "titi_link", F_OK) == 1);
 
+  errno = 0;
   mu_assert("tar_access(\"/tmp/tsh_test/test.tar\", \"titi_link\", !F_OK) != -1", tar_access("/tmp/tsh_test/test.tar", "titi_link", !F_OK) == -1);
   mu_assert("errno != ENOVAL", errno == EINVAL);
-  
+
+  errno = 0;
   mu_assert("tar_access(\"/tmp/tsh_test/test.tar\", \"man_dir/titi_link\", F_OK) != -1", tar_access("/tmp/tsh_test/test.tar", "man_dir/titi_link", F_OK) == -1);
   mu_assert("errno != ENOENT", errno == ENOENT);
   
   mu_assert("tar_access(\"/tmp/tsh_test/test.tar\", \"dir1/\", F_OK) != 1", tar_access("/tmp/tsh_test/test.tar", "dir1/", F_OK) == 1);
-  
+
+  errno = 0;
   mu_assert("tar_access(\"/tmp/tsh_test/test.tar\", \"dirNot/\", F_OK) != -1", tar_access("/tmp/tsh_test/test.tar", "dirNot/", F_OK) == -1);
   mu_assert("errno != ENOENT", errno == ENOENT);
 
