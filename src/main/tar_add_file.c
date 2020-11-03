@@ -95,11 +95,6 @@ static int init_header(struct posix_header *hd, const char *source, const char *
   return 0;
 }
 
-static mode_t getumask(void){
-    mode_t mask = umask(0);
-    umask(mask);
-    return mask;
-}
 
 static int init_header_empty_file(struct posix_header *hd, const char *filename, int is_dir){
 
