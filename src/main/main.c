@@ -27,7 +27,6 @@ static int special_command(char *s, char **tab, int tab_l, int set_tsh_func);
 static int launch_tsh_func(char **argv);
 static int cd(char **argv);
 static int count_argc(char **argv);
-static void set_pwd(char *new_pwd);
 
 char tsh_dir[PATH_MAX];
 char *tar_cmds[NB_TAR_CMD] = {"cat", "ls"};
@@ -113,14 +112,6 @@ static int count_argc(char **argv) {
   return i-1;
 }
 
-static void set_pwd(char *new_pwd) {
-  char *pwd = malloc (5 + strlen(new_pwd));
-  memcpy(pwd, "PWD=", 4);
-  memcpy(pwd, new_pwd, strlen(new_pwd) + 1);
-  putenv(pwd);
-  free(pwd);
-}
-
 static int cd(char **argv) {
   char *pre_error = "tsh: cd: ";
   int argc = count_argc(argv);
@@ -134,7 +125,7 @@ static int cd(char **argv) {
     if (chdir(home) != 0) {
       return EXIT_FAILURE;
     }
-    set_pwd(home);
+    setenv("PWD", home, 1);
     memcpy(twd, home, strlen(home) + 1);
     return EXIT_SUCCESS;
   }
@@ -147,7 +138,7 @@ static int cd(char **argv) {
         perror(argv[1]);
         return EXIT_FAILURE;
       }
-      set_pwd(argv[1]);
+      setenv("PWD", argv[1], 1);
       memcpy(twd, argv[1], strlen(argv[1]) + 1);
     }
     else { // in tar => path is valid (but not necessarily in_tar)
@@ -157,7 +148,7 @@ static int cd(char **argv) {
         if (tar_access(argv[1], in_tar, F_OK) != -1) {
           in_tar[-1] = '/';
           in_tar[in_tar_len] = '\0';
-          set_pwd(argv[1]);
+          setenv("PWD", argv[1], 1);
           memcpy(twd, argv[1], strlen(argv[1]) + 1);
           in_tar[-1] = '\0';
         }
@@ -168,7 +159,7 @@ static int cd(char **argv) {
         }
       }
       else {
-        set_pwd(argv[1]);
+        setenv("PWD", argv[1], 1);
         memcpy(twd, argv[1], strlen(argv[1]) + 1);
       }
       char *bef_tar = strrchr(argv[1], '/'); // Not NULL
