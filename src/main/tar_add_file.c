@@ -5,6 +5,7 @@
 #include <sys/types.h>
 #include <time.h>
 #include <unistd.h>
+#include <errno.h>
 
 #include "errors.h"
 #include "tar.h"
@@ -15,8 +16,13 @@ static int seek_end_of_tar(int tar_fd) {
   while(1) {
     read_size = read(tar_fd, &hd, BLOCKSIZE);
 
-    if(read_size != BLOCKSIZE)
-      return -1; // TODO tar corrupted
+    if (read_size < 0) {
+      return -1;
+    }
+    else if(read_size != BLOCKSIZE) {
+      errno = EINVAL;
+      return -1;
+    }
 
     if (hd.name[0] != '\0')
       skip_file_content(tar_fd, &hd);

@@ -21,7 +21,7 @@ int error_pt(int fds[], int length_fds)
   return -1;
 }
 
-void cmd_error(const char *cmd_name, const char *msg) {
+void error_cmd(const char *cmd_name, const char *msg) {
   int msg_len = strlen(msg);
   int cmd_len = strlen(cmd_name);
   char buf[cmd_len + 3 + msg_len];
