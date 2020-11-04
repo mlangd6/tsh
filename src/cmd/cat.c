@@ -4,8 +4,11 @@
 #include <stdio.h>
 #include <sys/types.h>
 #include <sys/wait.h>
+#include <errno.h>
+
 #include "tar.h"
 #include "path_lib.h"
+#include "errors.h"
 
 #define CMD_NAME "cat"
 
@@ -15,16 +18,16 @@ int main(int argc, char *argv[]) {
   }
   if (argv[1][0] == '-') {
     execvp(argv[0], argv);
-    exit(EXIT_FAILURE);
+    return EXIT_FAILURE;
   }
-  int ret = EXIT_SUCCESS;
   for (int i = 1; i < argc; i++) {
     char *in_tar = split_tar_abs_path(argv[i]);
     if (*in_tar == '\0') {
       int f = fork(), w;
       switch(f) {
         case -1:
-          perror("fork");
+          error_cmd(CMD_NAME, "fork");
+          return EXIT_FAILURE;
           break;
         case 0: // son
           execlp(CMD_NAME, CMD_NAME, argv[i], NULL);
@@ -33,11 +36,12 @@ int main(int argc, char *argv[]) {
       }
     }
     else {
-      if (tar_cp_file(argv[i], in_tar, STDOUT_FILENO) < 0) {
-        write(STDOUT_FILENO, "cat: erreur\n", 13); // A CHANGER
+      if (tar_cp_file(argv[i], in_tar, STDOUT_FILENO) != 0) {
+        in_tar[-1] = '/';
+        error_cmd(CMD_NAME, argv[i]);
+        return EXIT_FAILURE;
       }
     }
-
   }
-  exit(ret);
+  return EXIT_SUCCESS;
 }
