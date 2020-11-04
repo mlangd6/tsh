@@ -152,8 +152,11 @@ static int cd(char **argv) {
     }
     else { // in tar => path is valid (but not necessarily in_tar)
       if (*in_tar != '\0') { // path inside tar file
+        int in_tar_len = strlen(in_tar);
+        memcpy(in_tar + in_tar_len, "/", 2);
         if (tar_access(argv[1], in_tar, F_OK) != -1) {
           in_tar[-1] = '/';
+          in_tar[in_tar_len] = '\0';
           set_pwd(argv[1]);
           memcpy(twd, argv[1], strlen(argv[1]) + 1);
           in_tar[-1] = '\0';
