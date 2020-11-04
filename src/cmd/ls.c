@@ -255,8 +255,10 @@ int ls_l(char *tar_name, char *name_in_tar) {
   name_in_tar = split_tar_abs_path(tar_name);
   struct posix_header *header = tar_ls(tar_name);
   int tar_fd = open(tar_name, O_RDONLY);
-  if (tar_fd == -1)
+  if (tar_fd == -1) {
+    error_cmd(CMD_NAME, tar_name);
     return error_pt(&tar_fd, 1);
+  }
   int nb_of_files_in_tar = nb_files_in_tar(tar_fd);
 
   if(is_file(header, name_in_tar, nb_of_files_in_tar, 1))
@@ -302,8 +304,10 @@ int ls(char *tar_name, char *name_in_tar) {
   name_in_tar = split_tar_abs_path(tar_name);
   struct posix_header *header = tar_ls(tar_name);
   int tar_fd = open(tar_name, O_RDONLY);
-  if (tar_fd == -1)
+  if (tar_fd == -1) {
+    error_cmd(CMD_NAME, tar_name);
     return error_pt(&tar_fd, 1);
+  }
   int nb_of_files_in_tar = nb_files_in_tar(tar_fd);
   int empty = 1;
 
@@ -380,7 +384,7 @@ int main(int argc, char *argv[]) {
           switch(f)
           {
             case -1 :
-              perror("fork");
+              error_cmd(CMD_NAME, "fork");
               break;
             case 0:
               if(strcmp(argv[1], "-l") == 0 )
@@ -397,7 +401,7 @@ int main(int argc, char *argv[]) {
                   int g = fork(), y;
                   switch(g){
                     case -1:
-                      perror("fork");
+                      error_cmd(CMD_NAME, "fork");
                       break;
                     case 0:
                       write(STDOUT_FILENO, "\n", 2);
@@ -422,7 +426,7 @@ int main(int argc, char *argv[]) {
                 int g = fork(), y;
                 switch(g){
                   case -1:
-                    perror("fork");
+                    error_cmd(CMD_NAME, "fork");
                     break;
                   case 0:
                     write(STDOUT_FILENO, "\n", 2);
