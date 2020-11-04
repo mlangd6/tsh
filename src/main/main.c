@@ -126,10 +126,34 @@ static int cd(char **argv) {
       return EXIT_FAILURE;
     }
     setenv("PWD", home, 1);
+    setenv("OLDPWD", twd, 1);
     memcpy(twd, home, strlen(home) + 1);
     return EXIT_SUCCESS;
   }
   else if (argc == 2) {
+    if (argv[1][0] == '-') { // Option
+      if (argv[1][1] != '\0') { // Not supported option
+        char *err = "tsh: cd: - est la seul option supporté\n";
+        write(STDERR_FILENO, err, strlen(err) + 1);
+        return EXIT_FAILURE;
+      }
+      else { // Supported option
+        free(argv[1]);
+        char *oldpwd = getenv("OLDPWD");
+        if (oldpwd == NULL) {
+          printf("NULL\n");
+          char *err = "tsh: cd: \" OLDPWD \" non défini\n";
+          write(STDERR_FILENO, err, strlen(err) + 1);
+          return EXIT_FAILURE;
+        }
+        else {
+          argv[1] = malloc(PATH_MAX);
+          memcpy(argv[1], oldpwd, strlen(oldpwd) + 1);
+          write(STDOUT_FILENO, oldpwd, strlen(oldpwd));
+          write(STDOUT_FILENO, "\n", 2);
+        }
+      }
+    }
     char *in_tar = split_tar_abs_path(argv[1]);
     int is_tar_dir = is_tar(argv[1]);
     if (*in_tar == '\0' && is_tar_dir != 1) { // Not tar implied
@@ -139,6 +163,7 @@ static int cd(char **argv) {
         return EXIT_FAILURE;
       }
       setenv("PWD", argv[1], 1);
+      setenv("OLDPWD", twd, 1);
       memcpy(twd, argv[1], strlen(argv[1]) + 1);
     }
     else { // in tar => path is valid (but not necessarily in_tar)
@@ -149,6 +174,7 @@ static int cd(char **argv) {
           in_tar[-1] = '/';
           in_tar[in_tar_len] = '\0';
           setenv("PWD", argv[1], 1);
+          setenv("OLDPWD", twd, 1);
           memcpy(twd, argv[1], strlen(argv[1]) + 1);
           in_tar[-1] = '\0';
         }
@@ -160,6 +186,7 @@ static int cd(char **argv) {
       }
       else {
         setenv("PWD", argv[1], 1);
+        setenv("OLDPWD", twd, 1);
         memcpy(twd, argv[1], strlen(argv[1]) + 1);
       }
       char *bef_tar = strrchr(argv[1], '/'); // Not NULL
