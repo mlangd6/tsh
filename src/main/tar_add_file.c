@@ -78,23 +78,24 @@ static void init_mode(struct posix_header *hd, struct stat *s) {
 }
 
 static int get_u_and_g_name(struct posix_header *hd, struct stat *s){
+  //récupérer le g-name
   struct group *g_name;
-  g_name = getgrent();
-  printf("g-name : %s\n", g_name->gr_name);
+  if(s!=NULL)g_name = getgrgid(s->st_gid);
+  else g_name = getgrgid(getgid());
   strcpy(hd->gname, g_name->gr_name);
 
   //pour récupérer le u-name
-  register struct passwd *pw;
-  register uid_t uid;
-  if(s == NULL)uid = geteuid();
-  else uid = s->st_uid;
+  struct passwd *pw;
+  uid_t uid;
+  if(s == NULL)
+    uid = getuid();
+  else
+    uid = s->st_uid;
   pw = getpwuid (uid);
   if (pw)
-  {
-    printf("u-name : %s\n", pw->pw_name);
     strcpy(hd->uname, pw->pw_name);
-  }
   else return -1;
+
   return 0;
 }
 
@@ -115,16 +116,12 @@ static int init_header(struct posix_header *hd, const char *source, const char *
   hd -> version[0] = '0';
   hd -> version[1] = '0';
   get_u_and_g_name(hd, &s);
-  // uname and gname are not added yet !
   set_checksum(hd);
   return 0;
 }
 
 
 static int init_header_empty_file(struct posix_header *hd, const char *filename, int is_dir){
-  struct group *g_name;
-  g_name = getgrent();
-  printf("%s\n", g_name->gr_name);
   strcpy(hd -> name, filename);
   if(is_dir) sprintf(hd -> mode, "%07o", 0777 & ~getumask());
   else sprintf(hd -> mode, "%07o", 0666 & ~getumask());
@@ -137,7 +134,6 @@ static int init_header_empty_file(struct posix_header *hd, const char *filename,
   hd -> version[0] = '0';
   hd -> version[1] = '0';
   get_u_and_g_name(hd, NULL);
-  //uname and gname are not added yet
   //devmajor devminor prefix junk
   set_checksum(hd);
   return 0;
