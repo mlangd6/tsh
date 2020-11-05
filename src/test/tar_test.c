@@ -97,10 +97,10 @@ static char *tar_add_file_rec_test() {
   int fd2 = open("/tmp/tsh_test/test.tar", O_RDONLY);
   int nb2 = nb_files_in_tar(fd2);
   close(fd2);
-  int tmp[4];
+  int tmp[4] = {nb2, nb2, nb2, nb2};
   for(int i = 0; i < nb2; i++){
     if(strcmp("dir1/tsh/", a_tester2[i].name) == 0)tmp[0] = i;
-    if(strcmp("dir1/tsh/", a_tester2[i].name) == 0)tmp[1] = i;
+    if(strcmp("dir1/tsh/src/cmd/ls.c", a_tester2[i].name) == 0)tmp[1] = i;
     if(strcmp("dir1/tsh/bin/", a_tester2[i].name) == 0)tmp[2] = i;
     if(strcmp("dir1/tsh/target/cmd/ls.o", a_tester2[i].name) == 0)tmp[3] = i;
   }
