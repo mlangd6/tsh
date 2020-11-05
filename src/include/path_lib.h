@@ -5,8 +5,7 @@
     and returns the pointer of the next char */
 char *split_tar_abs_path(char *path);
 
-/* Replace all the . and .. to get the real abs path of file
-  This function use malloc() and the return value should be free() */
+/* Reduce an absolute path (i.e. a path starting with a / ) */
 char *reduce_abs_path(char const *path);
 
 #endif
