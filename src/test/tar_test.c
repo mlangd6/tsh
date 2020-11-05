@@ -71,9 +71,15 @@ static char *tar_add_file_test() {
   if (s != 0) {
     return s;
   }
+  system("tar tvf /tmp/tsh_test/test.tar");
+  printf("\n");
   mu_assert("tar_add_file_test: error: content of file", strncmp(buff1, buff2, TAR_ADD_TEST_SIZE_BUF) == 0);
   tar_add_file("test.tar", NULL, "toto_test");
+  system("tar tvf /tmp/tsh_test/test.tar");
+  printf("\n");
   tar_add_file("test.tar", NULL, "dir1/dir_test/");
+  system("tar tvf /tmp/tsh_test/test.tar");
+  printf("\n");
   struct posix_header *a_tester = tar_ls("/tmp/tsh_test/test.tar");
   mu_assert("tar_add_file_test: error: \"toto_test\" isn't add in the tar", strcmp("toto_test", a_tester[15].name) == 0);
   mu_assert("tar_add_file_test: error: \"dir1/titi_test/\" isn't add in the tar", strcmp("dir1/dir_test/", a_tester[16].name) == 0);

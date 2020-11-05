@@ -5,6 +5,8 @@
 #include <sys/stat.h>
 #include <time.h>
 #include <unistd.h>
+#include <grp.h>
+#include <pwd.h>
 
 #include "errors.h"
 #include "tar.h"
@@ -75,11 +77,33 @@ static void init_mode(struct posix_header *hd, struct stat *s) {
   hd -> mode[7] = '\0';
 }
 
+static int get_u_and_g_name(struct posix_header *hd, struct stat *s){
+  struct group *g_name;
+  g_name = getgrent();
+  printf("g-name : %s\n", g_name->gr_name);
+  strcpy(hd->gname, g_name->gr_name);
+
+  //pour récupérer le u-name
+  register struct passwd *pw;
+  register uid_t uid;
+  if(s == NULL)uid = geteuid();
+  else uid = s->st_uid;
+  pw = getpwuid (uid);
+  if (pw)
+  {
+    printf("u-name : %s\n", pw->pw_name);
+    strcpy(hd->uname, pw->pw_name);
+  }
+  else return -1;
+  return 0;
+}
+
 static int init_header(struct posix_header *hd, const char *source, const char *filename) {
   struct stat s;
   if (stat(filename, &s) < 0) {
     return -1;
   }
+
   strcpy(hd -> name, filename);
   init_mode(hd, &s);
   sprintf(hd -> uid, "%07o", s.st_uid);
@@ -90,6 +114,7 @@ static int init_header(struct posix_header *hd, const char *source, const char *
   set_hd_time(hd);
   hd -> version[0] = '0';
   hd -> version[1] = '0';
+  get_u_and_g_name(hd, &s);
   // uname and gname are not added yet !
   set_checksum(hd);
   return 0;
@@ -97,7 +122,9 @@ static int init_header(struct posix_header *hd, const char *source, const char *
 
 
 static int init_header_empty_file(struct posix_header *hd, const char *filename, int is_dir){
-
+  struct group *g_name;
+  g_name = getgrent();
+  printf("%s\n", g_name->gr_name);
   strcpy(hd -> name, filename);
   if(is_dir) sprintf(hd -> mode, "%07o", 0777 & ~getumask());
   else sprintf(hd -> mode, "%07o", 0666 & ~getumask());
@@ -109,6 +136,7 @@ static int init_header_empty_file(struct posix_header *hd, const char *filename,
   strcpy(hd -> magic, TMAGIC);
   hd -> version[0] = '0';
   hd -> version[1] = '0';
+  get_u_and_g_name(hd, NULL);
   //uname and gname are not added yet
   //devmajor devminor prefix junk
   set_checksum(hd);
