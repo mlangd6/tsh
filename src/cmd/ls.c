@@ -12,6 +12,7 @@
 #include <assert.h>
 #include <time.h>
 #include <pwd.h>
+#include <errno.h>
 
 #define SIZE_OF_LINE 200
 #define SIZE_OF_NAME 100
@@ -257,7 +258,7 @@ int ls_l(char *tar_name, char *name_in_tar) {
   int tar_fd = open(tar_name, O_RDONLY);
   if (tar_fd == -1) {
     error_cmd(CMD_NAME, tar_name);
-    return error_pt(&tar_fd, 1);
+    return error_pt(&tar_fd, 1, errno);
   }
   int nb_of_files_in_tar = nb_files_in_tar(tar_fd);
 
@@ -306,7 +307,7 @@ int ls(char *tar_name, char *name_in_tar) {
   int tar_fd = open(tar_name, O_RDONLY);
   if (tar_fd == -1) {
     error_cmd(CMD_NAME, tar_name);
-    return error_pt(&tar_fd, 1);
+    return error_pt(&tar_fd, 1, errno);
   }
   int nb_of_files_in_tar = nb_files_in_tar(tar_fd);
   int empty = 1;

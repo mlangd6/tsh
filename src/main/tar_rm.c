@@ -3,6 +3,7 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <unistd.h>
+#include <errno.h>
 
 #include "errors.h"
 #include "tar.h"
@@ -98,7 +99,7 @@ int tar_rm(const char *tar_name, const char *filename)
   int tar_fd = open(tar_name, O_RDWR);
 
   if (tar_fd < 0)
-    return error_pt(&tar_fd, 1);
+    return error_pt(&tar_fd, 1, errno);
 
   int r;
 
@@ -112,7 +113,7 @@ int tar_rm(const char *tar_name, const char *filename)
     }
 
   if(r == -1) // erreur appel système
-    return error_pt(&tar_fd, 1);
+    return error_pt(&tar_fd, 1, errno);
 
   close(tar_fd);
   return r;

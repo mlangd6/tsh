@@ -2,22 +2,35 @@
 #include <unistd.h>
 #include <stdio.h>
 #include <string.h>
+#include <errno.h>
 
-void *error_p(int fds[], int length_fds)
+static void close_fds(int fds[], int length_fds)
 {
-  for(int i = 0; i < length_fds; i++)
+  for (int i = 0; i < length_fds; i++)
   {
     close(fds[i]);
   }
+}
+
+static void change_errno(int new_errno)
+{
+  if (0 < new_errno)
+  {
+    errno = new_errno;
+  }
+}
+
+void *error_p(int fds[], int length_fds, int new_errno)
+{
+  close_fds(fds, length_fds);
+  change_errno(new_errno);
   return NULL;
 }
 
-int error_pt(int fds[], int length_fds)
+int error_pt(int fds[], int length_fds, int new_errno)
 {
-  for(int i = 0; i < length_fds; i++)
-  {
-    close(fds[i]);
-  }
+  close_fds(fds, length_fds);
+  change_errno(new_errno);
   return -1;
 }
 

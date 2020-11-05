@@ -20,7 +20,6 @@ static int seek_end_of_tar(int tar_fd) {
       return -1;
     }
     else if(read_size != BLOCKSIZE) {
-      errno = EINVAL;
       return -1;
     }
 
@@ -110,23 +109,23 @@ static int add_empty_block(int tar_fd) {
 int tar_add_file(const char *tar_name, const char *filename) {
   int src_fd = -1;
   if ((src_fd = open(filename, O_RDONLY)) < 0) {
-    return error_pt(&src_fd, 1);
+    return error_pt(&src_fd, 1, errno);
   }
   int tar_fd = open(tar_name, O_RDWR);
   int fds[2] = {src_fd, tar_fd};
   if ( tar_fd < 0) {
-    return error_pt(fds, 2);
+    return error_pt(fds, 2, errno);
   }
   struct posix_header hd;
   memset(&hd, '\0', BLOCKSIZE);
   if (seek_end_of_tar(tar_fd) < 0) {
-    return error_pt(fds, 2);
+    return error_pt(fds, 2, errno);
   }
   if(init_header(&hd, filename) < 0) {
-    return error_pt(fds, 2);
+    return error_pt(fds, 2, errno);
   }
   if (write(tar_fd, &hd, BLOCKSIZE) < 0) {
-    return error_pt(fds, 2);
+    return error_pt(fds, 2, errno);
   }
 
   char buffer[BLOCKSIZE];
@@ -136,12 +135,12 @@ int tar_add_file(const char *tar_name, const char *filename) {
       memset(buffer + read_size, '\0', BLOCKSIZE - read_size);
     }
     if (write(tar_fd, buffer, BLOCKSIZE) < 0) {
-      return error_pt(fds, 2);
+      return error_pt(fds, 2, errno);
     }
   }
   if (read_size < 0) {
     int fds[2] ={src_fd, tar_fd};
-    return error_pt(fds, 2);
+    return error_pt(fds, 2, errno);
   }
   add_empty_block(tar_fd);
   return 0;
