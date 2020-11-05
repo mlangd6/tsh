@@ -1,10 +1,12 @@
 #include <fcntl.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <time.h>
 #include <unistd.h>
+#include <dirent.h>
 
 #include "errors.h"
 #include "tar.h"
@@ -77,14 +79,15 @@ static void init_mode(struct posix_header *hd, struct stat *s) {
 
 static int init_header(struct posix_header *hd, const char *source, const char *filename) {
   struct stat s;
-  if (stat(filename, &s) < 0) {
+  if (stat(source, &s) < 0) {
     return -1;
   }
   strcpy(hd -> name, filename);
   init_mode(hd, &s);
   sprintf(hd -> uid, "%07o", s.st_uid);
   sprintf(hd -> gid, "%07o" ,s.st_gid);
-  sprintf(hd -> size, "%011lo", s.st_size);
+  if(S_ISDIR(s.st_mode)) strcpy(hd -> size, "0");
+  else sprintf(hd -> size, "%011lo", s.st_size);
   init_type(hd, &s);
   strcpy(hd -> magic, TMAGIC);
   set_hd_time(hd);
@@ -138,15 +141,15 @@ int tar_add_file(const char *tar_name, const char *source, const char *filename)
   if (seek_end_of_tar(tar_fd) < 0) {
     return error_pt(tar_name, &tar_fd, 1);
   }
-
   if(source != NULL){
     int src_fd = -1;
     if ((src_fd = open(source, O_RDONLY)) < 0) {
       return error_pt(source, &src_fd, 1);
     }
     int fds[2] = {src_fd, tar_fd};
-    if(init_header(&hd, source, filename) < 0)
+    if(init_header(&hd, source, filename) < 0){
       return error_pt(filename, fds, 2);
+    }
     if (write(tar_fd, &hd, BLOCKSIZE) < 0) {
       return error_pt(tar_name, fds, 2);
     }
@@ -161,7 +164,7 @@ int tar_add_file(const char *tar_name, const char *source, const char *filename)
         return error_pt(tar_name, fds, 2);
       }
     }
-    if (read_size < 0 && hd.size > 0) {
+    if (read_size < 0 && hd.typeflag != DIRTYPE) {
       int fds[2] ={src_fd, tar_fd};
       return error_pt(filename, fds, 2);
     }
@@ -222,13 +225,53 @@ int tar_append_file(const char *tar_name, const char *filename, int src_fd) {
   return 0;
 }
 
-int tar_add_file_rec(const char *tar_name, const char *filename, const char *inside_tar_name){
-  struct stat s;
-  if (stat(filename, &s) < 0)
+
+int tar_add_file_rec(const char *tar_name, const char *filename, const char *inside_tar_name, int it){
+  //it est toujours initialisé à 0;
+  struct dirent *lecture;
+  DIR *rep;
+  rep = opendir(filename);
+  if(rep == NULL){
+    closedir(rep);
     return -1;
-  if(s.st_mode != DIRTYPE){
-    write(STDERR_FILENO, "This file isn't a directory\n", 28);
-    return -1;
+  }
+  if(it++ == 0)tar_add_file(tar_name, filename, inside_tar_name);
+  //Create a copy of the FILENAME
+  char copy[strlen(filename)+1];
+  strcpy(copy, filename);
+  //While there are files non-explored on the arborescence of FILENAME
+  while ((lecture = readdir(rep))) {
+    if(lecture->d_name[0] != '.'){
+      //Copy of the FILENAME and the name of the file discovered in the arborescence in filename
+      //It will be the source for tar_add_file
+      char copy2[strlen(copy)+strlen(lecture->d_name)+3];
+      int i = 0, j = 0;
+      for(i = 0; i < strlen(copy); i++)copy2[i] = copy[i];
+      if(copy2[i-1] != '/')copy2[i++] = '/';
+      for(j = 0; j < strlen(lecture->d_name); j++)copy2[i+j] = lecture->d_name[j];
+      if(copy2[i+j-1]!= '/' && lecture->d_type == 4)copy2[i+j++] = '/';
+      copy2[i+j] = '\0';
+
+      //a copy of inside_tar_name
+      char copy_inside[strlen(inside_tar_name)+1];
+      strcpy(copy_inside, inside_tar_name);
+      copy_inside[strlen(inside_tar_name)] = '\0';
+
+      //a copy of inside_tar_name and the name of the file discovered in the arborescence in filename
+      //It will be the FILENAME in tar_add_file
+      char copy3[strlen(copy_inside)+strlen(lecture->d_name)+2];
+      for(i = 0; i < strlen(copy_inside); i++)copy3[i] = copy_inside[i];
+      if( i > 0 && copy3[i-1] != '/' && lecture->d_name[0] != '/')copy3[i++] = '/';
+      for(j = 0; j < strlen(lecture->d_name); j++)copy3[i+j] = lecture->d_name[j];
+      if(copy3[i+j-1]!= '/' && lecture->d_type == 4)copy3[i+j++] = '/';
+      copy3[i+j] = '\0';
+
+      tar_add_file(tar_name, copy2, copy3);
+
+      if(lecture->d_type == 4 ){
+        tar_add_file_rec(tar_name, copy2, copy3, it);
+      }
+    }
   }
   return 0;
 }

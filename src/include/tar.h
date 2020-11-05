@@ -99,10 +99,11 @@ int skip_file_content(int tar_fd, struct posix_header *hd);
 int tar_add_file(const char *tar_name, const char *source, const char *filename);
 
 /* Add a directory filename to tar at path inside_tar_name with all that he contains
+   IT is here just for the first iteration
    Return :
    0 if FILENAME and his containing were added
   -1 if they couldn't */
-int tar_add_file_rec(const char *tar_name, const char *filename, const char *inside_tar_name);
+int tar_add_file_rec(const char *tar_name, const char *filename, const char *inside_tar_name, int it);
 
 /* Return the number of files in the tar referenced by TAR_FD */
 int nb_files_in_tar(int tar_fd);
