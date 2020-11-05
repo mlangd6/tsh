@@ -50,7 +50,7 @@ static void init_type(struct posix_header *hd, struct stat *s) {
     hd -> typeflag = BLKTYPE;
   } else if (S_ISLNK(s -> st_mode)) {
     hd -> typeflag = LNKTYPE;
-  } else if (S_ISFIFO(s -> st_mode)) {
+  }  else if (S_ISFIFO(s -> st_mode)) {
     hd -> typeflag = FIFOTYPE;
   } else {
     hd -> typeflag = AREGTYPE;
@@ -76,12 +76,26 @@ static void init_mode(struct posix_header *hd, struct stat *s) {
   hd -> mode[6] = '0' + o_rights;
   hd -> mode[7] = '\0';
 }
+/*
+static int give_linkname(struct posix_header *hd, const char *source){
+  struct stat ln_s;
+  char *linkname;
+  lstat(source, &ln_s);
+  ssize_t r;
+  linkname = malloc(ln_s.st_size + 1);
+  r = readlink(source, linkname, ln_s.st_size + 1);
+  if(r < 0)printf("Echoue linkname\n");
+  linkname[ln_s.st_size] = '\0';
+  printf("%s //\n", linkname);
+  return 0;
+}*/
 
 static int init_header(struct posix_header *hd, const char *source, const char *filename) {
   struct stat s;
   if (stat(source, &s) < 0) {
     return -1;
   }
+
   strcpy(hd -> name, filename);
   init_mode(hd, &s);
   sprintf(hd -> uid, "%07o", s.st_uid);

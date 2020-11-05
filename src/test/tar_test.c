@@ -85,7 +85,6 @@ static char *tar_add_file_test() {
 }
 
 static char *tar_add_file_rec_test() {
-  int tmp = 0;
   struct posix_header *a_tester = tar_ls("/tmp/tsh_test/test.tar");
   int fd = open("/tmp/tsh_test/test.tar", O_RDONLY);
   int nb = nb_files_in_tar(fd);
@@ -98,12 +97,15 @@ static char *tar_add_file_rec_test() {
   int fd2 = open("/tmp/tsh_test/test.tar", O_RDONLY);
   int nb2 = nb_files_in_tar(fd2);
   close(fd2);
+  int tmp[4];
   for(int i = 0; i < nb2; i++){
-    mu_assert("tar_add_file_test: error: \"./\" isn't add in the tar", strcmp("dir1/tsh/", a_tester2[i].name) == 0 || tmp < nb2);
-    mu_assert("tar_add_file_test: error: \"./src/cmd/ls.c\" isn't add in the tar", strcmp("dir1/tsh/src/cmd/ls.c", a_tester2[i].name) == 0 || tmp < nb2);
-    mu_assert("tar_add_file_test: error: \"./bin\" isn't add in the tar", strcmp("dir1/tsh/bin/", a_tester2[i].name) == 0 || tmp < nb2);
-    mu_assert("tar_add_file_test: error: \"./target/cmd/ls.o\" isn't add in the tar", strcmp("dir1/tsh/target/cmd/ls.o", a_tester2[i].name) == 0 || tmp < nb2);
-    tmp++;
+    if(strcmp("dir1/tsh/", a_tester2[i].name) == 0)tmp[0] = i;
+    if(strcmp("dir1/tsh/", a_tester2[i].name) == 0)tmp[1] = i;
+    if(strcmp("dir1/tsh/bin/", a_tester2[i].name) == 0)tmp[2] = i;
+    if(strcmp("dir1/tsh/target/cmd/ls.o", a_tester2[i].name) == 0)tmp[3] = i;
+  }
+  for(int i = 0; i < 4; i++){
+    mu_assert("tar_add_file_test: error: \"./\" isn't add in the tar", tmp[i] < nb2 );
   }
   return 0;
 }
