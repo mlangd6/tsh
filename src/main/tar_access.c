@@ -12,6 +12,11 @@
 #include "tar.h"
 #include "utils.h"
 
+static int is_mode_correct(int mode)
+{
+  return mode == F_OK || mode & R_OK || mode & W_OK || mode & X_OK;
+}
+
 
 /* Get the type of user according to HD,
    Returns:
@@ -82,20 +87,37 @@ static int simple_tar_access(const char *filename, struct posix_header *hds, int
 
 }
 
-static int is_mode_correct(int mode)
+/* Check user's permissions for every parent directory of FILENAME and FILENAME itself */
+static int tar_access_all(const char *filename, struct posix_header *hds, int nb_hds, int mode)
 {
-  return mode == F_OK;
+  size_t filename_len = strlen(filename);
+  char *cpy = malloc(filename_len + 1);
+  memmove(cpy, filename, filename_len + 1);
+  char *it = cpy;
+  char tmp;
+  while ((it = strchr(it, '/')) != NULL)
+  {
+    tmp = it[1];
+    it[1] = '\0';
+    if (simple_tar_access(cpy, hds, nb_hds, mode) == -1)
+    {
+      it[1] = tmp;
+      free(cpy);
+      return -1;
+    }
+    it[1] = tmp;
+  }
+  return simple_tar_access(cpy, hds, nb_hds, mode);
 }
-
 
 /* Check user's permissions for file FILE_NAME in tar at path TAR_NAME */
 int tar_access(const char *tar_name, const char *file_name, int mode)
 {
   if(!is_mode_correct(mode))
-    {
-      errno = EINVAL;
-      return -1;
-    }
+  {
+    errno = EINVAL;
+    return -1;
+  }
 
   int tar_fd = open(tar_name, O_RDONLY);
   if(tar_fd < 0)
