@@ -19,26 +19,26 @@
    1 if current groupe is the same of hd
    2 else
 */
-static int type_of_user(struct posix_header *hd)
+static int type_of_user(struct posix_header hd)
 {
   struct passwd *pwd = getpwuid(getuid());
-  int uid = strtol(hd -> uid, NULL, 8);
+  int uid = strtol(hd.uid, NULL, 8);
   if (uid == pwd -> pw_uid)
     return 0;
-  int gid =strtol(hd -> gid, NULL, 8);
+  int gid =strtol(hd.gid, NULL, 8);
   if (gid == pwd -> pw_uid)
     return 1;
   return 2;
 }
 /* Returns 0 if current user has the rights that are in MODE in the header HD */
-static int has_rights(const char *filename, struct posix_header *hd, int mode)
+static int has_rights(struct posix_header hd, int mode)
 {
   int type_u = type_of_user(hd);
   int rights[] =
   {
-    hd -> mode[4] - '0',
-    hd -> mode[5] - '0',
-    hd -> mode[6] - '0'
+    hd.mode[4] - '0',
+    hd.mode[5] - '0',
+    hd.mode[6] - '0'
   };
   if (mode & R_OK && !(4 & rights[type_u]))
     return -1;
@@ -47,6 +47,38 @@ static int has_rights(const char *filename, struct posix_header *hd, int mode)
   if (mode & X_OK && !(1 & rights[type_u]))
     return -1;
   return 0;
+}
+
+/* Try to access file inside tar without trying to access to parent directory
+   Returns -1 if file is not found or has not the rights in mode
+   1 if file was found and has the rights
+   2 if file is a dir and has beeen found in his subfile
+*/
+static int simple_tar_access(const char *filename, struct posix_header *hds, int nb_hds, int mode)
+{
+  int found = 0;
+  int index = -1;
+  int is_dir = is_dir_name(filename);
+  for (int i = 0; i < nb_hds; i++)
+  {
+    if (! strcmp(hds[i].name, filename))
+    {
+      found = 1;
+      index = i;
+    }
+    else if (is_dir && is_prefix(filename, hds[i].name) && found != 1)
+      found = 2;
+  }
+  if (!found)
+  {
+    errno = ENOENT;
+    return -1;
+  }
+  else if (mode == F_OK || found == 2)
+    return found;
+  // else found == 1
+  return (has_rights(hds[index], mode) == 0) ? 1 : -1;
+
 }
 
 static int is_mode_correct(int mode)
