@@ -80,9 +80,12 @@ static void init_mode(struct posix_header *hd, struct stat *s) {
 static int get_u_and_g_name(struct posix_header *hd, struct stat *s){
   //récupérer le g-name
   struct group *g_name;
-  if(s!=NULL)g_name = getgrgid(s->st_gid);
-  else g_name = getgrgid(getgid());
-  strcpy(hd->gname, g_name->gr_name);
+  if(s!=NULL)
+    g_name = getgrgid(s->st_gid);
+  else
+    g_name = getgrgid(getgid());
+  if(g_name != NULL)
+    strncpy(hd->gname, g_name->gr_name, 32);
 
   //pour récupérer le u-name
   struct passwd *pw;
@@ -93,7 +96,7 @@ static int get_u_and_g_name(struct posix_header *hd, struct stat *s){
     uid = s->st_uid;
   pw = getpwuid (uid);
   if (pw)
-    strcpy(hd->uname, pw->pw_name);
+    strncpy(hd->uname, pw->pw_name, 32);
   else return -1;
 
   return 0;
