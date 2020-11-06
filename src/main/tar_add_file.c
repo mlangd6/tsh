@@ -21,7 +21,6 @@ static int seek_end_of_tar(int tar_fd) {
 
     if(read_size != BLOCKSIZE)
       return -1;
-
     if (hd.name[0] != '\0')
       skip_file_content(tar_fd, &hd);
     else
@@ -84,9 +83,10 @@ static int get_u_and_g_name(struct posix_header *hd, struct stat *s){
     g_name = getgrgid(s->st_gid);
   else
     g_name = getgrgid(getgid());
-  if(g_name != NULL)
+  if(g_name != NULL){
     strncpy(hd->gname, g_name->gr_name, 32);
-
+    hd->gname[31] = '\0';
+  }
   //pour récupérer le u-name
   struct passwd *pw;
   uid_t uid;
@@ -95,8 +95,10 @@ static int get_u_and_g_name(struct posix_header *hd, struct stat *s){
   else
     uid = s->st_uid;
   pw = getpwuid (uid);
-  if (pw)
+  if (pw){
     strncpy(hd->uname, pw->pw_name, 32);
+    hd->uname[32] = '\0';
+  }
   else return -1;
 
   return 0;
@@ -108,7 +110,8 @@ static int init_header(struct posix_header *hd, const char *source, const char *
     return -1;
   }
 
-  strcpy(hd -> name, filename);
+  strncpy(hd -> name, filename, 100);
+  hd->name[99] ='\0';
   init_mode(hd, &s);
   sprintf(hd -> uid, "%07o", s.st_uid);
   sprintf(hd -> gid, "%07o" ,s.st_gid);
@@ -125,7 +128,8 @@ static int init_header(struct posix_header *hd, const char *source, const char *
 
 
 static int init_header_empty_file(struct posix_header *hd, const char *filename, int is_dir){
-  strcpy(hd -> name, filename);
+  strncpy(hd -> name, filename, 100);
+  hd->name[99] = '\0';
   if(is_dir) sprintf(hd -> mode, "%07o", 0777 & ~getumask());
   else sprintf(hd -> mode, "%07o", 0666 & ~getumask());
   sprintf(hd -> uid, "%07o", getuid());
