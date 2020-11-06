@@ -30,6 +30,24 @@ static int type_of_user(struct posix_header *hd)
     return 1;
   return 2;
 }
+/* Returns 0 if current user has the rights that are in MODE in the header HD */
+static int has_rights(const char *filename, struct posix_header *hd, int mode)
+{
+  int type_u = type_of_user(hd);
+  int rights[] =
+  {
+    hd -> mode[4] - '0',
+    hd -> mode[5] - '0',
+    hd -> mode[6] - '0'
+  };
+  if (mode & R_OK && !(4 & rights[type_u]))
+    return -1;
+  if (mode & W_OK && !(2 & rights[type_u]))
+    return -1;
+  if (mode & X_OK && !(1 & rights[type_u]))
+    return -1;
+  return 0;
+}
 
 static int is_mode_correct(int mode)
 {
