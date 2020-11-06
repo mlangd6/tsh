@@ -5,6 +5,8 @@
 #include <sys/stat.h>
 #include <time.h>
 #include <unistd.h>
+#include <grp.h>
+#include <pwd.h>
 
 #include "errors.h"
 #include "tar.h"
@@ -19,7 +21,6 @@ static int seek_end_of_tar(int tar_fd) {
 
     if(read_size != BLOCKSIZE)
       return -1;
-
     if (hd.name[0] != '\0')
       skip_file_content(tar_fd, &hd);
     else
@@ -75,12 +76,42 @@ static void init_mode(struct posix_header *hd, struct stat *s) {
   hd -> mode[7] = '\0';
 }
 
+static int get_u_and_g_name(struct posix_header *hd, struct stat *s){
+  //récupérer le g-name
+  struct group *g_name;
+  if(s!=NULL)
+    g_name = getgrgid(s->st_gid);
+  else
+    g_name = getgrgid(getgid());
+  if(g_name != NULL){
+    strncpy(hd->gname, g_name->gr_name, 32);
+    hd->gname[31] = '\0';
+  }
+  //pour récupérer le u-name
+  struct passwd *pw;
+  uid_t uid;
+  if(s == NULL)
+    uid = getuid();
+  else
+    uid = s->st_uid;
+  pw = getpwuid (uid);
+  if (pw){
+    strncpy(hd->uname, pw->pw_name, 32);
+    hd->uname[32] = '\0';
+  }
+  else return -1;
+
+  return 0;
+}
+
 static int init_header(struct posix_header *hd, const char *source, const char *filename) {
   struct stat s;
   if (stat(filename, &s) < 0) {
     return -1;
   }
-  strcpy(hd -> name, filename);
+
+  strncpy(hd -> name, filename, 100);
+  hd->name[99] ='\0';
   init_mode(hd, &s);
   sprintf(hd -> uid, "%07o", s.st_uid);
   sprintf(hd -> gid, "%07o" ,s.st_gid);
@@ -90,15 +121,15 @@ static int init_header(struct posix_header *hd, const char *source, const char *
   set_hd_time(hd);
   hd -> version[0] = '0';
   hd -> version[1] = '0';
-  // uname and gname are not added yet !
+  get_u_and_g_name(hd, &s);
   set_checksum(hd);
   return 0;
 }
 
 
 static int init_header_empty_file(struct posix_header *hd, const char *filename, int is_dir){
-
-  strcpy(hd -> name, filename);
+  strncpy(hd -> name, filename, 100);
+  hd->name[99] = '\0';
   if(is_dir) sprintf(hd -> mode, "%07o", 0777 & ~getumask());
   else sprintf(hd -> mode, "%07o", 0666 & ~getumask());
   sprintf(hd -> uid, "%07o", getuid());
@@ -109,7 +140,7 @@ static int init_header_empty_file(struct posix_header *hd, const char *filename,
   strcpy(hd -> magic, TMAGIC);
   hd -> version[0] = '0';
   hd -> version[1] = '0';
-  //uname and gname are not added yet
+  get_u_and_g_name(hd, NULL);
   //devmajor devminor prefix junk
   set_checksum(hd);
   return 0;
