@@ -40,12 +40,13 @@ static int has_rights(struct posix_header hd, int mode)
     hd.mode[5] - '0',
     hd.mode[6] - '0'
   };
-  if (mode & R_OK && !(4 & rights[type_u]))
+  if ( (mode & R_OK && !(4 & rights[type_u]))
+  ||   (mode & W_OK && !(2 & rights[type_u]))
+  ||   (mode & X_OK && !(1 & rights[type_u])) )
+  {
+    errno = EACCES;
     return -1;
-  if (mode & W_OK && !(2 & rights[type_u]))
-    return -1;
-  if (mode & X_OK && !(1 & rights[type_u]))
-    return -1;
+  }
   return 0;
 }
 
