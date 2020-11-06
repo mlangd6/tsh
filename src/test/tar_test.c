@@ -74,9 +74,10 @@ static char *tar_add_file_test() {
   mu_assert("tar_add_file_test: error: content of file", strncmp(buff1, buff2, TAR_ADD_TEST_SIZE_BUF) == 0);
   tar_add_file("test.tar", NULL, "toto_test");
   tar_add_file("test.tar", NULL, "dir1/dir_test/");
-  struct posix_header *a_tester = tar_ls("/tmp/tsh_test/test.tar");
-  mu_assert("tar_add_file_test: error: \"toto_test\" isn't add in the tar", strcmp("toto_test", a_tester[15].name) == 0);
-  mu_assert("tar_add_file_test: error: \"dir1/titi_test/\" isn't add in the tar", strcmp("dir1/dir_test/", a_tester[16].name) == 0);
+  int size = 0;
+  struct posix_header *a_tester = tar_ls("/tmp/tsh_test/test.tar", &size);
+  mu_assert("tar_add_file_test: error: \"toto_test\" isn't add in the tar", strcmp("toto_test", a_tester[size-2].name) == 0);
+  mu_assert("tar_add_file_test: error: \"dir1/titi_test/\" isn't add in the tar", strcmp("dir1/dir_test/", a_tester[size-1].name) == 0);
   chdir(tmp);
   free(tmp);
   return 0;
@@ -104,14 +105,14 @@ static char *is_tar_test() {
 
 
 static char *test_tar_ls(){
-  int tmp;
+  int tmp, size = 0;
   char *test[14] = {"dir1/", "dir1/subdir/", "dir1/subdir/subsubdir/", "dir1/subdir/subsubdir/hello", "dir1/tata", "man_dir/", "man_dir/man",
                     "man_dir/open2", "man_dir/tar", "titi", "titi_link", "toto", "dir2/fic1", "dir2/fic2"};
-  struct posix_header *a_tester = tar_ls("/tmp/tsh_test/test.tar");
-  for(int i = 0; i < 14; i++) {
+  struct posix_header *a_tester = tar_ls("/tmp/tsh_test/test.tar", &size);
+  for(int i = 0; i < size; i++) {
     tmp = 0;
-    for(int j = 0; j < 14; j++)
-      mu_assert("Error, this isn't the good ls", strcmp(test[i], a_tester[j].name) == 0 || tmp++ < 14 );
+    for(int j = 0; j < size; j++)
+      mu_assert("Error, this isn't the good ls", strcmp(test[i], a_tester[j].name) == 0 || tmp++ < size );
   }
   free(a_tester);
   return 0;

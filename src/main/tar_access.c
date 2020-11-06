@@ -25,15 +25,14 @@ int tar_access(const char *tar_name, const char *file_name, int mode)
       errno = EINVAL;
       return -1;
     }
-  
+
   int tar_fd = open(tar_name, O_RDONLY);
   if(tar_fd < 0)
     return -1;
-  size_t nb_headers = nb_files_in_tar(tar_fd);
   close(tar_fd);
 
-  
-  struct posix_header *headers = tar_ls(tar_name);
+  int nb_headers = 0;
+  struct posix_header *headers = tar_ls(tar_name, &nb_headers);
   if( !headers )
     return -1;
 
@@ -45,11 +44,11 @@ int tar_access(const char *tar_name, const char *file_name, int mode)
       if(!strcmp(headers[i].name, file_name)) // fichier exactement trouvé
 	found = 1;
       else if(is_dir && is_prefix(file_name, headers[i].name)) // dossier existant à travers ses sous-fichiers
-	found = 2;      
+	found = 2;
     }
 
   free(headers);
-  
+
   if(!found)
     {
       errno = ENOENT;
@@ -58,4 +57,3 @@ int tar_access(const char *tar_name, const char *file_name, int mode)
 
   return found;
 }
-
