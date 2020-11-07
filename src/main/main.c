@@ -53,6 +53,7 @@ static char *remove_excessive_spaces_string(char *s) {
   }
   if(copy[cmp-1] == ' ') copy[cmp-1] = '\0';
   else copy[cmp] = '\0';
+  free(s);
   return copy;
 }
 
