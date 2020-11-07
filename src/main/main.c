@@ -88,9 +88,12 @@ int main(int argc, char *argv[]){
   char *buf;
   int is_tar_cmd;
   while((buf = readline(PROMPT))) {
+    if(strlen(buf) == 0)
+      continue;
     if (strlen(buf) > 0) {
       add_history(buf);
     }
+    if(strlen(buf) == 0)continue;
     char **tokens = split(buf, &is_tar_cmd);
     int p = fork(), w;
     switch (p) {
