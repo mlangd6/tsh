@@ -21,19 +21,14 @@ static int is_mode_correct(int mode)
 int tar_access(const char *tar_name, const char *file_name, int mode)
 {
   if(!is_mode_correct(mode))
-    {
-      errno = EINVAL;
-      return -1;
-    }
-  
-  int tar_fd = open(tar_name, O_RDONLY);
-  if(tar_fd < 0)
+  {
+    errno = EINVAL;
     return -1;
-  size_t nb_headers = nb_files_in_tar(tar_fd);
-  close(tar_fd);
+  }
 
-  
-  struct posix_header *headers = tar_ls(tar_name);
+
+  int nb_headers = 0;
+  struct posix_header *headers = tar_ls(tar_name, &nb_headers);
   if( !headers )
     return -1;
 
@@ -41,21 +36,20 @@ int tar_access(const char *tar_name, const char *file_name, int mode)
   int is_dir = is_dir_name(file_name);
 
   for(int i=0; i < nb_headers && found != 1; i++)
-    {
-      if(!strcmp(headers[i].name, file_name)) // fichier exactement trouvé
-	found = 1;
-      else if(is_dir && is_prefix(file_name, headers[i].name)) // dossier existant à travers ses sous-fichiers
-	found = 2;      
-    }
+  {
+    if(!strcmp(headers[i].name, file_name)) // fichier exactement trouvé
+	     found = 1;
+    else if(is_dir && is_prefix(file_name, headers[i].name)) // dossier existant à travers ses sous-fichiers
+	     found = 2;
+  }
 
   free(headers);
-  
+
   if(!found)
-    {
-      errno = ENOENT;
-      return -1;
-    }
+  {
+    errno = ENOENT;
+    return -1;
+  }
 
   return found;
 }
-
