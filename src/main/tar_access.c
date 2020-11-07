@@ -59,9 +59,9 @@ static int has_rights(struct posix_header hd, struct passwd *pwd, int mode)
     hd.mode[6] - '0'
   };
 
-  if ( (mode & R_OK && !(4 & rights[type_u]))
-  ||   (mode & W_OK && !(2 & rights[type_u]))
-  ||   (mode & X_OK && !(1 & rights[type_u])) )
+  if ( (mode & R_OK && !(R_OK & rights[type_u]))
+  ||   (mode & W_OK && !(W_OK & rights[type_u]))
+  ||   (mode & X_OK && !(X_OK & rights[type_u])) )
   {
     errno = EACCES;
     return -1;
@@ -113,13 +113,14 @@ static int tar_access_all(const char *filename, struct posix_header *hds, int nb
   {
     tmp = it[1];
     it[1] = '\0';
-    if (simple_tar_access(cpy, hds, nb_hds, pwd, mode) == -1)
+    if (simple_tar_access(cpy, hds, nb_hds, pwd, X_OK) == -1) // Test if parent dir is executable
     {
       it[1] = tmp;
       free(cpy);
       return -1;
     }
     it[1] = tmp;
+    it++;
   }
   return simple_tar_access(cpy, hds, nb_hds, pwd, mode);
 }
