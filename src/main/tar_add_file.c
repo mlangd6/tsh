@@ -187,17 +187,19 @@ int tar_add_file(const char *tar_name, const char *source, const char *filename)
 
     char buffer[BLOCKSIZE];
     ssize_t read_size;
-    while((read_size = read(src_fd, buffer, BLOCKSIZE)) > 0 ) {
-      if (read_size < BLOCKSIZE) {
-        memset(buffer + read_size, '\0', BLOCKSIZE - read_size);
+    if(hd.typeflag != DIRTYPE){
+      while((read_size = read(src_fd, buffer, BLOCKSIZE)) > 0 ) {
+        if (read_size < BLOCKSIZE) {
+          memset(buffer + read_size, '\0', BLOCKSIZE - read_size);
+        }
+        if (write(tar_fd, buffer, BLOCKSIZE) < 0) {
+          return error_pt(tar_name, fds, 2);
+        }
       }
-      if (write(tar_fd, buffer, BLOCKSIZE) < 0) {
-        return error_pt(tar_name, fds, 2);
+      if (read_size < 0) {
+        int fds[2] ={src_fd, tar_fd};
+        return error_pt(filename, fds, 2);
       }
-    }
-    if (read_size < 0 && hd.typeflag != DIRTYPE) {
-      int fds[2] ={src_fd, tar_fd};
-      return error_pt(filename, fds, 2);
     }
     add_empty_block(tar_fd);
     close(src_fd);
@@ -272,10 +274,10 @@ int tar_add_file_rec(const char *tar_name, const char *filename, const char *ins
   strcpy(copy, filename);
   //While there are files non-explored on the arborescence of FILENAME
   while ((lecture = readdir(rep))) {
-    if(lecture->d_name[0] != '.'){
+    if(strcmp(lecture->d_name, ".") != 0 && strcmp(lecture->d_name, "..") != 0){
       //Copy of the FILENAME and the name of the file discovered in the arborescence in filename
       //It will be the source for tar_add_file
-      char copy2[strlen(copy)+strlen(lecture->d_name)+3];
+      char *copy2 = malloc(PATH_MAX);
       int i = 0, j = 0;
       for(i = 0; i < strlen(copy); i++)copy2[i] = copy[i];
       if(copy2[i-1] != '/')copy2[i++] = '/';
@@ -284,13 +286,13 @@ int tar_add_file_rec(const char *tar_name, const char *filename, const char *ins
       copy2[i+j] = '\0';
 
       //a copy of inside_tar_name
-      char copy_inside[strlen(inside_tar_name)+1];
+      char *copy_inside = malloc(PATH_MAX);
       strcpy(copy_inside, inside_tar_name);
       copy_inside[strlen(inside_tar_name)] = '\0';
 
       //a copy of inside_tar_name and the name of the file discovered in the arborescence in filename
       //It will be the FILENAME in tar_add_file
-      char copy3[strlen(copy_inside)+strlen(lecture->d_name)+2];
+      char *copy3 = malloc(PATH_MAX);
       for(i = 0; i < strlen(copy_inside); i++)copy3[i] = copy_inside[i];
       if( i > 0 && copy3[i-1] != '/' && lecture->d_name[0] != '/')copy3[i++] = '/';
       for(j = 0; j < strlen(lecture->d_name); j++)copy3[i+j] = lecture->d_name[j];
@@ -302,6 +304,9 @@ int tar_add_file_rec(const char *tar_name, const char *filename, const char *ins
       if(lecture->d_type == 4 ){
         tar_add_file_rec(tar_name, copy2, copy3, it);
       }
+      free(copy_inside);
+      free(copy2);
+      free(copy3);
     }
   }
   return 0;

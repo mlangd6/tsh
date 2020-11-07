@@ -87,18 +87,14 @@ static char *tar_add_file_test() {
 }
 
 static char *tar_add_file_rec_test() {
-  struct posix_header *a_tester = tar_ls("/tmp/tsh_test/test.tar");
-  int fd = open("/tmp/tsh_test/test.tar", O_RDONLY);
-  int nb = nb_files_in_tar(fd);
-  close(fd);
+  int nb = 0;
+  struct posix_header *a_tester = tar_ls("/tmp/tsh_test/test.tar", &nb);
   for(int i = 0; i < nb; i++){
     mu_assert("tar_add_file_rec_test: error: \"./src/cmd/ls.c\" is already in the tar", strcmp("dir1/src/cmd/ls.c", a_tester[i].name) != 0);
   }
   tar_add_file_rec("/tmp/tsh_test/test.tar", ".", "dir1/tsh/", 0);
-  struct posix_header *a_tester2 = tar_ls("/tmp/tsh_test/test.tar");
-  int fd2 = open("/tmp/tsh_test/test.tar", O_RDONLY);
-  int nb2 = nb_files_in_tar(fd2);
-  close(fd2);
+  int nb2 = 0;
+  struct posix_header *a_tester2 = tar_ls("/tmp/tsh_test/test.tar", &nb2);
   int tmp[4] = {nb2, nb2, nb2, nb2};
   for(int i = 0; i < nb2; i++){
     if(strcmp("dir1/tsh/", a_tester2[i].name) == 0)tmp[0] = i;
