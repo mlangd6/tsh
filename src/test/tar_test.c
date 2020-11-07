@@ -75,8 +75,18 @@ static char *tar_add_file_test() {
   tar_add_file("test.tar", NULL, "toto_test");
   tar_add_file("test.tar", NULL, "dir1/dir_test/");
   struct posix_header *a_tester = tar_ls("/tmp/tsh_test/test.tar");
-  mu_assert("tar_add_file_test: error: \"toto_test\" isn't add in the tar", strcmp("toto_test", a_tester[15].name) == 0);
-  mu_assert("tar_add_file_test: error: \"dir1/titi_test/\" isn't add in the tar", strcmp("dir1/dir_test/", a_tester[16].name) == 0);
+  int tar_fd = open("/tmp/tsh_test/test.tar", O_RDONLY);
+  mu_assert("open failed", tar_fd > 0);
+  int nb = nb_files_in_tar(tar_fd);
+  close(tar_fd);
+  int test[] = {0, 0};
+  for (int i = 0; i < nb; i++)
+  {
+    if (strcmp(a_tester[i].name, "toto_test") == 0) test[0]++;
+    if (strcmp(a_tester[i].name, "dir1/dir_test/") == 0) test[1]++;
+  }
+  mu_assert("tar_add_file_test: error: \"toto_test\" isn't add in the tar", test[0] == 1);
+  mu_assert("tar_add_file_test: error: \"dir1/dir_test/\" isn't add in the tar", test[1] == 1);
   chdir(tmp);
   free(tmp);
   return 0;
@@ -178,25 +188,50 @@ static char *tar_mv_test()
 
 static char *tar_access_test()
 {
+  int is_root = !getuid();
   mu_assert("tar_access(\"/tmp/tsh_test/test.tar\", \"titi_link\", F_OK) != 1", tar_access("/tmp/tsh_test/test.tar", "titi_link", F_OK) == 1);
-
+  int not_arg = (~F_OK & ~R_OK & ~W_OK & ~X_OK);
   errno = 0;
-  mu_assert("tar_access(\"/tmp/tsh_test/test.tar\", \"titi_link\", !F_OK) != -1", tar_access("/tmp/tsh_test/test.tar", "titi_link", !F_OK) == -1);
-  mu_assert("errno != ENOVAL", errno == EINVAL);
+  mu_assert("tar_access(\"/tmp/tsh_test/test.tar\", \"titi_link\", !0) != -1", tar_access("/tmp/tsh_test/test.tar", "titi_link", not_arg) == -1);
+  mu_assert("errno != ENOVAL after tar_access(\"/tmp/tsh_test/test.tar\", \"titi_link\", !0)", errno == EINVAL);
 
   errno = 0;
   mu_assert("tar_access(\"/tmp/tsh_test/test.tar\", \"man_dir/titi_link\", F_OK) != -1", tar_access("/tmp/tsh_test/test.tar", "man_dir/titi_link", F_OK) == -1);
-  mu_assert("errno != ENOENT", errno == ENOENT);
+  mu_assert("errno != ENOENT after tar_access(\"/tmp/tsh_test/test.tar\", \"man_dir/titi_link\", F_OK)", errno == ENOENT);
 
   mu_assert("tar_access(\"/tmp/tsh_test/test.tar\", \"dir1/\", F_OK) != 1", tar_access("/tmp/tsh_test/test.tar", "dir1/", F_OK) == 1);
 
   errno = 0;
   mu_assert("tar_access(\"/tmp/tsh_test/test.tar\", \"dirNot/\", F_OK) != -1", tar_access("/tmp/tsh_test/test.tar", "dirNot/", F_OK) == -1);
-  mu_assert("errno != ENOENT", errno == ENOENT);
+  mu_assert("errno != ENOENT after tar_access(\"/tmp/tsh_test/test.tar\", \"dirNot/\", F_OK)", errno == ENOENT);
+  errno = 0;
+  mu_assert("tar_access(\"/tmp/tsh_test/test.tar\", \"dirNot/\", R_OK|W_OK|X_OK) != -1", tar_access("/tmp/tsh_test/test.tar", "dirNot/", R_OK|W_OK|X_OK) == -1);
+  mu_assert("errno != ENOENT after tar_access(\"/tmp/tsh_test/test.tar\", \"dirNot/\", R_OK|W_OK|X_OK)", errno == ENOENT);
 
   mu_assert("tar_access(\"/tmp/tsh_test/test.tar\", \"dir2/\", F_OK) != 2", tar_access("/tmp/tsh_test/test.tar", "dir2/", F_OK) == 2);
+  mu_assert("tar_access(\"/tmp/tsh_test/test.tar\", \"dir2/\", R_OK | W_OK | X_OK) != 2", tar_access("/tmp/tsh_test/test.tar", "dir2/", R_OK | W_OK | X_OK) == 2);
 
   mu_assert("tar_access(\"/tmp/tsh_test/test.tar\", \"dir2/fic1\", F_OK) != 1", tar_access("/tmp/tsh_test/test.tar", "dir2/fic1", F_OK) == 1);
+
+  int test_value = is_root ? 1 : -1;
+  mu_assert("tar_access(\"/tmp/tsh_test/test.tar\", \"access/no_x_dir/a\"), F_OK) error", tar_access("/tmp/tsh_test/test.tar", "access/no_x_dir/a", F_OK) == test_value);
+  if (! is_root)
+    mu_assert("errno != EACCES after tar_access(\"/tmp/tsh_test/test.tar\", \"access/no_x_dir/a\"), F_OK)", errno == EACCES);
+  errno = 0;
+  mu_assert("tar_access(\"/tmp/tsh_test/test.tar\", \"access/no_x_dir/a\"), R_OK) error", tar_access("/tmp/tsh_test/test.tar", "access/no_x_dir/a", R_OK) == test_value);
+  if (! is_root)
+    mu_assert("errno != EACCES after tar_access(\"/tmp/tsh_test/test.tar\", \"access/no_x_dir/a\"), R_OK)", errno == EACCES);
+
+  mu_assert("tar_access(\"/tmp/tsh_test/test.tar\", \"access/x\"), X_OK) != 1", tar_access("/tmp/tsh_test/test.tar", "access/x", X_OK) == 1);
+  errno = 0;
+  mu_assert("tar_access(\"/tmp/tsh_test/test.tar\", \"access/x\"), R_OK) error", tar_access("/tmp/tsh_test/test.tar", "access/x", R_OK) == test_value);
+  if (! is_root)
+    mu_assert("errno != EACCES after tar_access(\"/tmp/tsh_test/test.tar\", \"access/x\"), R_OK)", errno == EACCES);;
+  errno = 0;
+  mu_assert("tar_access(\"/tmp/tsh_test/test.tar\", \"access/x\"), W_OK) error", tar_access("/tmp/tsh_test/test.tar", "access/x", W_OK) == test_value);
+  if (! is_root)
+    mu_assert("errno != EACCES after tar_access(\"/tmp/tsh_test/test.tar\", \"access/x\"), X_OK)", errno == EACCES);;
+
   return 0;
 }
 
@@ -213,7 +248,7 @@ static char *tar_append_file_test() {
   lseek(fd, 0, SEEK_SET);
   tar_append_file("/tmp/tsh_test/test.tar", "dir1/subdir/subsubdir/hello", fd);
   mu_assert("append tar corrupted the tar", is_tar("/tmp/tsh_test/test.tar") == 1);
-  system("tar -xf /tmp/tsh_test/test.tar -C /tmp/tsh_test/");
+  system("tar -xf /tmp/tsh_test/test.tar -C /tmp/tsh_test/ titi dir1/subdir/subsubdir/hello");
 
   // Error msg will be made by cmp command if needed
   mu_assert("", system("cmp /tmp/tsh_test/titi_append /tmp/tsh_test/titi") == 0);
