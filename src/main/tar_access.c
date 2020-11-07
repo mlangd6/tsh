@@ -136,32 +136,21 @@ int tar_access(const char *tar_name, const char *file_name, int mode)
   int tar_fd = open(tar_name, O_RDONLY);
   if(tar_fd < 0)
     return -1;
-  size_t nb_headers = nb_files_in_tar(tar_fd);
+  size_t nb_hds = nb_files_in_tar(tar_fd);
   close(tar_fd);
 
 
-  struct posix_header *headers = tar_ls(tar_name);
-  if( !headers )
+  struct posix_header *hds = tar_ls(tar_name);
+  if( !hds )
     return -1;
 
-  int found  = 0;
-  int is_dir = is_dir_name(file_name);
-
-  for(int i=0; i < nb_headers && found != 1; i++)
-    {
-      if(!strcmp(headers[i].name, file_name)) // fichier exactement trouvé
-	found = 1;
-      else if(is_dir && is_prefix(file_name, headers[i].name)) // dossier existant à travers ses sous-fichiers
-	found = 2;
-    }
-
-  free(headers);
-
-  if(!found)
-    {
-      errno = ENOENT;
-      return -1;
-    }
+  struct passwd *pwd = getpwuid(getuid());
+  int found;
+  if (pwd -> pw_uid == 0)
+    found = simple_tar_access(file_name, hds, nb_hds, pwd, F_OK);
+  else
+    found = tar_access_all(file_name, hds, nb_hds, pwd, mode);
+  free(hds);
 
   return found;
 }
