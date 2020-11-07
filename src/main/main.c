@@ -26,8 +26,13 @@ char twd[PATH_MAX];
 static int count_words(char *s) {
   int res = 1;
   char *chr = s;
-  while((chr = strchr(chr, ' ')) != NULL && chr[1] != '\0' && res++) {
-    chr++;
+  while((chr = strchr(chr, ' ')) != NULL && chr[1] != '\0')
+  {
+    int i = 0;
+    while(chr[i] == ' ') i++;
+    if(i > 0) chr = chr + i;
+    else chr++;
+    if(chr[0] != '\0') res++;
   }
   return res;
 }
