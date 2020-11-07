@@ -132,17 +132,28 @@ int nb_files_in_tar(int tar_fd)
   struct posix_header header;
 
   while ((size_read = read(tar_fd, &header, BLOCKSIZE)) > 0 )
-  {
-    if(size_read != BLOCKSIZE)
-	     return -1;
-    if(header.name[0] == '\0')
-	     break;
-    else
-	     nb++;
+    {
+      if(size_read != BLOCKSIZE)
+	return -1;
+      if(header.name[0] == '\0')
+	break;
+      else
+	nb++;
 
-    skip_file_content(tar_fd, &header);
-  }
+      skip_file_content(tar_fd, &header);
+    }
 
   lseek(tar_fd, 0, SEEK_SET);
+  return nb;
+}
+
+int nb_files_in_tar_c(char *tar_name){
+  int tar_fd = open(tar_name, O_RDONLY);
+  if (tar_fd < 0){
+    close(tar_fd);
+    return -1;
+  }
+  int nb = nb_files_in_tar(tar_fd);
+  close(tar_fd);
   return nb;
 }

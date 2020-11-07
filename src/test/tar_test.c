@@ -11,7 +11,7 @@
 #include "tsh_test.h"
 #include "tar.h"
 
-#define TAR_TEST_SIZE 9
+#define TAR_TEST_SIZE 10
 #define TAR_ADD_TEST_SIZE_BUF 700
 
 
@@ -24,6 +24,7 @@ static char *tar_rm_dir_test();
 static char *tar_mv_test();
 static char *tar_access_test();
 static char *tar_append_file_test();
+static char *tar_add_file_rec_test();
 
 extern int tests_run;
 
@@ -36,7 +37,8 @@ static char *(*tests[])(void) = {
   tar_rm_dir_test,
   tar_mv_test,
   tar_access_test,
-  tar_append_file_test
+  tar_append_file_test,
+  tar_add_file_rec_test
 };
 
 static char *stat_equals(struct stat *s1, struct stat *s2) {
@@ -81,6 +83,28 @@ static char *tar_add_file_test() {
   free(a_tester);
   chdir(tmp);
   free(tmp);
+  return 0;
+}
+
+static char *tar_add_file_rec_test() {
+  int nb = 0;
+  struct posix_header *a_tester = tar_ls("/tmp/tsh_test/test.tar", &nb);
+  for(int i = 0; i < nb; i++){
+    mu_assert("tar_add_file_rec_test: error: \"./src/cmd/ls.c\" is already in the tar", strcmp("dir1/src/cmd/ls.c", a_tester[i].name) != 0);
+  }
+  tar_add_file_rec("/tmp/tsh_test/test.tar", ".", "dir1/tsh/", 0);
+  int nb2 = 0;
+  struct posix_header *a_tester2 = tar_ls("/tmp/tsh_test/test.tar", &nb2);
+  int tmp[4] = {nb2, nb2, nb2, nb2};
+  for(int i = 0; i < nb2; i++){
+    if(strcmp("dir1/tsh/", a_tester2[i].name) == 0)tmp[0] = i;
+    if(strcmp("dir1/tsh/src/cmd/ls.c", a_tester2[i].name) == 0)tmp[1] = i;
+    if(strcmp("dir1/tsh/bin/", a_tester2[i].name) == 0)tmp[2] = i;
+    if(strcmp("dir1/tsh/target/cmd/ls.o", a_tester2[i].name) == 0)tmp[3] = i;
+  }
+  for(int i = 0; i < 4; i++){
+    mu_assert("tar_add_file_test: error: \"./\" isn't add in the tar", tmp[i] < nb2 );
+  }
   return 0;
 }
 
