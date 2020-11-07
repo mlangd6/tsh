@@ -293,6 +293,7 @@ int ls_l(char *tar_name, char *name_in_tar) {
       }
     }
   }
+  free(header);
   close(tar_fd);
   return 0;
 }
@@ -346,6 +347,7 @@ int ls(char *tar_name, char *name_in_tar) {
         write(STDOUT_FILENO, "\n", 1);
     }
   }
+  free(header);
   close(tar_fd);
   return 0;
 }

@@ -78,6 +78,7 @@ static char *tar_add_file_test() {
   struct posix_header *a_tester = tar_ls("/tmp/tsh_test/test.tar", &size);
   mu_assert("tar_add_file_test: error: \"toto_test\" isn't add in the tar", strcmp("toto_test", a_tester[size-2].name) == 0);
   mu_assert("tar_add_file_test: error: \"dir1/titi_test/\" isn't add in the tar", strcmp("dir1/dir_test/", a_tester[size-1].name) == 0);
+  free(a_tester);
   chdir(tmp);
   free(tmp);
   return 0;
