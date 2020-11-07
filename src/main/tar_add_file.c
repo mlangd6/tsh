@@ -77,19 +77,6 @@ static void init_mode(struct posix_header *hd, struct stat *s) {
   hd -> mode[6] = '0' + o_rights;
   hd -> mode[7] = '\0';
 }
-/*
-static int give_linkname(struct posix_header *hd, const char *source){
-  struct stat ln_s;
-  char *linkname;
-  lstat(source, &ln_s);
-  ssize_t r;
-  linkname = malloc(ln_s.st_size + 1);
-  r = readlink(source, linkname, ln_s.st_size + 1);
-  if(r < 0)printf("Echoue linkname\n");
-  linkname[ln_s.st_size] = '\0';
-  printf("%s //\n", linkname);
-  return 0;
-}*/
 
 static int get_u_and_g_name(struct posix_header *hd, struct stat *s){
   //récupérer le g-name
