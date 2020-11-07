@@ -115,7 +115,7 @@ int nb_files_in_tar_c(char *tar_name);
    Return :
    On success, a malloc array of all headers
    On failure, NULL */
-struct posix_header *tar_ls(const char *tar_name);
+struct posix_header *tar_ls(const char *tar_name, int *size);
 
 /* Open the tar at path TAR_NAME and copy the content of FILENAME into FD
    Return :
