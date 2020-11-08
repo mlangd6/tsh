@@ -134,14 +134,8 @@ int tar_access(const char *tar_name, const char *file_name, int mode)
     return -1;
   }
 
-  int tar_fd = open(tar_name, O_RDONLY);
-  if(tar_fd < 0)
-    return -1;
-  size_t nb_hds = nb_files_in_tar(tar_fd);
-  close(tar_fd);
-
-
-  struct posix_header *hds = tar_ls(tar_name);
+  int nb_hds;
+  struct posix_header *hds = tar_ls(tar_name, &nb_hds);
   if( !hds )
     return -1;
 

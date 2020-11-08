@@ -11,7 +11,7 @@
 #include "tsh_test.h"
 #include "tar.h"
 
-#define TAR_TEST_SIZE 9
+#define TAR_TEST_SIZE 10
 #define TAR_ADD_TEST_SIZE_BUF 700
 
 
@@ -24,6 +24,7 @@ static char *tar_rm_dir_test();
 static char *tar_mv_test();
 static char *tar_access_test();
 static char *tar_append_file_test();
+static char *tar_add_file_rec_test();
 
 extern int tests_run;
 
@@ -36,7 +37,8 @@ static char *(*tests[])(void) = {
   tar_rm_dir_test,
   tar_mv_test,
   tar_access_test,
-  tar_append_file_test
+  tar_append_file_test,
+  tar_add_file_rec_test
 };
 
 static char *stat_equals(struct stat *s1, struct stat *s2) {
@@ -74,11 +76,8 @@ static char *tar_add_file_test() {
   mu_assert("tar_add_file_test: error: content of file", strncmp(buff1, buff2, TAR_ADD_TEST_SIZE_BUF) == 0);
   tar_add_file("test.tar", NULL, "toto_test");
   tar_add_file("test.tar", NULL, "dir1/dir_test/");
-  struct posix_header *a_tester = tar_ls("/tmp/tsh_test/test.tar");
-  int tar_fd = open("/tmp/tsh_test/test.tar", O_RDONLY);
-  mu_assert("open failed", tar_fd > 0);
-  int nb = nb_files_in_tar(tar_fd);
-  close(tar_fd);
+  int nb;
+  struct posix_header *a_tester = tar_ls("/tmp/tsh_test/test.tar", &nb);
   int test[] = {0, 0};
   for (int i = 0; i < nb; i++)
   {
@@ -87,8 +86,31 @@ static char *tar_add_file_test() {
   }
   mu_assert("tar_add_file_test: error: \"toto_test\" isn't add in the tar", test[0] == 1);
   mu_assert("tar_add_file_test: error: \"dir1/dir_test/\" isn't add in the tar", test[1] == 1);
+  free(a_tester);
   chdir(tmp);
   free(tmp);
+  return 0;
+}
+
+static char *tar_add_file_rec_test() {
+  int nb = 0;
+  struct posix_header *a_tester = tar_ls("/tmp/tsh_test/test.tar", &nb);
+  for(int i = 0; i < nb; i++){
+    mu_assert("tar_add_file_rec_test: error: \"./src/cmd/ls.c\" is already in the tar", strcmp("dir1/src/cmd/ls.c", a_tester[i].name) != 0);
+  }
+  tar_add_file_rec("/tmp/tsh_test/test.tar", ".", "dir1/tsh/", 0);
+  int nb2 = 0;
+  struct posix_header *a_tester2 = tar_ls("/tmp/tsh_test/test.tar", &nb2);
+  int tmp[4] = {nb2, nb2, nb2, nb2};
+  for(int i = 0; i < nb2; i++){
+    if(strcmp("dir1/tsh/", a_tester2[i].name) == 0)tmp[0] = i;
+    if(strcmp("dir1/tsh/src/cmd/ls.c", a_tester2[i].name) == 0)tmp[1] = i;
+    if(strcmp("dir1/tsh/bin/", a_tester2[i].name) == 0)tmp[2] = i;
+    if(strcmp("dir1/tsh/target/cmd/ls.o", a_tester2[i].name) == 0)tmp[3] = i;
+  }
+  for(int i = 0; i < 4; i++){
+    mu_assert("tar_add_file_test: error: \"./\" isn't add in the tar", tmp[i] < nb2 );
+  }
   return 0;
 }
 
@@ -114,14 +136,18 @@ static char *is_tar_test() {
 
 
 static char *test_tar_ls(){
-  int tmp;
-  char *test[14] = {"dir1/", "dir1/subdir/", "dir1/subdir/subsubdir/", "dir1/subdir/subsubdir/hello", "dir1/tata", "man_dir/", "man_dir/man",
-                    "man_dir/open2", "man_dir/tar", "titi", "titi_link", "toto", "dir2/fic1", "dir2/fic2"};
-  struct posix_header *a_tester = tar_ls("/tmp/tsh_test/test.tar");
-  for(int i = 0; i < 14; i++) {
+  int tmp, size = 0;
+  char *test[] =
+  {"dir1/", "dir1/subdir/", "dir1/subdir/subsubdir/",
+  "dir1/subdir/subsubdir/hello", "dir1/tata", "man_dir/", "man_dir/man",
+  "man_dir/open2", "man_dir/tar", "titi",
+  "titi_link", "toto", "dir2/fic1", "dir2/fic2", "access/",
+  "access/x", "access/no_x_dir/", "access/no_x_dir/a"};
+  struct posix_header *a_tester = tar_ls("/tmp/tsh_test/test.tar", &size);
+  for(int i = 0; i < size; i++) {
     tmp = 0;
-    for(int j = 0; j < 14; j++)
-      mu_assert("Error, this isn't the good ls", strcmp(test[i], a_tester[j].name) == 0 || tmp++ < 14 );
+    for(int j = 0; j < size; j++)
+      mu_assert("Error, this isn't the good ls", strcmp(test[i], a_tester[j].name) == 0 || tmp++ < size );
   }
   free(a_tester);
   return 0;
