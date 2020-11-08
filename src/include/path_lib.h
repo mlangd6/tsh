@@ -6,6 +6,6 @@
 char *split_tar_abs_path(char *path);
 
 /* Reduce an absolute path (i.e. a path starting with a / ) */
-char *reduce_abs_path(char const *path);
+char *reduce_abs_path(const char *path, char *resolved_path);
 
 #endif
