@@ -181,7 +181,7 @@ int tar_add_file(const char *tar_name, const char *source, const char *filename)
   if(source != NULL){
     int src_fd = -1;
     if ((src_fd = open(source, O_RDONLY)) < 0) {
-      return -1;
+      return error_pt(&tar_fd, 1, errno);
     }
     int fds[2] = {src_fd, tar_fd};
     if(init_header(&hd, source, filename) < 0){
