@@ -2,6 +2,7 @@
 #include <fcntl.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <errno.h>
 
 #include "errors.h"
 #include "tar.h"
@@ -14,11 +15,11 @@ struct posix_header *tar_ls(const char *tar_name, int *nb_headers)
 {
   int tar_fd = open(tar_name, O_RDONLY);
   if (tar_fd < 0)
-    return error_p(tar_name, &tar_fd, 1);
+    return error_p(&tar_fd, 1, errno);
 
   *nb_headers = nb_files_in_tar(tar_fd);
   if( *nb_headers < 0)
-    return error_p(tar_name, &tar_fd, 1);
+    return error_p(&tar_fd, 1, errno);
   ssize_t size_read;
 
   struct posix_header *list_header = malloc((*nb_headers) * sizeof(struct posix_header));
@@ -31,7 +32,7 @@ struct posix_header *tar_ls(const char *tar_name, int *nb_headers)
     if(size_read != BLOCKSIZE)
 	  {
 	     free(list_header);
-	     return error_p(tar_name, &tar_fd, 1);
+	     return error_p(&tar_fd, 1, errno);
 	  }
     skip_file_content(tar_fd, list_header+i);
   }

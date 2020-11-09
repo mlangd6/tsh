@@ -125,7 +125,6 @@ int main(int argc, char *argv[]){
     switch (p) {
       case -1:
         perror("fork");
-        exit(EXIT_FAILURE);
       case 0: //son
         if (is_tar_cmd) {
           char cmd_exec[PATH_MAX];

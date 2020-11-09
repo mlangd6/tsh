@@ -78,25 +78,25 @@ int is_tar(const char *path)
 int seek_header(int tar_fd, const char *filename, struct posix_header *header)
 {
   while (1)
+  {
+    if( read(tar_fd, header, BLOCKSIZE) < 0)
     {
-      if( read(tar_fd, header, BLOCKSIZE) < 0)
-	{
-	  return -1;
-	}
-      else if (header->name[0] == '\0')
-	{
-	  return 0;
-	}
-      else if (strcmp(filename, header->name) == 0)
-	{
-	  return 1;
-	}
-      else
-	{
-	  skip_file_content(tar_fd, header);
-	}
+      return -1;
     }
-
+    else if (header->name[0] == '\0')
+    {
+      return 0;
+    }
+    else if (strcmp(filename, header->name) == 0)
+    {
+      return 1;
+    }
+    else
+    {
+      skip_file_content(tar_fd, header);
+    }
+  }
+  
   return -1;
 }
 
