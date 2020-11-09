@@ -1,3 +1,4 @@
+#include <errno.h>
 #include <fcntl.h>
 #include <stdio.h>
 #include <string.h>
@@ -143,5 +144,16 @@ int nb_files_in_tar(int tar_fd)
     }
 
   lseek(tar_fd, 0, SEEK_SET);
+  return nb;
+}
+
+int nb_files_in_tar_c(char *tar_name){
+  int tar_fd = open(tar_name, O_RDONLY);
+  if (tar_fd < 0){
+    close(tar_fd);
+    return -1;
+  }
+  int nb = nb_files_in_tar(tar_fd);
+  close(tar_fd);
   return nb;
 }
