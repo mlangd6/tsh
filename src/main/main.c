@@ -220,8 +220,13 @@ static int cd(char **argv) {
       *bef_tar = '\0';
       chdir(argv[1]);
     }
+    return EXIT_SUCCESS;
   }
-  return EXIT_SUCCESS;
+  else {
+    char *err = "tsh: cd: trop d'arguments\n";
+    write(STDERR_FILENO, err, strlen(err));
+    return EXIT_FAILURE;
+  }
 }
 
 int main(int argc, char *argv[]){
