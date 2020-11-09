@@ -197,7 +197,7 @@ static int cd(char **argv) {
       if (*in_tar != '\0') { // path inside tar file
         int in_tar_len = strlen(in_tar);
         memcpy(in_tar + in_tar_len, "/", 2);
-        if (tar_access(argv[1], in_tar, F_OK) != -1) {
+        if (tar_access(argv[1], in_tar, X_OK) != -1) {
           in_tar[-1] = '/';
           in_tar[in_tar_len] = '\0';
           setenv("PWD", argv[1], 1);
