@@ -18,6 +18,7 @@ static int count_words(char *s);
 static char **split(char *s, int *is_tar_cmd);
 static void init_tsh();
 static int is_tar_command(char *s);
+static char *remove_excessive_spaces_string(char *s);
 
 char tsh_dir[PATH_MAX];
 char *tar_cmds[NB_TAR_CMD] = {"cat", "ls"};
@@ -26,10 +27,34 @@ char twd[PATH_MAX];
 static int count_words(char *s) {
   int res = 1;
   char *chr = s;
-  while((chr = strchr(chr, ' ')) != NULL && chr[1] != '\0' && res++) {
+  while((chr = strchr(chr, ' ')) != NULL && chr[1] != '\0' && res++)
+  {
     chr++;
   }
   return res;
+}
+
+static char *remove_excessive_spaces_string(char *s) {
+  int spaces = 0;
+  char *chr = s;
+  while(chr[0] == ' ') chr++;
+  char *copy = malloc(strlen(chr));
+  int i = 0, cmp = 0;
+  for(i = 0; i < strlen(chr); i++){
+    if(chr[i] == ' ' && spaces > 0)spaces++;
+    else if(chr[i] == ' ' && spaces == 0){
+      copy[cmp++] = chr[i];
+      spaces = 1;
+    }
+    else {
+      copy[cmp++] = chr[i];
+      spaces = 0;
+    }
+  }
+  if(copy[cmp-1] == ' ') copy[cmp-1] = '\0';
+  else copy[cmp] = '\0';
+  free(s);
+  return copy;
 }
 
 static char **split(char *s, int *is_tar_cmd) {
@@ -88,7 +113,11 @@ int main(int argc, char *argv[]){
   char *buf;
   int is_tar_cmd;
   while((buf = readline(PROMPT))) {
-    if (strlen(buf) > 0) {
+    buf = remove_excessive_spaces_string(buf);
+    size_t buf_size = strlen(buf);
+    if(buf_size == 0)
+      continue;
+    if (buf_size > 0) {
       add_history(buf);
     }
     char **tokens = split(buf, &is_tar_cmd);
