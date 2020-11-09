@@ -8,6 +8,7 @@
 #include <linux/limits.h>
 #include "path_lib.h"
 #include "tar.h"
+#include "errors.h"
 
 #define PROMPT "$ "
 #define CMD_NOT_FOUND " : command not found\n"
@@ -21,12 +22,14 @@
 #define NO_SET_TSH_FUNC 0
 
 static int count_words(char *s);
-static char **split(char *s, int *is_tar_cmd);
+static char **split(char *s, int *spec);
 static void init_tsh();
+
 static int special_command(char *s, char **tab, int tab_l, int set_tsh_func);
 static int launch_tsh_func(char **argv);
 static int cd(char **argv);
 static int count_argc(char **argv);
+static char *remove_excessive_spaces_string(char *s);
 
 char tsh_dir[PATH_MAX];
 char *tar_cmds[NB_TAR_CMD] = {"cat", "ls"};
@@ -38,10 +41,34 @@ char tsh_func[MAX_TSH_FUNC_SIZE];
 static int count_words(char *s) {
   int res = 1;
   char *chr = s;
-  while((chr = strchr(chr, ' ')) != NULL && chr[1] != '\0' && res++) {
+  while((chr = strchr(chr, ' ')) != NULL && chr[1] != '\0' && res++)
+  {
     chr++;
   }
   return res;
+}
+
+static char *remove_excessive_spaces_string(char *s) {
+  int spaces = 0;
+  char *chr = s;
+  while(chr[0] == ' ') chr++;
+  char *copy = malloc(strlen(chr));
+  int i = 0, cmp = 0;
+  for(i = 0; i < strlen(chr); i++){
+    if(chr[i] == ' ' && spaces > 0)spaces++;
+    else if(chr[i] == ' ' && spaces == 0){
+      copy[cmp++] = chr[i];
+      spaces = 1;
+    }
+    else {
+      copy[cmp++] = chr[i];
+      spaces = 0;
+    }
+  }
+  if(copy[cmp-1] == ' ') copy[cmp-1] = '\0';
+  else copy[cmp] = '\0';
+  free(s);
+  return copy;
 }
 
 static char **split(char *s, int *spec) {
@@ -113,7 +140,6 @@ static int count_argc(char **argv) {
 }
 
 static int cd(char **argv) {
-  char *pre_error = "tsh: cd: ";
   int argc = count_argc(argv);
   if (argc == 1) {
     char *home = getenv("HOME");
@@ -158,8 +184,9 @@ static int cd(char **argv) {
     int is_tar_dir = is_tar(argv[1]);
     if (*in_tar == '\0' && is_tar_dir != 1) { // Not tar implied
       if (chdir(argv[1]) != 0) {
-        write(STDERR_FILENO, pre_error, strlen(pre_error));
-        perror(argv[1]);
+        // write(STDERR_FILENO, pre_error, strlen(pre_error));
+        // perror(argv[1]);
+        error_cmd("tsh: cd", argv[1]);
         return EXIT_FAILURE;
       }
       setenv("PWD", argv[1], 1);
@@ -202,7 +229,11 @@ int main(int argc, char *argv[]){
   char *buf;
   int spec;
   while((buf = readline(PROMPT))) {
-    if (strlen(buf) > 0) {
+    buf = remove_excessive_spaces_string(buf);
+    size_t buf_size = strlen(buf);
+    if(buf_size == 0)
+      continue;
+    if (buf_size > 0) {
       add_history(buf);
     }
     char **tokens = split(buf, &spec);

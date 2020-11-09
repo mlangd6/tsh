@@ -12,6 +12,7 @@
 #include <assert.h>
 #include <time.h>
 #include <pwd.h>
+#include <errno.h>
 
 #define SIZE_OF_LINE 200
 #define SIZE_OF_NAME 100
@@ -252,12 +253,14 @@ static int write_ls(struct posix_header *header, struct posix_header header_to_w
    date, and the file name. Take a char * in parameter representing the
    file .tar that we want to list */
 int ls_l(char *tar_name, char *name_in_tar) {
+  int nb_of_files_in_tar = 0;
   name_in_tar = split_tar_abs_path(tar_name);
-  struct posix_header *header = tar_ls(tar_name);
+  struct posix_header *header = tar_ls(tar_name, &nb_of_files_in_tar);
   int tar_fd = open(tar_name, O_RDONLY);
-  if (tar_fd == -1)
-    return error_pt(tar_name, &tar_fd, 1);
-  int nb_of_files_in_tar = nb_files_in_tar(tar_fd);
+  if (tar_fd == -1) {
+    error_cmd(CMD_NAME, tar_name);
+    return error_pt(&tar_fd, 1, errno);
+  }
 
   if(is_file(header, name_in_tar, nb_of_files_in_tar, 1))
   {
@@ -293,18 +296,21 @@ int ls_l(char *tar_name, char *name_in_tar) {
       }
     }
   }
+  free(header);
   close(tar_fd);
   return 0;
 }
 
 /* Representing the command ls, list the files of a tarball. */
 int ls(char *tar_name, char *name_in_tar) {
+  int nb_of_files_in_tar = 0;
   name_in_tar = split_tar_abs_path(tar_name);
-  struct posix_header *header = tar_ls(tar_name);
+  struct posix_header *header = tar_ls(tar_name, &nb_of_files_in_tar);
   int tar_fd = open(tar_name, O_RDONLY);
-  if (tar_fd == -1)
-    return error_pt(tar_name, &tar_fd, 1);
-  int nb_of_files_in_tar = nb_files_in_tar(tar_fd);
+  if (tar_fd == -1) {
+    error_cmd(CMD_NAME, tar_name);
+    return error_pt(&tar_fd, 1, errno);
+  }
   int empty = 1;
 
   if(is_file(header, name_in_tar, nb_of_files_in_tar, 0))
@@ -346,6 +352,7 @@ int ls(char *tar_name, char *name_in_tar) {
         write(STDOUT_FILENO, "\n", 1);
     }
   }
+  free(header);
   close(tar_fd);
   return 0;
 }
@@ -380,7 +387,7 @@ int main(int argc, char *argv[]) {
           switch(f)
           {
             case -1 :
-              perror("fork");
+              error_cmd(CMD_NAME, "fork");
               break;
             case 0:
               if(strcmp(argv[1], "-l") == 0 )
@@ -397,7 +404,7 @@ int main(int argc, char *argv[]) {
                   int g = fork(), y;
                   switch(g){
                     case -1:
-                      perror("fork");
+                      error_cmd(CMD_NAME, "fork");
                       break;
                     case 0:
                       write(STDOUT_FILENO, "\n", 2);
@@ -422,7 +429,7 @@ int main(int argc, char *argv[]) {
                 int g = fork(), y;
                 switch(g){
                   case -1:
-                    perror("fork");
+                    error_cmd(CMD_NAME, "fork");
                     break;
                   case 0:
                     write(STDOUT_FILENO, "\n", 2);

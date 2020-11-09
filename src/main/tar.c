@@ -58,7 +58,7 @@ int is_tar(const char *path)
     {
     if((read_size=read(tar_fd, &file_header, BLOCKSIZE)) < 0)
       return -1;
-    
+
     if( read_size != BLOCKSIZE )
       fail = 1;
     else if (file_header.name[0] == '\0')
@@ -78,25 +78,25 @@ int is_tar(const char *path)
 int seek_header(int tar_fd, const char *filename, struct posix_header *header)
 {
   while (1)
+  {
+    if( read(tar_fd, header, BLOCKSIZE) < 0)
     {
-      if( read(tar_fd, header, BLOCKSIZE) < 0)
-	{
-	  return -1;
-	}
-      else if (header->name[0] == '\0')
-	{
-	  return 0;
-	}
-      else if (strcmp(filename, header->name) == 0)
-	{
-	  return 1;
-	}
-      else
-	{
-	  skip_file_content(tar_fd, header);
-	}
+      return -1;
     }
-
+    else if (header->name[0] == '\0')
+    {
+      return 0;
+    }
+    else if (strcmp(filename, header->name) == 0)
+    {
+      return 1;
+    }
+    else
+    {
+      skip_file_content(tar_fd, header);
+    }
+  }
+  
   return -1;
 }
 
@@ -139,10 +139,21 @@ int nb_files_in_tar(int tar_fd)
 	break;
       else
 	nb++;
-      
+
       skip_file_content(tar_fd, &header);
     }
 
   lseek(tar_fd, 0, SEEK_SET);
+  return nb;
+}
+
+int nb_files_in_tar_c(char *tar_name){
+  int tar_fd = open(tar_name, O_RDONLY);
+  if (tar_fd < 0){
+    close(tar_fd);
+    return -1;
+  }
+  int nb = nb_files_in_tar(tar_fd);
+  close(tar_fd);
   return nb;
 }

@@ -3,33 +3,45 @@
 #include <string.h>
 #include <unistd.h>
 #include <stdio.h>
+#include <string.h>
+#include <errno.h>
 
-void *error_p(const char *s, int fds[], int length_fds)
+static void close_fds(int fds[], int length_fds)
 {
-  perror(s);
-  for(int i = 0; i < length_fds; i++)
+  for (int i = 0; i < length_fds; i++)
   {
     close(fds[i]);
   }
+}
+
+static void change_errno(int new_errno)
+{
+  if (0 < new_errno)
+  {
+    errno = new_errno;
+  }
+}
+
+void *error_p(int fds[], int length_fds, int new_errno)
+{
+  close_fds(fds, length_fds);
+  change_errno(new_errno);
   return NULL;
 }
 
-int error_pt(const char *s, int fds[], int length_fds)
+int error_pt(int fds[], int length_fds, int new_errno)
 {
-  perror(s);
-  for(int i = 0; i < length_fds; i++)
-  {
-    close(fds[i]);
-  }
+  close_fds(fds, length_fds);
+  change_errno(new_errno);
   return -1;
 }
 
-int write_error(const char *pre_error, const char *arg, const char *post_error) {
-  char *error = malloc(strlen(pre_error) + strlen(arg) + strlen(post_error) + 1);
-  memcpy(error, pre_error, strlen(pre_error));
-  memcpy(error, arg, strlen(arg));
-  memcpy(error, post_error, strlen(post_error) + 1);
-  write(STDERR_FILENO, error, strlen(error) + 1);
-  free(error);
-  return EXIT_FAILURE;
+void error_cmd(const char *cmd_name, const char *msg) {
+  int msg_len = strlen(msg);
+  int cmd_len = strlen(cmd_name);
+  char buf[cmd_len + 3 + msg_len];
+  memcpy(buf, cmd_name, cmd_len);
+  memcpy(buf + cmd_len, ": ", 2);
+  memcpy(buf + cmd_len + 2, msg, msg_len+1);
+  perror(buf);
 }
