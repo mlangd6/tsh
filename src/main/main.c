@@ -295,7 +295,6 @@ int main(int argc, char *argv[]){
           default: // parent
             wait(&status);
             ret_value = WEXITSTATUS(status);
-            printf("%d\n", ret_value);
         }
       }
     if (spec) {
