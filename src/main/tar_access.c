@@ -109,7 +109,7 @@ static int tar_access_all(const char *filename, struct posix_header *hds, int nb
   memmove(cpy, filename, filename_len + 1);
   char *it = cpy;
   char tmp;
-  while ((it = strchr(it, '/')) != NULL)
+  while ((it = strchr(it, '/')) != NULL && it[1] != '\0')
   {
     tmp = it[1];
     it[1] = '\0';
