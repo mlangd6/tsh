@@ -413,6 +413,7 @@ int main(int argc, char *argv[]) {
                       execlp(CMD_NAME, CMD_NAME, argv[1], argv[i], NULL);
                     default:
                       wait(&y);
+                      return WEXITSTATUS(y);
                   }
 
                 }
@@ -438,10 +439,12 @@ int main(int argc, char *argv[]) {
                     execlp(CMD_NAME, CMD_NAME, argv[i], NULL);
                   default:
                     wait(&y);
+                    return WEXITSTATUS(y);
                 }
               }
             default:
               wait(&w);
+              return WEXITSTATUS(w);
           }
         }
 

@@ -14,26 +14,31 @@
 #define CMD_NOT_FOUND " : command not found\n"
 #define CMD_NOT_FOUND_SIZE 22
 #define NB_TAR_CMD 2
-#define NB_TSH_FUNC 1
+#define NB_TSH_FUNC 2
 #define TAR_CMD 1
 #define TSH_FUNC 2
-#define MAX_TSH_FUNC_SIZE 3
+#define MAX_TSH_FUNC_SIZE 5
 #define SET_TSH_FUNC 1
 #define NO_SET_TSH_FUNC 0
+
+static int ret_value;
+
+static int cd(char **argv, int argc);
+static int exit_tsh(char **argv, int argc);
 
 static int count_words(char *s);
 static char **split(char *s, int *spec);
 static void init_tsh();
 
 static int special_command(char *s, char **tab, int tab_l, int set_tsh_func);
-static int launch_tsh_func(char **argv);
-static int cd(char **argv);
+static int launch_tsh_func(char **argv, int argc);
 static int count_argc(char **argv);
 static char *remove_excessive_spaces_string(char *s);
 
+
 char tsh_dir[PATH_MAX];
 char *tar_cmds[NB_TAR_CMD] = {"cat", "ls"};
-char *tsh_funcs[NB_TSH_FUNC] = {"cd"};
+char *tsh_funcs[NB_TSH_FUNC] = {"cd", "exit"};
 
 char twd[PATH_MAX];
 char tsh_func[MAX_TSH_FUNC_SIZE];
@@ -73,11 +78,16 @@ static char *remove_excessive_spaces_string(char *s) {
 
 static char **split(char *s, int *spec) {
   int nb_tokens = count_words(s);
+
   char delim[] = " ";
   char **res = malloc((nb_tokens+1) * sizeof(char *));
+
   res[0] = strtok(s, delim);
-  *spec = (special_command(res[0], tar_cmds, NB_TAR_CMD, NO_SET_TSH_FUNC)) ? TAR_CMD :
-    (special_command(res[0], tsh_funcs, NB_TSH_FUNC, SET_TSH_FUNC)) ? TSH_FUNC : 0;
+
+
+  *spec = (special_command(res[0], tar_cmds, NB_TAR_CMD, NO_SET_TSH_FUNC)) ? 1 :
+    (special_command(res[0], tsh_funcs, NB_TSH_FUNC, SET_TSH_FUNC)) ? 2 : 0;
+
   for (int i = 1; i < nb_tokens; i++) {
     res[i] = strtok(NULL, delim);
     if (*spec) {
@@ -112,6 +122,7 @@ static void init_tsh() {
   char *home = getenv("HOME");
   strcpy(tsh_dir, home);
   strcat(tsh_dir, "/.tsh");
+  ret_value = EXIT_SUCCESS;
 }
 
 static int special_command(char *s, char **tab, int tab_l, int set_tsh_func) {
@@ -126,11 +137,14 @@ static int special_command(char *s, char **tab, int tab_l, int set_tsh_func) {
   return 0;
 }
 
-static int launch_tsh_func(char **argv) {
+static int launch_tsh_func(char **argv, int argc) {
   if (strcmp(argv[0], "cd") == 0) {
-    return cd(argv);
+    return cd(argv, argc);
   }
-  return 1;
+  else if (strcmp(argv[0], "exit") == 0) {
+    exit_tsh(argv, argc);
+  }
+  return EXIT_FAILURE;
 }
 
 static int count_argc(char **argv) {
@@ -139,8 +153,16 @@ static int count_argc(char **argv) {
   return i-1;
 }
 
-static int cd(char **argv) {
-  int argc = count_argc(argv);
+static int exit_tsh(char **argv, int argc) {
+  for (int i = 1; i < argc; i++)
+  {
+    free(argv[i]);
+  }
+  free(argv);
+  exit(ret_value);
+}
+
+static int cd(char **argv, int argc) {
   if (argc == 1) {
     char *home = getenv("HOME");
     if (home == NULL) {
@@ -243,24 +265,24 @@ int main(int argc, char *argv[]){
     }
     char **tokens = split(buf, &spec);
     if (spec == TSH_FUNC) {
-      launch_tsh_func(tokens);
+      ret_value = launch_tsh_func(tokens, count_argc(tokens));
     }
     else {
-      int p = fork(), w;
+      int p = fork(), status;
       switch (p) {
         case -1:
           perror("fork");
           exit(EXIT_FAILURE);
-          case 0: //son
+          case 0: // child
           if (spec == TAR_CMD) {
             char cmd_exec[PATH_MAX];
             strcpy(cmd_exec, tsh_dir);
             strcat(cmd_exec, "/bin/");
             strcat(cmd_exec, tokens[0]);
-            execv(cmd_exec, tokens);
+            ret_value = execv(cmd_exec, tokens);
           }
           else {
-            execvp(tokens[0], tokens);
+            ret_value = execvp(tokens[0], tokens);
           }
           if (errno == ENOENT) {
             int size = strlen(tokens[0]) + CMD_NOT_FOUND_SIZE;
@@ -270,8 +292,9 @@ int main(int argc, char *argv[]){
             write(STDERR_FILENO, error_msg, size);
           }
           exit(EXIT_FAILURE);
-          default: // father
-          wait(&w);
+          default: // parent
+            wait(&status);
+            ret_value = WEXITSTATUS(status);
         }
       }
     if (spec) {

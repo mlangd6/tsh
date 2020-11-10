@@ -29,10 +29,11 @@ int main(int argc, char *argv[]) {
           error_cmd(CMD_NAME, "fork");
           return EXIT_FAILURE;
           break;
-        case 0: // son
+        case 0: // child
           execlp(CMD_NAME, CMD_NAME, argv[i], NULL);
         default:
           wait(&w);
+          return WEXITSTATUS(w);
       }
     }
     else {
