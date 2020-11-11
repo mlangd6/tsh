@@ -13,9 +13,10 @@
 #include <time.h>
 #include <pwd.h>
 #include <errno.h>
+#include <getopt.h>
+#include <linux/limits.h>
 
-#define SIZE_OF_LINE 200
-#define SIZE_OF_NAME 100
+#define SUPPORT_OPT "l"
 #define CMD_NAME "ls"
 
 static int convert_rights_nb_in_ch(char *rights);
@@ -25,7 +26,6 @@ static int convert_size(char *size, int t);
 static int is_link(char c);
 static int nb_link(struct posix_header ph, struct posix_header *header, int n);
 static int nb_of_slash(char *name);
-static char *tar_name_func(char *name, char *name_two);
 static char *cut_name(char *to_cut, char *original, char *the_file_to_list);
 static int is_file(struct posix_header *header, char *name_in_tar, int nb_of_files_in_tar, int opt_or_not);
 static int write_ls(struct posix_header *header, struct posix_header header_to_write, char *name, int nb_of_files_in_tar);
@@ -175,25 +175,6 @@ static int convert_size(char *size, int t) {
   return 0;
 }
 
-/* Return for "/tmp/tsh_test/test.tar/dir1/" the char * "/tmp/tsh_test/test.tar" */
-static char *tar_name_func(char *name, char *n){
-  int j = 0;
-  if( strstr(name, ".tar") == NULL){
-    return NULL;
-  }
-  for(int i = 0; i < strlen(name); i++){
-    if(name[i] == '.' && name[i+1] == 't' && name[i+2] == 'a' && name[i+3] == 'r'){
-      n[j] = name[i];
-      n[j+1] = name[i+1];
-      n[j+2] = name[i+2];
-      n[i+3] = name[i+3];
-      break;
-    }else
-      n[j++] = name[i];
-  }
-  return n;
-}
-
 /* remove the name of origin "original" in to_cut and stock this result in the_file_to_list which is return
    example : cut_name("tttt.tar/toto/tata/titi", "tttt.tar", "") == "titi"   */
 static char *cut_name(char *to_cut, char *original, char *the_file_to_list){
@@ -254,7 +235,6 @@ static int write_ls(struct posix_header *header, struct posix_header header_to_w
    file .tar that we want to list */
 int ls_l(char *tar_name, char *name_in_tar) {
   int nb_of_files_in_tar = 0;
-  name_in_tar = split_tar_abs_path(tar_name);
   struct posix_header *header = tar_ls(tar_name, &nb_of_files_in_tar);
   int tar_fd = open(tar_name, O_RDONLY);
   if (tar_fd == -1) {
@@ -267,7 +247,7 @@ int ls_l(char *tar_name, char *name_in_tar) {
     close(tar_fd);
     return 0;
   }
-  if(strcmp(name_in_tar, "\0") != 0){
+  if(*name_in_tar != '\0') {
     if(name_in_tar[strlen(name_in_tar)-1] != '/'){ strcat(name_in_tar, "/");}
     for(int i = 0; i < nb_of_files_in_tar; i++)
     {
@@ -304,7 +284,6 @@ int ls_l(char *tar_name, char *name_in_tar) {
 /* Representing the command ls, list the files of a tarball. */
 int ls(char *tar_name, char *name_in_tar) {
   int nb_of_files_in_tar = 0;
-  name_in_tar = split_tar_abs_path(tar_name);
   struct posix_header *header = tar_ls(tar_name, &nb_of_files_in_tar);
   int tar_fd = open(tar_name, O_RDONLY);
   if (tar_fd == -1) {
@@ -356,101 +335,88 @@ int ls(char *tar_name, char *name_in_tar) {
   close(tar_fd);
   return 0;
 }
-
-
-int main(int argc, char *argv[]) {
-  char *name = malloc(100);
-  char *tar = malloc(100);
-  if(argc == 1 )
-  {
+int main(int argc, char **argv) {
+  int tar_arg = has_tar_arg(argc, argv);
+  if (!tar_arg)
     execvp(CMD_NAME, argv);
-  }
-  else if(argc == 2)
+  int c;
+  int lflag = 0;
+  opterr = 0;
+  int not_tar_opt = 0;
+  int ret = EXIT_SUCCESS;
+  char **options = calloc(argc, sizeof(char *));
+  int opt_c = 0;
+  for (int i = 1; i < argc; i++)
   {
-    if(strcmp(argv[1], "-l")!=0 && is_tar(tar_name_func(argv[1], tar)) == 1)
-      ls(argv[1], name);
-    else
-      execvp(CMD_NAME, argv);
+    if (*argv[i] == '-' && (++opt_c))
+      options[opt_c-1] = argv[i];
   }
-  else if(argc == 3 && strcmp(argv[1], "-l") == 0 && is_tar(tar_name_func(argv[2], tar)) == 1 )
-    ls_l(argv[2], name);
-
-  else
+  while ((c = getopt(argc, argv, SUPPORT_OPT)) != -1)
   {
-    if(argc == 3 && is_tar(tar_name_func(argv[2], tar)) != 1)
-      execvp(CMD_NAME, argv);
-    else
-    {
-      int f = fork(), w;
-      for(int i = 1 ; i < argc; i++)
-      {
-          switch(f)
-          {
-            case -1 :
-              error_cmd(CMD_NAME, "fork");
-              break;
-            case 0:
-              if(strcmp(argv[1], "-l") == 0 )
-              {
-                if(is_tar(tar_name_func(argv[i], tar)) == 1)
-                {
-                  write(STDOUT_FILENO, argv[i], strlen(argv[i]));
-                  write(STDOUT_FILENO, ":\n", 2);
-                  ls_l(argv[i], name);
-                  write(STDOUT_FILENO, "\n\n", 2);
-                }
-                else if(i!=1)
-                {
-                  int g = fork(), y;
-                  switch(g){
-                    case -1:
-                      error_cmd(CMD_NAME, "fork");
-                      break;
-                    case 0:
-                      write(STDOUT_FILENO, "\n", 2);
-                      write(STDOUT_FILENO, argv[i], strlen(argv[i]));
-                      write(STDOUT_FILENO, ":\n", 2);
-                      execlp(CMD_NAME, CMD_NAME, argv[1], argv[i], NULL);
-                    default:
-                      wait(&y);
-                      return WEXITSTATUS(y);
-                  }
-
-                }
-              }
-              else if(is_tar(tar_name_func(argv[i], tar)) == 1)
-              {
-                write(STDOUT_FILENO, argv[i], strlen(argv[i]));
-                write(STDOUT_FILENO, ":\n", 2);
-                ls(argv[i], name);
-                write(STDOUT_FILENO, "\n\n", 2);
-              }
-              else
-              {
-                int g = fork(), y;
-                switch(g){
-                  case -1:
-                    error_cmd(CMD_NAME, "fork");
-                    break;
-                  case 0:
-                    write(STDOUT_FILENO, "\n", 2);
-                    write(STDOUT_FILENO, argv[i], strlen(argv[i]));
-                    write(STDOUT_FILENO, ":\n", 2);
-                    execlp(CMD_NAME, CMD_NAME, argv[i], NULL);
-                  default:
-                    wait(&y);
-                    return WEXITSTATUS(y);
-                }
-              }
-            default:
-              wait(&w);
-              return WEXITSTATUS(w);
-          }
-        }
-
+    if (c == 'l')
+      lflag = 1;
+    else { // c == '?'
+      write(STDERR_FILENO, "ls: invalid option -- '", 23);
+      write(STDERR_FILENO, &optopt, 1);
+      write(STDERR_FILENO, "' with tarball, skipping files inside tarball\n", 46);
+      not_tar_opt = 1;
+      break;
     }
   }
-  free(name);
-  free(tar);
-  exit(EXIT_SUCCESS);
+  if (tar_arg == 2) // No arguments (ls with twd)
+  {
+    char *tmp = getenv("PWD");
+    char twd[PATH_MAX];
+    memcpy(twd, tmp, strlen(tmp) + 1);
+    char *in_tar = split_tar_abs_path(twd);
+    if (*in_tar != '\0' || is_tar(twd) == 1)
+    {
+      if (not_tar_opt)
+        return EXIT_FAILURE;
+      if (lflag)
+        ret = ls_l(twd, in_tar);
+      else
+        ret = ls(twd, in_tar);
+      return (!ret && !not_tar_opt) ? EXIT_SUCCESS : EXIT_FAILURE;
+    }
+    execvp(CMD_NAME, argv);
+  }
+  // else tar_arg == 1
+  char *in_tar;
+  for (int i = 1; i < argc; i++)
+  {
+    if (*argv[i] == '-')
+      continue;
+    in_tar = split_tar_abs_path(argv[i]);
+    if (*in_tar != '\0' || is_tar(argv[i]) == 1)
+    {
+      if (not_tar_opt)
+        continue;
+      if (lflag && (ls_l(argv[i], in_tar) == EXIT_FAILURE))
+        ret = EXIT_FAILURE;
+      else if (ls(argv[i], in_tar) == EXIT_FAILURE)
+        ret = EXIT_FAILURE;
+    }
+    else
+    {
+      options[opt_c] = argv[i];
+      int status, p = fork();
+      switch (p)
+      {
+        case -1:
+          error_cmd(CMD_NAME, "fork");
+          break;
+        case 0: // child
+          execvp(CMD_NAME, options);
+          break;
+        default: // parent
+          wait(&status);
+          if (WEXITSTATUS(status) != EXIT_SUCCESS)
+            ret = EXIT_FAILURE;
+      }
+      options[opt_c] = NULL;
+    }
+  }
+  free(options);
+  return ret;
 }

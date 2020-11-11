@@ -159,16 +159,21 @@ int nb_files_in_tar_c(char *tar_name){
   return nb;
 }
 
-int has_tar_arg(const char **argv, int argc)
+int has_tar_arg(int argc, char **argv)
 {
+  int ret = 2;
   char cpy[PATH_MAX];
-  for (size_t len, i = 0; i < argc; len = strlen(argv[i]) + 1, i++)
+  for (size_t len, i = 1; i < argc; i++)
   {
+    len = strlen(argv[i]) + 1;
     if (*argv[i] == '-')
       continue;
     memmove(cpy, argv[i], len);
-    if ( is_tar(cpy) || *split_tar_abs_path(cpy) != '\0')
+    char *in_tar = split_tar_abs_path(cpy);
+    if ( is_tar(cpy) == 1 || *in_tar != '\0') {
       return 1;
+    }
+    ret = 0;
   }
-  return 0;
+  return ret;
 }
