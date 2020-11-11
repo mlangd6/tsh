@@ -14,7 +14,7 @@
 #define CMD_NOT_FOUND " : command not found\n"
 #define CMD_NOT_FOUND_SIZE 22
 #define NB_TAR_CMD 2
-#define NB_TSH_FUNC 2
+#define NB_TSH_FUNC 3
 #define TAR_CMD 1
 #define TSH_FUNC 2
 #define MAX_TSH_FUNC_SIZE 5
@@ -25,6 +25,7 @@ static int ret_value;
 
 static int cd(char **argv, int argc);
 static int exit_tsh(char **argv, int argc);
+static int pwd(char **argv, int argc);
 
 static int count_words(char *s);
 static char **split(char *s, int *spec);
@@ -38,7 +39,7 @@ static char *remove_excessive_spaces_string(char *s);
 
 char tsh_dir[PATH_MAX];
 char *tar_cmds[NB_TAR_CMD] = {"cat", "ls"};
-char *tsh_funcs[NB_TSH_FUNC] = {"cd", "exit"};
+char *tsh_funcs[NB_TSH_FUNC] = {"cd", "exit", "pwd"};
 
 char twd[PATH_MAX];
 char tsh_func[MAX_TSH_FUNC_SIZE];
@@ -144,6 +145,9 @@ static int launch_tsh_func(char **argv, int argc) {
   else if (strcmp(argv[0], "exit") == 0) {
     exit_tsh(argv, argc);
   }
+  else if (strcmp(argv[0], "pwd") == 0) {
+    return pwd(argv, argc);
+  }
   return EXIT_FAILURE;
 }
 
@@ -151,6 +155,13 @@ static int count_argc(char **argv) {
   int i = 0;
   while (argv[i++] != NULL) ;
   return i-1;
+}
+
+static int pwd(char **argv, int argc) {
+  return (
+    write(STDOUT_FILENO, twd, strlen(twd)) < 0 ||
+    write(STDOUT_FILENO, "\n", 2) < 0
+  ) ? EXIT_FAILURE : EXIT_SUCCESS;
 }
 
 static int exit_tsh(char **argv, int argc) {
