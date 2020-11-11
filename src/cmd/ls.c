@@ -249,6 +249,12 @@ int ls_l(char *tar_name, char *name_in_tar) {
   }
   if(*name_in_tar != '\0') {
     if(name_in_tar[strlen(name_in_tar)-1] != '/'){ strcat(name_in_tar, "/");}
+    if (tar_access(tar_name, name_in_tar, R_OK) == -1)
+    {
+      name_in_tar[-1] = '/';
+      error_cmd(CMD_NAME, tar_name);
+      return EXIT_FAILURE;
+    }
     for(int i = 0; i < nb_of_files_in_tar; i++)
     {
       char *c = NULL;
@@ -297,8 +303,14 @@ int ls(char *tar_name, char *name_in_tar) {
     close(tar_fd);
     return 0;
   }
-  if(strcmp(name_in_tar, "\0") != 0){
+  if(*name_in_tar != '\0'){
     if(name_in_tar[strlen(name_in_tar)-1] != '/'){ strcat(name_in_tar, "/");}
+    if (tar_access(tar_name, name_in_tar, R_OK) == -1)
+    {
+      name_in_tar[-1] = '/';
+      error_cmd(CMD_NAME, tar_name);
+      return EXIT_FAILURE;
+    }
     for(int i = 0; i < nb_of_files_in_tar; i++)
     {
       char *c = NULL;
