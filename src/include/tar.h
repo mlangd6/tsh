@@ -155,4 +155,7 @@ int tar_access(const char *tar_name, const char *file_name, int mode);
    0 if everything worked
    -1 if a system call failed */
 int tar_append_file(const char *tar_name, const char *filename, int src_fd);
+
+/* Return 1 if at least one argument of ARGV implies a tarball and 0 else */
+int has_tar_arg(const char **argv, int argc);
 #endif

@@ -5,9 +5,10 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <unistd.h>
+#include <linux/limits.h>
 
 #include "tar.h"
-
+#include "path_lib.h"
 
 /* Code for set_checksum(...) and check_checksum(...) are taken from :
    https://gaufre.informatique.univ-paris-diderot.fr/klimann/systL3_2020-2021/blob/master/TP/TP1/tar.h */
@@ -96,7 +97,7 @@ int seek_header(int tar_fd, const char *filename, struct posix_header *header)
       skip_file_content(tar_fd, header);
     }
   }
-  
+
   return -1;
 }
 
@@ -156,4 +157,18 @@ int nb_files_in_tar_c(char *tar_name){
   int nb = nb_files_in_tar(tar_fd);
   close(tar_fd);
   return nb;
+}
+
+int has_tar_arg(const char **argv, int argc)
+{
+  char cpy[PATH_MAX];
+  for (size_t len, i = 0; i < argc; len = strlen(argv[i]) + 1, i++)
+  {
+    if (*argv[i] == '-')
+      continue;
+    memmove(cpy, argv[i], len);
+    if ( is_tar(cpy) || *split_tar_abs_path(cpy) != '\0')
+      return 1;
+  }
+  return 0;
 }
