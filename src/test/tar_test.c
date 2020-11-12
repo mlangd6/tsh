@@ -117,15 +117,13 @@ static char *tar_add_file_rec_test() {
 }
 
 static char *tar_add_tar_file_in_tar_test() {
-  //system("tar tvf /tmp/tsh_test/test.tar");
-  system("tar tvf /tmp/tsh_test/test.tar");
   //tar_add_tar_file_in_tar_rec("/tmp/tsh_test/test.tar", "/tmp/tsh_test/test.tar", "dir1/", "man_dir/dir1/");
-  tar_add_tar_file_in_tar_rec("/tmp/tsh_test/test.tar", "/tmp/tsh_test/test.tar", "man_dir/", "a/dir1/");
-  tar_add_tar_file_in_tar_rec("/tmp/tsh_test/test.tar", "/tmp/d.tar", "man_dir/", "a/man_dir/");
+  tar_add_tar_file_in_tar_rec("/tmp/tsh_test/test.tar", "/tmp/tsh_test/bis_test.tar", "man_dir/", "man_dir_bis/man_dir/");
+  tar_add_tar_file_in_tar_rec("/tmp/tsh_test/bis_test.tar", "/tmp/tsh_test/test.tar", "man_dir_bis/", "man_dir/man_dir_bis/");
 
   system("tar tvf /tmp/tsh_test/test.tar");
   printf("\n\n");
-  system("tar tvf /tmp/d.tar");
+  system("tar tvf /tmp/tsh_test/bis_test.tar");
   printf("\n\n");
   //system("tar tvf /tmp/tsh_test/test.tar");
   return NULL;
