@@ -119,13 +119,36 @@ static char *tar_add_file_rec_test() {
 static char *tar_add_tar_file_in_tar_test() {
   //tar_add_tar_file_in_tar_rec("/tmp/tsh_test/test.tar", "/tmp/tsh_test/test.tar", "dir1/", "man_dir/dir1/");
   tar_add_tar_file_in_tar_rec("/tmp/tsh_test/test.tar", "/tmp/tsh_test/bis_test.tar", "man_dir/", "man_dir_bis/man_dir/");
-  tar_add_tar_file_in_tar_rec("/tmp/tsh_test/bis_test.tar", "/tmp/tsh_test/test.tar", "man_dir_bis/", "man_dir/man_dir_bis/");
+  int nb = 0;
+  struct posix_header *a_tester = tar_ls("/tmp/tsh_test/bis_test.tar", &nb);
+  int tmp[4] = {nb, nb, nb, nb};
+  for(int i = 0; i < nb; i++){
+    if(strcmp("man_dir_bis/man_dir/", a_tester[i].name) == 0)tmp[0] = i;
+    if(strcmp("man_dir_bis/man_dir/tar", a_tester[i].name) == 0)tmp[1] = i;
+    if(strcmp("man_dir_bis/man_dir/open2", a_tester[i].name) == 0)tmp[2] = i;
+    if(strcmp("man_dir_bis/man_dir/man", a_tester[i].name) == 0)tmp[3] = i;
+  }
+  for(int i = 0; i < 4; i++){
+    mu_assert("tar_add_tar_file_test: error: 1, isn't add in the tar", tmp[i] < nb );
+  }
 
-  system("tar tvf /tmp/tsh_test/test.tar");
-  printf("\n\n");
-  system("tar tvf /tmp/tsh_test/bis_test.tar");
-  printf("\n\n");
-  //system("tar tvf /tmp/tsh_test/test.tar");
+  tar_add_tar_file_in_tar_rec("/tmp/tsh_test/bis_test.tar", "/tmp/tsh_test/test.tar", "man_dir_bis/", "man_dir/man_dir_bis/");
+  int nb2 = 0;
+  struct posix_header *a_tester2 = tar_ls("/tmp/tsh_test/test.tar", &nb2);
+  int tmp2[8] = {nb2, nb2, nb2, nb2, nb2, nb2, nb2, nb2};
+  for(int i = 0; i < nb2; i++){
+    if(strcmp("man_dir/man_dir_bis/", a_tester2[i].name) == 0)tmp2[0] = i;
+    if(strcmp("man_dir/man_dir_bis/tar_bis", a_tester2[i].name) == 0)tmp2[1] = i;
+    if(strcmp("man_dir/man_dir_bis/open2_bis", a_tester2[i].name) == 0)tmp2[2] = i;
+    if(strcmp("man_dir/man_dir_bis/man_bis", a_tester2[i].name) == 0)tmp2[3] = i;
+    if(strcmp("man_dir/man_dir_bis/man_dir/", a_tester2[i].name) == 0)tmp2[4] = i;
+    if(strcmp("man_dir/man_dir_bis/man_dir/man", a_tester2[i].name) == 0)tmp2[5] = i;
+    if(strcmp("man_dir/man_dir_bis/man_dir/open2", a_tester2[i].name) == 0)tmp2[6] = i;
+    if(strcmp("man_dir/man_dir_bis/man_dir/tar", a_tester2[i].name) == 0)tmp2[7] = i;
+  }
+  for(int i = 0; i < 8; i++){
+    mu_assert("tar_add_tar_file_test: error: 2, isn't add in the tar", tmp2[i] < nb2 );
+  }
   return NULL;
 }
 
