@@ -11,7 +11,7 @@
 #include "tsh_test.h"
 #include "tar.h"
 
-#define TAR_TEST_SIZE 10
+#define TAR_TEST_SIZE 11
 #define TAR_ADD_TEST_SIZE_BUF 700
 
 
@@ -25,6 +25,7 @@ static char *tar_mv_test();
 static char *tar_access_test();
 static char *tar_append_file_test();
 static char *tar_add_file_rec_test();
+static char *tar_add_tar_file_in_tar_test();
 
 extern int tests_run;
 
@@ -38,7 +39,8 @@ static char *(*tests[])(void) = {
   tar_mv_test,
   tar_access_test,
   tar_append_file_test,
-  tar_add_file_rec_test
+  tar_add_file_rec_test,
+  tar_add_tar_file_in_tar_test
 };
 
 static char *stat_equals(struct stat *s1, struct stat *s2) {
@@ -112,6 +114,21 @@ static char *tar_add_file_rec_test() {
     mu_assert("tar_add_file_test: error: \"./\" isn't add in the tar", tmp[i] < nb2 );
   }
   return 0;
+}
+
+static char *tar_add_tar_file_in_tar_test() {
+  //system("tar tvf /tmp/tsh_test/test.tar");
+  system("tar tvf /tmp/tsh_test/test.tar");
+  //tar_add_tar_file_in_tar_rec("/tmp/tsh_test/test.tar", "/tmp/tsh_test/test.tar", "dir1/", "man_dir/dir1/");
+  tar_add_tar_file_in_tar_rec("/tmp/tsh_test/test.tar", "/tmp/tsh_test/test.tar", "man_dir/", "a/dir1/");
+  tar_add_tar_file_in_tar_rec("/tmp/tsh_test/test.tar", "/tmp/d.tar", "man_dir/", "a/man_dir/");
+
+  system("tar tvf /tmp/tsh_test/test.tar");
+  printf("\n\n");
+  system("tar tvf /tmp/d.tar");
+  printf("\n\n");
+  //system("tar tvf /tmp/tsh_test/test.tar");
+  return NULL;
 }
 
 static char *is_tar_test() {

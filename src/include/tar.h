@@ -155,4 +155,9 @@ int tar_access(const char *tar_name, const char *file_name, int mode);
    0 if everything worked
    -1 if a system call failed */
 int tar_append_file(const char *tar_name, const char *filename, int src_fd);
+
+int tar_add_tar_file_in_tar(const char *tar_name_src, char *tar_name_dest, const char *source, const char *dest);
+
+int tar_add_tar_file_in_tar_rec(const char *tar_name_src, char *tar_name_dest, const char *source, const char *dest);
+
 #endif
