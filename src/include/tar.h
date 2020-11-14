@@ -156,8 +156,18 @@ int tar_access(const char *tar_name, const char *file_name, int mode);
    -1 if a system call failed */
 int tar_append_file(const char *tar_name, const char *filename, int src_fd);
 
+/* Add a file SOURCE from TAR_NAME_SRC to TAR_NAME_DEST with the name of file DEST
+   Return :
+   0 if FILENAME and his containing were added
+  -1 if they couldn't */
 int tar_add_tar_file_in_tar(const char *tar_name_src, char *tar_name_dest, const char *source, const char *dest);
 
+/* Add a file SOURCE from TAR_NAME_SRC to TAR_NAME_DEST with the name of file DEST
+   If the file is a directory and have other files in him, they are also add in the
+   TAR_NAME_DEST in the directory add before
+   Return :
+   0 if FILENAME and his containing were added
+  -1 if they couldn't */
 int tar_add_tar_file_in_tar_rec(const char *tar_name_src, char *tar_name_dest, const char *source, const char *dest);
 
 #endif

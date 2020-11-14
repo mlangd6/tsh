@@ -132,7 +132,6 @@ static char *tar_add_tar_file_in_tar_test() {
   for(int i = 0; i < 4; i++){
     mu_assert("tar_add_tar_file_test: error: 1, isn't add in the tar", tmp[i] < nb );
   }
-
   tar_add_tar_file_in_tar_rec("/tmp/tsh_test/bis_test.tar", "/tmp/tsh_test/test.tar", "man_dir_bis/", "man_dir/man_dir_bis/");
   int nb2 = 0;
   struct posix_header *a_tester2 = tar_ls("/tmp/tsh_test/test.tar", &nb2);
