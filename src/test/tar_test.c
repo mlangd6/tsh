@@ -50,19 +50,17 @@ static char *stat_equals(struct stat *s1, struct stat *s2) {
 }
 
 static char *tar_add_file_test() {
-  char *tmp = getcwd(NULL, 0);
-  chdir(TEST_DIR);
   char buff1[TAR_ADD_TEST_SIZE_BUF];
   memset(buff1, 'a', TAR_ADD_TEST_SIZE_BUF);
 
-  int fd = open("tar_test", O_CREAT | O_WRONLY, 0600);
+  int fd = open("/tmp/tsh_test/tar_test", O_CREAT | O_WRONLY, 0600);
   write(fd, buff1, TAR_ADD_TEST_SIZE_BUF);
   close(fd);
   struct stat s1, s2;
-  stat("tar_test", &s1);
-  tar_add_file("test.tar", "tar_test", "tar_test");
-  system("rm tar_test");
-  system("tar -xf test.tar tar_test");
+  stat("/tmp/tsh_test/tar_test", &s1);
+  tar_add_file("/tmp/tsh_test/test.tar", "/tmp/tsh_test/tar_test", "tar_test");
+  system("rm /tmp/tsh_test/tar_test");
+  system("tar -xvf /tmp/tsh_test/test.tar tar_test");
 
   stat("tar_test", &s2);
   int fd2 = open("tar_test", O_RDONLY);
@@ -74,8 +72,10 @@ static char *tar_add_file_test() {
     return s;
   }
   mu_assert("tar_add_file_test: error: content of file", strncmp(buff1, buff2, TAR_ADD_TEST_SIZE_BUF) == 0);
-  tar_add_file("test.tar", NULL, "toto_test");
-  tar_add_file("test.tar", NULL, "dir1/dir_test/");
+  system("rm tar_test");
+
+  tar_add_file("/tmp/tsh_test/test.tar", NULL, "toto_test");
+  tar_add_file("/tmp/tsh_test/test.tar", NULL, "dir1/dir_test/");
   int nb;
   struct posix_header *a_tester = tar_ls("/tmp/tsh_test/test.tar", &nb);
   int test[] = {0, 0};
@@ -87,8 +87,6 @@ static char *tar_add_file_test() {
   mu_assert("tar_add_file_test: error: \"toto_test\" isn't add in the tar", test[0] == 1);
   mu_assert("tar_add_file_test: error: \"dir1/dir_test/\" isn't add in the tar", test[1] == 1);
   free(a_tester);
-  chdir(tmp);
-  free(tmp);
   return 0;
 }
 
