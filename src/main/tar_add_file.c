@@ -176,7 +176,7 @@ static int modif_header(struct posix_header *hd, const char *tar_name_src, const
   return 0;
 }
 
-static int exists_in_tar(const char *tar_name, const char *name_to_comp, struct posix_header *hd, int size){
+static int exists_in_tar(const char *name_to_comp, struct posix_header *hd, int size){
   for(int i = 0; i < size; i++){
     if(strcmp(hd[i].name, name_to_comp) == 0){
       return 1;
@@ -193,10 +193,12 @@ static int read_and_write(int fd_src, int fd_dest, struct posix_header hd){
     return -1;
 
   //écriture du contenu du header
+  //read_write_buf_by_buf(fd_src, fd_dest, number_of_block(get_file_size(&hd)), BLOCKSIZE);
   char buffer[BLOCKSIZE];
   ssize_t read_size;
+  unsigned int abc = number_of_block(get_file_size(&hd)), cmp = 0;
   if(hd.typeflag != DIRTYPE){
-    while((read_size = read(fd_src, buffer, BLOCKSIZE)) > 0 ) {
+    while((read_size = read(fd_src, buffer, BLOCKSIZE)) > 0 && cmp++ < abc) {
       if (read_size < 0) {
         return -1;
       }
@@ -214,9 +216,11 @@ static int read_and_write(int fd_src, int fd_dest, struct posix_header hd){
 int tar_add_tar_file_in_tar_rec(const char *tar_name_src, char *tar_name_dest, const char *source, const char *dest){
   int s = 0;
   struct posix_header *header = tar_ls(tar_name_src, &s);
+  int s_2 = 0;
+  struct posix_header *header_2 = tar_ls(tar_name_dest, &s_2);
 
   //check if dont already exist
-  if(exists_in_tar(tar_name_dest, dest, header, s))
+  if(exists_in_tar(dest, header_2, s_2))
     return error_pt(NULL, 0, errno);
 
   //We look all the file of tar_name_src
@@ -248,6 +252,7 @@ int tar_add_tar_file_in_tar_rec(const char *tar_name_src, char *tar_name_dest, c
     }
   }
   free(header);
+  free(header_2);
   return 0;
 }
 
@@ -255,6 +260,8 @@ int tar_add_tar_file_in_tar_rec(const char *tar_name_src, char *tar_name_dest, c
 int tar_add_tar_file_in_tar(const char *tar_name_src, char *tar_name_dest, const char *source, const char *dest){
   int s = 0;
   struct posix_header *header = tar_ls(tar_name_src, &s);
+  int s_2 = 0;
+  struct posix_header *header_2 = tar_ls(tar_name_dest, &s_2);
   int tar_src_fd = open(tar_name_src, O_RDWR);
   if ( tar_src_fd < 0)
     return error_pt(NULL, 0, errno);
@@ -266,7 +273,7 @@ int tar_add_tar_file_in_tar(const char *tar_name_src, char *tar_name_dest, const
     return error_pt(&tar_src_fd, 1, errno);
 
   //check if it don't already exists
-  if(exists_in_tar(tar_name_dest, dest, header, s))
+  if(exists_in_tar(dest, header_2, s_2))
     return error_pt(NULL, 0, errno);
 
   //Check if we want add in the same tar
@@ -293,6 +300,8 @@ int tar_add_tar_file_in_tar(const char *tar_name_src, char *tar_name_dest, const
     add_empty_block(tar_src_fd);
   }
   close(tar_src_fd);
+  free(header);
+  free(header_2);
   return 0;
 }
 
