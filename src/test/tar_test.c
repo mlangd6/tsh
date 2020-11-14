@@ -181,7 +181,7 @@ static char *test_tar_ls(){
   {"dir1/", "dir1/subdir/", "dir1/subdir/subsubdir/",
   "dir1/subdir/subsubdir/hello", "dir1/tata", "man_dir/", "man_dir/man",
   "man_dir/open2", "man_dir/tar", "titi",
-  "titi_link", "toto", "dir2/fic1", "dir2/fic2", "access/",
+  "titi_link", "toto", "dir2/fic1", "dir2/fic2", "access/no",
   "access/x", "access/no_x_dir/", "access/no_x_dir/a"};
   struct posix_header *a_tester = tar_ls("/tmp/tsh_test/test.tar", &size);
   for(int i = 0; i < size; i++) {

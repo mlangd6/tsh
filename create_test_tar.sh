@@ -37,12 +37,6 @@ touch dir2/fic1 dir2/fic2
 tar cf test.tar toto dir1 titi man_dir titi_link dir2/*
 tar -rf test.tar --mode='u=x' access/x
 tar -rf test.tar --mode='u=' access/no
-tar -rf test.tar --mode='u-x' access/no_x_dir/
+tar -rf test.tar --no-recursion --mode='u-x' access/no_x_dir/
 tar -rf test.tar --mode='u=rwx' access/no_x_dir/a
 find . ! -name '*.tar' -delete
-
-
-
-
-
-
