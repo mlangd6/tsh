@@ -128,6 +128,7 @@ static char *tar_add_tar_file_in_tar_test() {
     if(strcmp("man_dir_bis/man_dir/open2", a_tester[i].name) == 0)tmp[2] = i;
     if(strcmp("man_dir_bis/man_dir/man", a_tester[i].name) == 0)tmp[3] = i;
   }
+  free(a_tester);
   for(int i = 0; i < 4; i++){
     mu_assert("tar_add_tar_file_test: error: 1, isn't add in the tar", tmp[i] < nb );
   }
@@ -146,6 +147,7 @@ static char *tar_add_tar_file_in_tar_test() {
     if(strcmp("man_dir/man_dir_bis/man_dir/open2", a_tester2[i].name) == 0)tmp2[6] = i;
     if(strcmp("man_dir/man_dir_bis/man_dir/tar", a_tester2[i].name) == 0)tmp2[7] = i;
   }
+  free(a_tester2);
   for(int i = 0; i < 8; i++){
     mu_assert("tar_add_tar_file_test: error: 2, isn't add in the tar", tmp2[i] < nb2 );
   }
