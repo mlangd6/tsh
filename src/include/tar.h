@@ -160,7 +160,7 @@ int tar_append_file(const char *tar_name, const char *filename, int src_fd);
    Return :
    0 if FILENAME and his containing were added
   -1 if they couldn't */
-int tar_add_tar_file_in_tar(const char *tar_name_src, char *tar_name_dest, const char *source, const char *dest);
+int add_tar_file_in_tar(const char *tar_name_src, char *tar_name_dest, const char *source, const char *dest);
 
 /* Add a file SOURCE from TAR_NAME_SRC to TAR_NAME_DEST with the name of file DEST
    If the file is a directory and have other files in him, they are also add in the
@@ -168,6 +168,6 @@ int tar_add_tar_file_in_tar(const char *tar_name_src, char *tar_name_dest, const
    Return :
    0 if FILENAME and his containing were added
   -1 if they couldn't */
-int tar_add_tar_file_in_tar_rec(const char *tar_name_src, char *tar_name_dest, const char *source, const char *dest);
+int add_tar_file_in_tar_rec(const char *tar_name_src, char *tar_name_dest, const char *source, const char *dest);
 
 #endif

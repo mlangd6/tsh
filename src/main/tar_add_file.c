@@ -200,7 +200,7 @@ static int read_and_write(int fd_src, int fd_dest, struct posix_header hd){
   return 0;
 }
 
-int tar_add_tar_file_in_tar_rec(const char *tar_name_src, char *tar_name_dest, const char *source, const char *dest){
+int add_tar_file_in_tar_rec(const char *tar_name_src, char *tar_name_dest, const char *source, const char *dest){
   int s = 0;
   struct posix_header *header = tar_ls(tar_name_src, &s);
   int s_2 = 0;
@@ -223,7 +223,7 @@ int tar_add_tar_file_in_tar_rec(const char *tar_name_src, char *tar_name_dest, c
     copy[j] = '\0';
 
     //if the copy and source are equals
-    if(strcmp(copy, source) == 0){
+    if(strcmp(copy, source) == 0 && (header[i].name[j] == '\0' || header[i].name[j-1] == '/')){
       char copy2[PATH_MAX];
       int k = 0;
       for(k = 0; k < strlen(dest); k++){copy2[k] = dest[k];}
@@ -235,7 +235,7 @@ int tar_add_tar_file_in_tar_rec(const char *tar_name_src, char *tar_name_dest, c
       copy2[strlen(dest)+l] = '\0';
 
       //Add Source or a file of source in tar_name_dest as copy2
-      tar_add_tar_file_in_tar(tar_name_src, tar_name_dest, header[i].name, copy2);
+      add_tar_file_in_tar(tar_name_src, tar_name_dest, header[i].name, copy2);
     }
   }
   free(header);
@@ -244,7 +244,7 @@ int tar_add_tar_file_in_tar_rec(const char *tar_name_src, char *tar_name_dest, c
 }
 
 
-int tar_add_tar_file_in_tar(const char *tar_name_src, char *tar_name_dest, const char *source, const char *dest){
+int add_tar_file_in_tar(const char *tar_name_src, char *tar_name_dest, const char *source, const char *dest){
   int s = 0;
   struct posix_header *header = tar_ls(tar_name_src, &s);
   int s_2 = 0;

@@ -25,7 +25,7 @@ static char *tar_mv_test();
 static char *tar_access_test();
 static char *tar_append_file_test();
 static char *tar_add_file_rec_test();
-static char *tar_add_tar_file_in_tar_test();
+static char *add_tar_file_in_tar_test();
 
 extern int tests_run;
 
@@ -40,7 +40,7 @@ static char *(*tests[])(void) = {
   tar_access_test,
   tar_append_file_test,
   tar_add_file_rec_test,
-  tar_add_tar_file_in_tar_test
+  add_tar_file_in_tar_test
 };
 
 static char *stat_equals(struct stat *s1, struct stat *s2) {
@@ -116,11 +116,8 @@ static char *tar_add_file_rec_test() {
   return 0;
 }
 
-static char *tar_add_tar_file_in_tar_test() {
-  //tar_add_tar_file_in_tar_rec("/tmp/tsh_test/test.tar", "/tmp/tsh_test/test.tar", "dir1/", "man_dir/dir1/");
-  tar_add_tar_file_in_tar_rec("/tmp/tsh_test/test.tar", "/tmp/tsh_test/bis_test.tar", "man_dir/", "man_dir_bis/man_dir/");
-  system("tar tvf /tmp/tsh_test/bis_test.tar");
-  printf("\n");
+static char *add_tar_file_in_tar_test() {
+  add_tar_file_in_tar_rec("/tmp/tsh_test/test.tar", "/tmp/tsh_test/bis_test.tar", "man_dir/", "man_dir_bis/man_dir/");
   int nb = 0;
   struct posix_header *a_tester = tar_ls("/tmp/tsh_test/bis_test.tar", &nb);
   int tmp[4] = {nb, nb, nb, nb};
@@ -135,7 +132,7 @@ static char *tar_add_tar_file_in_tar_test() {
     mu_assert("tar_add_tar_file_test: error: 1, isn't add in the tar", tmp[i] < nb );
   }
 
-  tar_add_tar_file_in_tar_rec("/tmp/tsh_test/bis_test.tar", "/tmp/tsh_test/test.tar", "man_dir_bis/", "man_dir/man_dir_bis/");
+  add_tar_file_in_tar_rec("/tmp/tsh_test/bis_test.tar", "/tmp/tsh_test/test.tar", "man_dir_bis/", "man_dir/man_dir_bis/");
   int nb2 = 0;
   struct posix_header *a_tester2 = tar_ls("/tmp/tsh_test/test.tar", &nb2);
   int tmp2[8] = {nb2, nb2, nb2, nb2, nb2, nb2, nb2, nb2};
@@ -150,15 +147,9 @@ static char *tar_add_tar_file_in_tar_test() {
     if(strcmp("man_dir/man_dir_bis/man_dir/tar", a_tester2[i].name) == 0)tmp2[7] = i;
   }
   free(a_tester2);
-  system("tar tvf /tmp/tsh_test/test.tar");
-  printf("\n");
-  system("tar tvf /tmp/tsh_test/bis_test.tar");
-  printf("\n");
   for(int i = 0; i < 8; i++){
     mu_assert("tar_add_tar_file_test: error: 2, isn't add in the tar", tmp2[i] < nb2 );
   }
-  tar_add_tar_file_in_tar_rec("/tmp/tsh_test/test.tar", "/tmp/tsh_test/bis_test.tar", "toto", "toto");
-  system("tar tvf /tmp/tsh_test/bis_test.tar");
   return NULL;
 }
 
