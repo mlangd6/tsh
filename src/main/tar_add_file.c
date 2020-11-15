@@ -193,23 +193,10 @@ static int read_and_write(int fd_src, int fd_dest, struct posix_header hd){
     return -1;
 
   //écriture du contenu du header
-  //read_write_buf_by_buf(fd_src, fd_dest, number_of_block(get_file_size(&hd)), BLOCKSIZE);
+  read_write_buf_by_buf(fd_src, fd_dest, number_of_block(get_file_size(&hd))*BLOCKSIZE, BLOCKSIZE);
   char buffer[BLOCKSIZE];
-  ssize_t read_size;
-  unsigned int abc = number_of_block(get_file_size(&hd)), cmp = 0;
-  if(hd.typeflag != DIRTYPE){
-    while((read_size = read(fd_src, buffer, BLOCKSIZE)) > 0 && cmp++ < abc) {
-      if (read_size < 0) {
-        return -1;
-      }
-      if (read_size < BLOCKSIZE) {
-        memset(buffer + read_size, '\0', BLOCKSIZE - read_size);
-      }
-      if (write(fd_dest, buffer, BLOCKSIZE) < 0) {
-        return -1;
-      }
-    }
-  }
+  memset(buffer, '\0', BLOCKSIZE);
+  write(fd_dest, buffer, BLOCKSIZE);
   return 0;
 }
 
