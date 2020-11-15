@@ -18,6 +18,7 @@ int handle(command cmd, int argc, char **argv) {
     0,
     calloc(argc, sizeof(char *))
   };
+  info.options[info.opt_c++] = cmd.name;
   parse_args(argc, argv, &info);
   if (info.nb_in_tar == 0 && (info.nb_out > 0 || !cmd.twd_arg))
     execvp(cmd.name, argv);
@@ -25,7 +26,6 @@ int handle(command cmd, int argc, char **argv) {
   opterr = 0;
   int ret = EXIT_SUCCESS;
   int not_tar_opt = 0;
-  int opt_c = 0;
   int sup_opt_len = strlen(cmd.support_opt);
   char *tar_opt = malloc(sup_opt_len  + 1);
   memset(tar_opt, '\0', sup_opt_len + 1);
@@ -57,7 +57,6 @@ int handle(command cmd, int argc, char **argv) {
     }
     else execvp(cmd.name, argv);
   }
-  // tar_arg == 1
   int rest = info.nb_out + ((not_tar_opt) ? 0: info.nb_in_tar);
   int nb_valid_arg = rest;
   char *in_tar;
@@ -88,7 +87,7 @@ int handle(command cmd, int argc, char **argv) {
         write(STDOUT_FILENO, argv[i], strlen(argv[i]));
         write(STDOUT_FILENO, ":\n", 2);
       }
-      info.options[opt_c] = argv[i];
+      info.options[info.opt_c] = argv[i];
       int status, p = fork();
       switch (p)
       {
@@ -103,10 +102,11 @@ int handle(command cmd, int argc, char **argv) {
           if (WEXITSTATUS(status) != EXIT_SUCCESS)
             ret = EXIT_FAILURE;
       }
-      info.options[opt_c] = NULL;
+      info.options[info.opt_c] = NULL;
       if (--rest > 0 && cmd.print_multiple_arg)
-      write(STDOUT_FILENO, "\n", 1);
+        write(STDOUT_FILENO, "\n", 1);
     }
+
   }
   free(info.options);
   return ret;
