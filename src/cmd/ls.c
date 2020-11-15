@@ -1,6 +1,8 @@
 #include "tar.h"
 #include "errors.h"
 #include "path_lib.h"
+#include "command_handler.h"
+
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/wait.h>
@@ -29,7 +31,13 @@ static int nb_of_slash(char *name);
 static char *cut_name(char *to_cut, char *original, char *the_file_to_list);
 static int is_file(struct posix_header *header, char *name_in_tar, int nb_of_files_in_tar, int opt_or_not);
 static int write_ls(struct posix_header *header, struct posix_header header_to_write, char *name, int nb_of_files_in_tar);
+static int ls_(char *tar_name, char *in_tar_name);
+static int ls_l(char *tar_name, char*filename);
 
+int ls(char *tar_name, char *filename, char *options)
+{
+  return (strchr(options, 'l')) ? ls_l(tar_name, filename) : ls_(tar_name, filename);
+}
 
 /* Convert a char pointer of rights with cipher format "0000755" in
    a char pointer format "rwxr-xr-x" */
@@ -288,7 +296,7 @@ int ls_l(char *tar_name, char *name_in_tar) {
 }
 
 /* Representing the command ls, list the files of a tarball. */
-int ls(char *tar_name, char *name_in_tar) {
+int ls_(char *tar_name, char *name_in_tar) {
   int nb_of_files_in_tar = 0;
   struct posix_header *header = tar_ls(tar_name, &nb_of_files_in_tar);
   int tar_fd = open(tar_name, O_RDONLY);
@@ -348,87 +356,12 @@ int ls(char *tar_name, char *name_in_tar) {
   return 0;
 }
 int main(int argc, char **argv) {
-  int tar_arg = has_tar_arg(argc, argv);
-  if (!tar_arg)
-    execvp(CMD_NAME, argv);
-  int c;
-  int lflag = 0;
-  opterr = 0;
-  int not_tar_opt = 0;
-  int ret = EXIT_SUCCESS;
-  char **options = calloc(argc, sizeof(char *));
-  int opt_c = 0;
-  for (int i = 1; i < argc; i++)
-  {
-    if (*argv[i] == '-' && (++opt_c))
-      options[opt_c-1] = argv[i];
-  }
-  while ((c = getopt(argc, argv, SUPPORT_OPT)) != -1)
-  {
-    if (c == 'l')
-      lflag = 1;
-    else { // c == '?'
-      write(STDERR_FILENO, "ls: invalid option -- '", 23);
-      write(STDERR_FILENO, &optopt, 1);
-      write(STDERR_FILENO, "' with tarball, skipping files inside tarball\n", 46);
-      not_tar_opt = 1;
-      break;
-    }
-  }
-  if (tar_arg == 2) // No arguments (ls with twd)
-  {
-    char *tmp = getenv("PWD");
-    char twd[PATH_MAX];
-    memcpy(twd, tmp, strlen(tmp) + 1);
-    char *in_tar = split_tar_abs_path(twd);
-    if (*in_tar != '\0' || is_tar(twd) == 1)
-    {
-      if (not_tar_opt)
-        return EXIT_FAILURE;
-      if (lflag)
-        ret = ls_l(twd, in_tar);
-      else
-        ret = ls(twd, in_tar);
-      return (!ret && !not_tar_opt) ? EXIT_SUCCESS : EXIT_FAILURE;
-    }
-    execvp(CMD_NAME, argv);
-  }
-  // else tar_arg == 1
-  char *in_tar;
-  for (int i = 1; i < argc; i++)
-  {
-    if (*argv[i] == '-')
-      continue;
-    in_tar = split_tar_abs_path(argv[i]);
-    if (*in_tar != '\0' || is_tar(argv[i]) == 1)
-    {
-      if (not_tar_opt)
-        continue;
-      if (lflag && (ls_l(argv[i], in_tar) == EXIT_FAILURE))
-        ret = EXIT_FAILURE;
-      else if (ls(argv[i], in_tar) == EXIT_FAILURE)
-        ret = EXIT_FAILURE;
-    }
-    else
-    {
-      options[opt_c] = argv[i];
-      int status, p = fork();
-      switch (p)
-      {
-        case -1:
-          error_cmd(CMD_NAME, "fork");
-          break;
-        case 0: // child
-          execvp(CMD_NAME, options);
-          break;
-        default: // parent
-          wait(&status);
-          if (WEXITSTATUS(status) != EXIT_SUCCESS)
-            ret = EXIT_FAILURE;
-      }
-      options[opt_c] = NULL;
-    }
-  }
-  free(options);
-  return ret;
+  command cmd = {
+    CMD_NAME,
+    ls,
+    1,
+    1,
+    SUPPORT_OPT
+  };
+  return handle(cmd, argc, argv);
 }
