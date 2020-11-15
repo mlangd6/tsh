@@ -9,40 +9,28 @@
 #include "tar.h"
 #include "path_lib.h"
 #include "errors.h"
+#include "command_handler.h"
 
 #define CMD_NAME "cat"
 
-int main(int argc, char *argv[]) {
-  if (argc == 1) {
-    execlp(CMD_NAME, CMD_NAME, NULL);
-  }
-  if (argv[1][0] == '-') {
-    execvp(argv[0], argv);
+int cat(char *tar_name, char *filename, char *options)
+{
+  if (tar_cp_file(tar_name, filename, STDOUT_FILENO) != 0)
+  {
+    tar_name[strlen(tar_name)] = '/';
+    error_cmd(CMD_NAME, tar_name);
     return EXIT_FAILURE;
   }
-  for (int i = 1; i < argc; i++) {
-    char *in_tar = split_tar_abs_path(argv[i]);
-    if (*in_tar == '\0') {
-      int f = fork(), w;
-      switch(f) {
-        case -1:
-          error_cmd(CMD_NAME, "fork");
-          return EXIT_FAILURE;
-          break;
-        case 0: // child
-          execlp(CMD_NAME, CMD_NAME, argv[i], NULL);
-        default:
-          wait(&w);
-          return WEXITSTATUS(w);
-      }
-    }
-    else {
-      if (tar_cp_file(argv[i], in_tar, STDOUT_FILENO) != 0) {
-        in_tar[-1] = '/';
-        error_cmd(CMD_NAME, argv[i]);
-        return EXIT_FAILURE;
-      }
-    }
-  }
   return EXIT_SUCCESS;
+}
+
+int main(int argc, char *argv[]) {
+  command cmd = {
+    CMD_NAME,
+    cat,
+    0,
+    0,
+    ""
+  };
+  return handle(cmd, argc, argv);
 }
