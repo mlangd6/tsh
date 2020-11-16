@@ -193,10 +193,12 @@ static int read_and_write(int fd_src, int fd_dest, struct posix_header hd){
     return -1;
 
   //écriture du contenu du header
-  read_write_buf_by_buf(fd_src, fd_dest, number_of_block(get_file_size(&hd))*BLOCKSIZE, BLOCKSIZE);
+  if(read_write_buf_by_buf(fd_src, fd_dest, number_of_block(get_file_size(&hd))*BLOCKSIZE, BLOCKSIZE) < 0)
+    return -1;
   char buffer[BLOCKSIZE];
   memset(buffer, '\0', BLOCKSIZE);
-  write(fd_dest, buffer, BLOCKSIZE);
+  if(write(fd_dest, buffer, BLOCKSIZE) < 0)
+    return -1;
   return 0;
 }
 
