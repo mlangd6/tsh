@@ -13,7 +13,7 @@
 #define PROMPT "$ "
 #define CMD_NOT_FOUND " : command not found\n"
 #define CMD_NOT_FOUND_SIZE 22
-#define NB_TAR_CMD 2
+#define NB_TAR_CMD 3
 #define NB_TSH_FUNC 3
 #define TAR_CMD 1
 #define TSH_FUNC 2
@@ -38,7 +38,7 @@ static char *remove_excessive_spaces_string(char *s);
 
 
 char tsh_dir[PATH_MAX];
-char *tar_cmds[NB_TAR_CMD] = {"cat", "ls"};
+char *tar_cmds[NB_TAR_CMD] = {"cat", "ls", "mkdir"};
 char *tsh_funcs[NB_TSH_FUNC] = {"cd", "exit", "pwd"};
 
 char twd[PATH_MAX];
