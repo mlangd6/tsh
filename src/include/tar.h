@@ -98,14 +98,24 @@ int skip_file_content(int tar_fd, struct posix_header *hd);
    -1 if it couldn't */
 int tar_add_file(const char *tar_name, const char *source, const char *filename);
 
+/* Add a directory filename to tar at path inside_tar_name with all that he contains
+   IT is here just for the first iteration
+   Return :
+   0 if FILENAME and his containing were added
+  -1 if they couldn't */
+int tar_add_file_rec(const char *tar_name, const char *filename, const char *inside_tar_name, int it);
+
 /* Return the number of files in the tar referenced by TAR_FD */
 int nb_files_in_tar(int tar_fd);
+
+/* Return the number of files in the tar TAR_NAME */
+int nb_files_in_tar_c(char *tar_name);
 
 /* List all files contained in the tar at path TAR_NAME
    Return :
    On success, a malloc array of all headers
    On failure, NULL */
-struct posix_header *tar_ls(const char *tar_name);
+struct posix_header *tar_ls(const char *tar_name, int *size);
 
 /* Open the tar at path TAR_NAME and copy the content of FILENAME into FD
    Return :
@@ -145,4 +155,19 @@ int tar_access(const char *tar_name, const char *file_name, int mode);
    0 if everything worked
    -1 if a system call failed */
 int tar_append_file(const char *tar_name, const char *filename, int src_fd);
+
+/* Add a file SOURCE from TAR_NAME_SRC to TAR_NAME_DEST with the name of file DEST
+   Return :
+   0 if FILENAME and his containing were added
+  -1 if they couldn't */
+int add_tar_file_in_tar(const char *tar_name_src, char *tar_name_dest, const char *source, const char *dest);
+
+/* Add a file SOURCE from TAR_NAME_SRC to TAR_NAME_DEST with the name of file DEST
+   If the file is a directory and have other files in him, they are also add in the
+   TAR_NAME_DEST in the directory add before
+   Return :
+   0 if FILENAME and his containing were added
+  -1 if they couldn't */
+int add_tar_file_in_tar_rec(const char *tar_name_src, char *tar_name_dest, const char *source, const char *dest);
+
 #endif

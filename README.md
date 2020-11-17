@@ -12,6 +12,8 @@ Pour créer un conteneur ayant toutes les dépendances nécessaire au projet lan
 docker build -t tsh .
 docker run -it tsh sh
 ```
+Puis lancer dans le conteneur: `cd /home/tsh`
+
 
 ## Compilation
 Pour compiler le projet taper : `make`

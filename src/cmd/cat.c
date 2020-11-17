@@ -1,3 +1,4 @@
+#include <errno.h>
 #include <limits.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -6,6 +7,7 @@
 #include <sys/wait.h>
 #include <unistd.h>
 
+#include "errors.h"
 #include "path_lib.h"
 #include "tar.h"
 
@@ -21,7 +23,7 @@ int main(int argc, char *argv[])
   if (argv[1][0] == '-')
     {
       execvp(argv[0], argv);
-      exit(EXIT_FAILURE);
+      return EXIT_FAILURE;
     }
 
   char *in_tar;
@@ -33,7 +35,7 @@ int main(int argc, char *argv[])
 
       if (ret == NULL)
 	{
-	  perror(CMD_NAME);
+	  error_cmd(CMD_NAME, argv[i]);
 	  continue;
 	}
       
@@ -45,21 +47,30 @@ int main(int argc, char *argv[])
 	  switch(f)
 	    {
 	    case -1:
-	      perror("fork");
-	      break;
+	      error_cmd(CMD_NAME, "fork");
+	      return EXIT_FAILURE;
 	    case 0: // son
 	      execlp(CMD_NAME, CMD_NAME, path, NULL);
-	      exit(EXIT_FAILURE);
+	      return EXIT_FAILURE;
 	    default:
 	      wait(&w);
+	      return WEXITSTATUS(w);
 	    }
 	}
       else
-	{	
-	  if (tar_cp_file(path, in_tar, STDOUT_FILENO) < 0)
-	    perror(CMD_NAME);
+	{
+	  if (!(*in_tar))
+	    {
+	      errno = EISDIR;
+	      error_cmd(CMD_NAME, argv[i]);
+	    }
+	  else if (tar_cp_file(path, in_tar, STDOUT_FILENO) < 0)
+	    {
+	      in_tar[-1] = '/';
+	      error_cmd(CMD_NAME, argv[i]);
+	    }
 	}
     }
   
-  exit(EXIT_SUCCESS);
+  return EXIT_SUCCESS;
 }
