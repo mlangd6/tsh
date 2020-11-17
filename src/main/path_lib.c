@@ -21,18 +21,24 @@ char *split_tar_abs_path(char *path)
 
   char *chr = path+1;
 
-  while ((chr = strchr(chr, '/')) != NULL)
+  while (*chr)
     {
-      *chr = '\0';
-      if (is_tar(path) == 1)
-	{	
-	  return chr + 1;
-	}
-    
-      *chr = '/';
+      if(*chr == '/')
+	{
+	  *chr = '\0';	        
+	  if (is_tar(path) == 1)
+	    {	
+	      return chr + 1;
+	    }
+	  *chr = '/';
+	}    
       chr++;
     }
-  return chr; //strchr(path, '\0');
+
+  if (is_tar(path) == 1)
+    return chr;
+  
+  return NULL;
 }
 
 
@@ -129,7 +135,7 @@ char *reduce_abs_path(const char *path, char *resolved)
 	  if (stat(ret, &st) < 0)
 	    goto error;
 
-	  if (in_tar == NULL && !S_ISDIR (st.st_mode) && name_end[0] != '\0')
+	  if (in_tar == NULL && !S_ISDIR (st.st_mode) && name_end[0] != '\0') // pas de tar en jeu
 	    {
 	      errno = ENOTDIR;
 	      goto error;
@@ -140,9 +146,11 @@ char *reduce_abs_path(const char *path, char *resolved)
 		{
 		  if (tar_access(ret, in_tar, F_OK) < 0)
 		    goto error;
+		  in_tar[-1] = '/';    
 		}
-	      in_tar[-1] = '/';	      
-	    }     
+	      else if (in_tar[-1] == '\0')
+		in_tar[-1] = '/';
+	    }
 	}
     }
   

@@ -36,10 +36,10 @@ static char *split_tar_abs_path_test() {
   mu_assert("split_tar_abs_path: error: should return NULL with \"/tmp/\"", split_tar_abs_path(tmp_bis) == NULL);
   
   char root_tar[] = "/tmp/tsh_test/test.tar";
-  mu_assert("split_tar_abs_path: error: should return NULL with \"/tmp/tsh_test/test.tar\"", split_tar_abs_path(root_tar) == NULL);
+  mu_assert("split_tar_abs_path: error: should return \\0 with \"/tmp/tsh_test/test.tar\"", split_tar_abs_path(root_tar)[0] == '\0');
 
   char root_tar_bis[] = "/tmp/tsh_test/test.tar/";
-  mu_assert("split_tar_abs_path: error: should return a NULL char with \"/tmp/tsh_test/test.tar/\"", split_tar_abs_path(root_tar_bis)[0] == '\0');
+  mu_assert("split_tar_abs_path: error: should return \\0 with \"/tmp/tsh_test/test.tar/\"", split_tar_abs_path(root_tar_bis)[0] == '\0');
 
   char sub_dir_tar[] = "/tmp/tsh_test/test.tar/man";
   mu_assert("split_tar_abs_path: error: should return \"man\" with \"/tmp/tsh_test/test.tar/man\"", strcmp(split_tar_abs_path(sub_dir_tar), "man")  == 0);
@@ -77,16 +77,27 @@ static char *reduce_abs_path_tar_test()
 {
   char path[PATH_MAX];
 
-  const char *to_test[] =
+  // without slash
+  const char *to_test1[] =
     { "/tmp/tsh_test/test.tar",
       "/tmp/././////////////tsh_test/.././../tmp/tsh_test/./test.tar",                            
-      "/..//tmp//./././tsh_test////test.tar/../test.tar",
       "/..//tmp//./././tsh_test////test.tar/../test.tar"};
-      //"/..//.././tmp/tsh_test/test.tar/dir1//../man_dir/./../dir1/subdir//subsubdir/./..//../..//." };
     
+  for (int i=0; i < 3; i++)
+    {
+      mu_assert("reduce_abs_path: error: Should return \"/tmp/tsh_test/test.tar\"", strcmp(reduce_abs_path(to_test1[i], path), "/tmp/tsh_test/test.tar") == 0);
+    }
+
+  //with slash
+  const char *to_test2[] =
+    { "/tmp/tsh_test/test.tar/",
+      "/tmp/././////////////tsh_test/.././../tmp/tsh_test/./test.tar///",
+      "/..//tmp//./././tsh_test////test.tar/../test.tar///",
+      "////..//tmp/tsh_test//test.tar/dir1/subdir//../../man_dir/../dir1/subdir/subsubdir/../../..//" };
+  
   for (int i=0; i < 4; i++)
     {
-      mu_assert("reduce_abs_path: error: Should return \"/tmp/tsh_test/test.tar\"", strcmp(reduce_abs_path(to_test[i], path), "/tmp/tsh_test/test.tar") == 0);
+      mu_assert("reduce_abs_path: error: Should return \"/tmp/tsh_test/test.tar/\"", strcmp(reduce_abs_path(to_test2[i], path), "/tmp/tsh_test/test.tar/") == 0);
     }
   
   return 0;
@@ -118,9 +129,10 @@ static char *reduce_abs_path_dir_test()
   char path[PATH_MAX];
 
   const char *to_test[] =
-    { "/tmp/tsh_test/test.tar/dir1/subdir/" };
+    { "/tmp/tsh_test/test.tar/dir1/subdir/",
+      "//tmp/tsh_test//../tsh_test/test.tar/dir1//./././/../../test.tar/dir1/subdir/./." };
       
-  for (int i=0; i < 1; i++)
+  for (int i=0; i < 2; i++)
     {
       mu_assert("reduce_abs_path: error: Should return \"/tmp/tsh_test/test.tar/dir1/subdir/\"", strcmp(reduce_abs_path(to_test[i], path), "/tmp/tsh_test/test.tar/dir1/subdir/") == 0);
     }
