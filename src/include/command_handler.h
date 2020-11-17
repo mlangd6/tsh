@@ -18,9 +18,4 @@ typedef struct arg_info {
 
 int handle(command c, int argc, char **argv);
 
-/* Return 1 if at least one argument of ARGV implies a tarball
-   2 if there is no argument (other than options)
-   0 else */
-void parse_args(int argc, char **argv, arg_info *info);
-
 #endif
