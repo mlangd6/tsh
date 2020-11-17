@@ -112,10 +112,18 @@ static int get_u_and_g_name(struct posix_header *hd, struct stat *s){
   return 0;
 }
 
+
 static int init_header(struct posix_header *hd, const char *source, const char *filename) {
   struct stat s;
-  if (stat(source, &s) < 0) {
+  if (lstat(source, &s) < 0) {
     return -1;
+  }
+  char buf[100];
+  if(readlink(source, buf, 100) > 0){
+    //char *buf2 = malloc(100);
+    //buf2 = strrchr(buf, '/')+1;
+    //printf("%s\n", buf);
+    strcpy(hd->linkname, buf);
   }
 
   strncpy(hd -> name, filename, 100);

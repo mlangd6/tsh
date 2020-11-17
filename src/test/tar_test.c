@@ -60,7 +60,7 @@ static char *tar_add_file_test() {
   stat("/tmp/tsh_test/tar_test", &s1);
   tar_add_file("/tmp/tsh_test/test.tar", "/tmp/tsh_test/tar_test", "tar_test");
   system("rm /tmp/tsh_test/tar_test");
-  system("tar -xvf /tmp/tsh_test/test.tar tar_test");
+  system("tar -xf /tmp/tsh_test/test.tar tar_test");
 
   stat("tar_test", &s2);
   int fd2 = open("tar_test", O_RDONLY);
@@ -71,8 +71,44 @@ static char *tar_add_file_test() {
   if (s != 0) {
     return s;
   }
-  mu_assert("tar_add_file_test: error: content of file", strncmp(buff1, buff2, TAR_ADD_TEST_SIZE_BUF) == 0);
+  mu_assert("tar_add_file_test: 1 error: content of file", strncmp(buff1, buff2, TAR_ADD_TEST_SIZE_BUF) == 0);
   system("rm tar_test");
+
+
+  system("touch /tmp/tsh_test/taitai");
+  system("ln -s /tmp/tsh_test/taitai /tmp/tsh_test/taitai_link");
+  //system("ls -l /tmp/tsh_test/");
+  tar_add_file("/tmp/tsh_test/test.tar", "/tmp/tsh_test/taitai_link", "taitai_link");
+  //system("tar tvf /tmp/tsh_test/test.tar");
+  int n_b;
+  struct posix_header *hd = tar_ls("/tmp/tsh_test/test.tar", &n_b);
+  int a = 0;
+  for(int i = 0; i < n_b; i++)
+      if(strcmp(hd[i].linkname, "/tmp/tsh_test/taitai") == 0)a++;
+  mu_assert("tar_add_file_test: 2 error: content of file", a == 1);
+  /*char buff_1[TAR_ADD_TEST_SIZE_BUF];
+  memset(buff_1, 'a', TAR_ADD_TEST_SIZE_BUF);
+
+  int fd_ = open("/tmp/tsh_test/taitai_link", O_CREAT | O_WRONLY, 0600);
+  write(fd_, buff_1, TAR_ADD_TEST_SIZE_BUF);
+  close(fd_);
+  struct stat s1b, s2b;
+  stat("/tmp/tsh_test/taitai_link", &s1b);*/
+  system("rm /tmp/tsh_test/taitai_link");
+  /*system("tar -xf /tmp/tsh_test/test.tar taitai_link");
+  system("ls -l /tmp/tsh_test");
+  stat("/tmp/tsh_test/taitai_link", &s2b);
+  int fd_2 = open("taitai_link", O_RDONLY);
+  char buff_2[TAR_ADD_TEST_SIZE_BUF];
+  read(fd_2, buff_2, TAR_ADD_TEST_SIZE_BUF);
+  close(fd_2);
+  char *sb = stat_equals(&s1b, &s2b);
+  if (sb != 0) {
+    return sb;
+  }
+  mu_assert("tar_add_file_test: 2 error: content of file", strncmp(buff_1, buff_2, TAR_ADD_TEST_SIZE_BUF) == 0);
+  system("rm /tmp/tsh_test/taitai /tmp/tsh_test/taitai_link");*/
+
 
   tar_add_file("/tmp/tsh_test/test.tar", NULL, "toto_test");
   tar_add_file("/tmp/tsh_test/test.tar", NULL, "dir1/dir_test/");
