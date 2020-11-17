@@ -111,18 +111,21 @@ static int get_u_and_g_name(struct posix_header *hd, struct stat *s){
   return 0;
 }
 
-char *adapt_len_char_for_size(char *size, int length){
-  char *tmp = malloc(12);
-  tmp[11] = '\0';
-  int len = strlen(size);
-  int i;
-  for(i = 0; i < 12-len; i++){
-    tmp[i] = '0';
+static char *adapt_len_char_for_size(struct posix_header *hd, int length, off_t si){
+  char *tmp = malloc(length);
+  tmp[length - 1] = '\0';
+  char *size = malloc(length);
+  size[length - 1] = '\0';
+  sprintf(tmp, "%011lo", si);
+  int len = strlen(tmp), i;
+  for(i = 0; i < 12-len-1; i++){
+    size[i] = '0';
   }
   for(int j = 0; j < len; j++){
-    tmp[i+j] = size[j];
+    size[i+j] = tmp[j];
   }
-  return tmp;
+  strcpy(hd -> size, size);
+  return 0;
 }
 
 
@@ -138,7 +141,7 @@ static int init_header(struct posix_header *hd, const char *source, const char *
   sprintf(hd -> uid, "%07o", s.st_uid);
   sprintf(hd -> gid, "%07o" ,s.st_gid);
   if(S_ISDIR(s.st_mode)) strcpy(hd -> size, "00000000000");
-  else sprintf(hd -> size, "%011lo", s.st_size);
+  else adapt_len_char_for_size(hd, 12, s.st_size);
   init_type(hd, &s);
   strcpy(hd -> magic, TMAGIC);
   set_hd_time(hd);
