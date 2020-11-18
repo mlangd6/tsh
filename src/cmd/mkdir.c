@@ -5,24 +5,45 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <errno.h>
+
 #include "tar.h"
 #include "path_lib.h"
+#include "errors.h"
+//#include "command_handler.h"
+
 #define CMD_NAME "mkdir"
 
 
-static int mktar(char *tar_name, char *path_name){
+int mkdir(char *tar_name, char *path_name, char *options)
+{
   int length = strlen(path_name);
-  if(path_name[length - 1] != '/'){
+  if(path_name[length - 1] != '/')
+  {
     path_name[length] = '/';
     path_name[length+1] = '\0';
   }
-  if(tar_add_file(tar_name, NULL, path_name) == -1){
-    write(STDERR_FILENO, "bad mktar\n\n", 11);
-    return -1;
+  if(tar_add_file(tar_name, NULL, path_name) != 0)
+  {
+    tar_name[strlen(tar_name)] = '/';
+    error_cmd(CMD_NAME, tar_name);
+    return EXIT_FAILURE;
   }
-  return 0;
+  return EXIT_SUCCESS;
 }
 
+/*
+int main(int argc, char *argv[]){
+  command cmd = {
+    CMD_NAME,
+    mkdir,
+    0,
+    0,
+    ""
+  };
+  return handle(cmd, argc, argv);
+}
+*/
 int main(int argc, char *argv[]){
   if(argc == 1){
     execlp(CMD_NAME, CMD_NAME, NULL);

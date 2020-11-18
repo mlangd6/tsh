@@ -111,10 +111,10 @@ static int get_u_and_g_name(struct posix_header *hd, struct stat *s){
   return 0;
 }
 
-static char *adapt_len_char_for_size(struct posix_header *hd, int length, off_t si){
-  char *tmp = malloc(length);
+static void adapt_len_char_for_size(struct posix_header *hd, int length, off_t si){
+  char tmp[length];
   tmp[length - 1] = '\0';
-  char *size = malloc(length);
+  char size[length];
   size[length - 1] = '\0';
   sprintf(tmp, "%011lo", si);
   int len = strlen(tmp), i;
@@ -125,7 +125,6 @@ static char *adapt_len_char_for_size(struct posix_header *hd, int length, off_t 
     size[i+j] = tmp[j];
   }
   strcpy(hd -> size, size);
-  return 0;
 }
 
 
