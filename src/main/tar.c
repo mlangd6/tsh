@@ -97,7 +97,6 @@ int seek_header(int tar_fd, const char *filename, struct posix_header *header)
       skip_file_content(tar_fd, header);
     }
   }
-
   return -1;
 }
 

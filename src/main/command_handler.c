@@ -13,7 +13,7 @@
 static void invalid_options(char *cmd_name);
 static void parse_args(int argc, char **argv, arg_info *info);
 static int handle_with_pwd(command *cmd, char **argv, int not_tar_opt, char *tar_opt);
-static int handle_one_it_tar(command *cmd, char *arg, char *cpy, char *in_tar,
+static int handle_one_it_tar(command *cmd, char *arg, char *path, char *in_tar,
   char *tar_opt, int not_tar_opt, int nb_valid_arg, int *rest);
 static int handle_one_it_out(command *cmd, int nb_valid_arg, char **argv, int argc, int *rest);
 static void print_arg_before(command *cmd, int nb_valid_arg, char *argv);
@@ -49,17 +49,21 @@ int handle(command cmd, int argc, char **argv) {
   {
     if (*argv[i] == '-')
       continue;
-    char cpy[PATH_MAX];
-    memcpy(cpy, argv[i], strlen(argv[i]) + 1);
-    in_tar = split_tar_abs_path(argv[i]);
-    if (*in_tar != '\0' || is_tar(argv[i]) == 1) // Tar involved
+    char path[PATH_MAX];
+    if (reduce_abs_path(argv[i], path) == NULL)
     {
-      if (handle_one_it_tar(&cmd, argv[i], cpy, in_tar, tar_opt, not_tar_opt, nb_valid_arg, &rest) == EXIT_FAILURE)
+      ret = EXIT_FAILURE;
+      continue;
+    }
+    in_tar = split_tar_abs_path(path);
+    if (in_tar != NULL) // Tar involved
+    {
+      if (handle_one_it_tar(&cmd, argv[i], path, in_tar, tar_opt, not_tar_opt, nb_valid_arg, &rest) == EXIT_FAILURE)
         ret = EXIT_FAILURE;
     }
     else
     {
-      info.options[info.opt_c] = argv[i];
+      info.options[info.opt_c] = path;
       if (handle_one_it_out(&cmd, nb_valid_arg, info.options, info.opt_c, &rest) == EXIT_FAILURE)
         ret = EXIT_FAILURE;
       info.options[info.opt_c] = NULL;
@@ -72,19 +76,18 @@ int handle(command cmd, int argc, char **argv) {
 
 static void parse_args(int argc, char **argv, arg_info *info)
 {
-  char cpy[PATH_MAX];
-  for (size_t len, i = 1; i < argc; i++)
+  char path[PATH_MAX];
+  for (size_t i = 1; i < argc; i++)
   {
-    len = strlen(argv[i]) + 1;
     if (*argv[i] == '-' && ++(info -> opt_c))
       info -> options[info -> opt_c-1] = argv[i];
     else
     {
-      memmove(cpy, argv[i], len);
-      char *in_tar = split_tar_abs_path(cpy);
-      if ( is_tar(cpy) == 1 || *in_tar != '\0')
+      char *tmp = reduce_abs_path(argv[i], path);
+      if (tmp != NULL && split_tar_abs_path(path) != NULL)
         info -> nb_in_tar++;
-      else info -> nb_out++;
+      else
+        info -> nb_out++;
     }
   }
 }
@@ -109,12 +112,12 @@ static int handle_with_pwd(command *cmd, char **argv, int not_tar_opt, char *tar
   return EXIT_FAILURE;
 }
 
-static int handle_one_it_tar(command *cmd, char *arg, char *cpy, char *in_tar,
+static int handle_one_it_tar(command *cmd, char *arg, char *path, char *in_tar,
   char *tar_opt, int not_tar_opt, int nb_valid_arg, int *rest)
 {
   if (!not_tar_opt) {
-    print_arg_before(cmd, nb_valid_arg, cpy);
-    int ret = cmd -> in_tar_func(arg, in_tar, tar_opt);
+    print_arg_before(cmd, nb_valid_arg, arg);
+    int ret = cmd -> in_tar_func(path, in_tar, tar_opt);
     print_arg_after(cmd, rest);
     return ret;
   }
