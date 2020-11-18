@@ -275,9 +275,10 @@ static int cd(char **argv, int argc)
 	    {
 	      if (*in_tar != '\0') // path inside tar file
 		{
-		  int in_tar_len = strlen(in_tar);
-		  if (in_tar[in_tar_len-1] == '/' && tar_access(path, in_tar, X_OK) != -1) // is a directory with execution permission
+		  if (tar_access(path, in_tar, X_OK) != -1) // check execution permission
 		    {
+		      int in_tar_len = strlen(in_tar);
+		      in_tar[in_tar_len-1] = '\0';
 		      in_tar[-1] = '/';
 		      setenv("PWD", path, 1);
 		      setenv("OLDPWD", twd, 1);
