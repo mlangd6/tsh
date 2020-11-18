@@ -89,7 +89,7 @@ static char **split(char *user_input, int *is_special)
 
       if (*is_special)
 	{	  	  
-	  if (*tok != '/') // Relative path
+	  if (*tok != '/' && *tok != '-') // Relative path
 	    {
 	      src = malloc (PATH_MAX);
 	      strcpy (src, twd);
