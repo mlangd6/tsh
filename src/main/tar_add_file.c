@@ -105,7 +105,7 @@ static int get_u_and_g_name(struct posix_header *hd, struct stat *s){
   pw = getpwuid (uid);
   if (pw){
     strncpy(hd->uname, pw->pw_name, 32);
-    hd->uname[32] = '\0';
+    hd->uname[31] = '\0';
   }
   else return -1;
 
@@ -118,22 +118,24 @@ static int init_header(struct posix_header *hd, const char *source, const char *
   if (lstat(source, &s) < 0) {
     return -1;
   }
-  char buf[100];
-  if(readlink(source, buf, 100) > 0){
-    //char *buf2 = malloc(100);
-    //buf2 = strrchr(buf, '/')+1;
-    //printf("%s\n", buf);
-    strcpy(hd->linkname, buf);
-  }
 
   strncpy(hd -> name, filename, 100);
   hd->name[99] ='\0';
   init_mode(hd, &s);
   sprintf(hd -> uid, "%07o", s.st_uid);
   sprintf(hd -> gid, "%07o" ,s.st_gid);
-  if(S_ISDIR(s.st_mode)) strcpy(hd -> size, "0");
-  else sprintf(hd -> size, "%011lo", s.st_size);
-  init_type(hd, &s);
+  char buf[100];
+  if(readlink(source, buf, 100) > 0){
+    hd -> typeflag = SYMTYPE;
+    strcpy(hd -> size, "0000000");
+    strncpy(hd -> linkname, buf, 100);
+    hd->linkname[99] = '\0';
+  }
+  else {
+    init_type(hd, &s);
+    if(S_ISDIR(s.st_mode)) strcpy(hd -> size, "0");
+    else sprintf(hd -> size, "%011lo", s.st_size);
+  }
   strcpy(hd -> magic, TMAGIC);
   set_hd_time(hd);
   hd -> version[0] = '0';
@@ -201,7 +203,7 @@ int tar_add_file(const char *tar_name, const char *source, const char *filename)
 
     char buffer[BLOCKSIZE];
     ssize_t read_size;
-    if(hd.typeflag != DIRTYPE){
+    if(hd.typeflag != DIRTYPE || hd.typeflag != SYMTYPE){
       while((read_size = read(src_fd, buffer, BLOCKSIZE)) > 0 ) {
         if (read_size < 0) {
           int fds[2] ={src_fd, tar_fd};

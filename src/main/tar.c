@@ -23,7 +23,7 @@ void set_checksum(struct posix_header *hd)
   for (int i = 0; i < BLOCKSIZE; i++) {
     sum += p[i];
   }
-  sprintf(hd->chksum, "%06o", sum);
+  sprintf(hd->chksum, "%07o", sum);
 }
 
 
@@ -96,7 +96,7 @@ int seek_header(int tar_fd, const char *filename, struct posix_header *header)
       skip_file_content(tar_fd, header);
     }
   }
-  
+
   return -1;
 }
 
