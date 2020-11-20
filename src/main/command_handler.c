@@ -33,9 +33,9 @@ int handle(command cmd, int argc, char **argv) {
   info.options[info.opt_c++] = cmd.name;
   argv = parse_args(&argc, argv, &info);
 
-  if (info.nb_in_tar == 0)
+  if (info.nb_in_tar == 0 && (!cmd.twd_arg || info.nb_out > 0)) // No tar involved
   {
-    if (info.nb_out > 0 || (!cmd.twd_arg && !info.err_arg))
+    if (info.nb_out > 0 || !info.err_arg) // No error
       execvp(cmd.name, argv);
     else
       return EXIT_FAILURE;
