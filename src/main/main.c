@@ -18,9 +18,6 @@
 #define NB_TSH_FUNC 3
 #define TAR_CMD 1
 #define TSH_FUNC 2
-#define MAX_TSH_FUNC_SIZE 5
-#define SET_TSH_FUNC 1
-#define NO_SET_TSH_FUNC 0
 
 static int ret_value;
 
@@ -32,7 +29,7 @@ static int count_words(const char *str);
 static char **split(char *user_input, int *is_special);
 static void init_tsh();
 
-static int special_command(char *s, char **tab, int tab_l, int set_tsh_func);
+static int special_command(char *s, char **tab, int tab_l);
 static int launch_tsh_func(char **argv, int argc);
 static int count_argc(char **argv);
 
@@ -40,8 +37,6 @@ static int count_argc(char **argv);
 char tsh_dir[PATH_MAX];
 char *tar_cmds[NB_TAR_CMD] = {"cat", "ls"};
 char *tsh_funcs[NB_TSH_FUNC] = {"cd", "exit", "pwd"};
-char twd[PATH_MAX];
-char tsh_func[MAX_TSH_FUNC_SIZE];
 
 static int count_words(const char *str)
 {
@@ -79,8 +74,8 @@ static char **split(char *user_input, int *is_special)
 
   res[0] = strtok(user_input, delim);
 
-  *is_special = (special_command(res[0], tar_cmds, NB_TAR_CMD, NO_SET_TSH_FUNC)) ? 1 :
-    (special_command(res[0], tsh_funcs, NB_TSH_FUNC, SET_TSH_FUNC)) ? 2 : 0;
+  *is_special = (special_command(res[0], tar_cmds, NB_TAR_CMD)) ? 1 :
+    (special_command(res[0], tsh_funcs, NB_TSH_FUNC)) ? 2 : 0;
 
 
   for (int i = 1; i < nb_tokens; i++)
@@ -92,7 +87,7 @@ static char **split(char *user_input, int *is_special)
 	  if (*tok != '/' && *tok != '-') // Relative path
 	    {
 	      src = malloc (PATH_MAX);
-	      strcpy (src, twd);
+	      strcpy (src, getenv("PWD"));
 	      strcat (src, "/");
 	      strcat (src, tok);
 	    }
@@ -118,26 +113,24 @@ static char **split(char *user_input, int *is_special)
 
 static void init_tsh()
 {
-  getcwd(twd, PATH_MAX);
+  char cwd[PATH_MAX];
+  getcwd(cwd, PATH_MAX);
+  setenv("PWD", cwd, 1); // In case PWD has not the right value at the begining
   char *home = getenv("HOME");
   strcpy(tsh_dir, home);
   strcat(tsh_dir, "/.tsh");
   ret_value = EXIT_SUCCESS;
 }
 
-static int special_command(char *s, char **tab, int tab_l, int set_tsh_func)
+static int special_command(char *s, char **tab, int tab_l)
 {
   for (int i = 0; i < tab_l; i++)
+  {
+    if (strcmp(s, tab[i]) == 0)
     {
-      if (strcmp(s, tab[i]) == 0)
-	{
-	  if (set_tsh_func)
-	    {
-	      memcpy(tsh_func, tab[i], strlen(tab[i]) + 1);
-	    }
-	  return 1;
-	}
+      return 1;
     }
+  }
   return 0;
 }
 
@@ -170,8 +163,9 @@ static int count_argc(char **argv)
 
 static int pwd(char **argv, int argc)
 {
+  char *pwd = getenv("PWD");
   return
-    (write(STDOUT_FILENO, twd, strlen(twd)) < 0 ||
+    (write(STDOUT_FILENO, pwd, strlen(pwd)) < 0 ||
      write(STDOUT_FILENO, "\n", 2) < 0) ?
     EXIT_FAILURE :
     EXIT_SUCCESS;
@@ -189,129 +183,126 @@ static int exit_tsh(char **argv, int argc)
 
 static int cd(char **argv, int argc)
 {
+  char *pwd = getenv("PWD");
   if (argc == 1)
+  {
+    char *home = getenv("HOME");
+
+    if (home == NULL)
     {
-      char *home = getenv("HOME");
-
-      if (home == NULL)
-	{
-	  char *error = "tsh: cd: HOME not set\n";
-	  write(STDERR_FILENO, error, strlen(error) + 1);
-	  return EXIT_FAILURE;
-	}
-
-      if (chdir(home) != 0)
-	{
-	  return EXIT_FAILURE;
-	}
-
-      setenv("PWD", home, 1);
-      setenv("OLDPWD", twd, 1);
-      memcpy(twd, home, strlen(home) + 1);
-      return EXIT_SUCCESS;
-    }
-  else if (argc == 2)
-    {
-      if (argv[1][0] == '-') // Option
-	{
-	  if (argv[1][1] != '\0') // Not supported option
-	    {
-	      char *err = "tsh: cd: - est la seul option supporté\n";
-	      write(STDERR_FILENO, err, strlen(err) + 1);
-	      return EXIT_FAILURE;
-	    }
-	  else // Supported option
-	    {
-	      free(argv[1]);
-	      char *oldpwd = getenv("OLDPWD");
-	      if (oldpwd == NULL)
-		{
-		  char *err = "tsh: cd: \" OLDPWD \" non défini\n";
-		  write(STDERR_FILENO, err, strlen(err) + 1);
-		  return EXIT_FAILURE;
-		}
-	      else
-		{
-		  argv[1] = malloc(PATH_MAX);
-		  memcpy(argv[1], oldpwd, strlen(oldpwd) + 1);
-		  write(STDOUT_FILENO, oldpwd, strlen(oldpwd));
-		  write(STDOUT_FILENO, "\n", 2);
-		}
-	    }
-	}
-      else // Not an option
-	{
-	  char path[PATH_MAX];
-	  int arg_len = strlen(argv[1]);
-	  if (arg_len + 1 >= PATH_MAX) //too long
-	    {
-	      return EXIT_FAILURE;
-	    }
-
-	  if (argv[1][arg_len-1] != '/')
-	    strcat(argv[1], "/");
-
-	  if (!reduce_abs_path(argv[1], path))
-	    {
-	      error_cmd("tsh: cd", argv[1]);
-	      return EXIT_FAILURE;
-	    }
-
-	  char *in_tar = split_tar_abs_path(path);
-
-	  if (!in_tar) //No TAR implied
-	    {
-	      if (chdir(path) != 0)
-		{
-		  error_cmd("tsh: cd", argv[1]);
-		  return EXIT_FAILURE;
-		}
-
-	      setenv("PWD", path, 1);
-	      setenv("OLDPWD", twd, 1);
-	      memcpy(twd, path, strlen(path) + 1);
-	    }
-	  else //TAR implied
-	    {
-	      if (*in_tar != '\0') // path inside tar file
-		{
-		  if (tar_access(path, in_tar, X_OK) != -1) // check execution permission
-		    {
-		      int in_tar_len = strlen(in_tar);
-		      in_tar[in_tar_len-1] = '\0';
-		      in_tar[-1] = '/';
-		      setenv("PWD", path, 1);
-		      setenv("OLDPWD", twd, 1);
-		      memcpy(twd, path, strlen(path) + 1);
-		      in_tar[-1] = '\0';
-		    }
-		  else
-		    {
-		      in_tar[-1] = '/';
-		      perror(argv[1]);
-		      return EXIT_FAILURE;
-		    }
-		}
-	      else // going into the root of the TAR
-		{
-		  setenv("PWD", path, 1);
-		  setenv("OLDPWD", twd, 1);
-		  memcpy(twd, path, strlen(path) + 1);
-		}
-
-	      char *before_tar = strrchr(path, '/'); // Not NULL
-	      *before_tar = '\0';
-	      chdir(path);
-	    }
-	}
-      return EXIT_SUCCESS;
-    }
-  else
-    {
-      char *err = "tsh: cd: trop d'arguments\n";
-      write(STDERR_FILENO, err, strlen(err));
+      char *error = "tsh: cd: HOME not set\n";
+      write(STDERR_FILENO, error, strlen(error) + 1);
       return EXIT_FAILURE;
     }
+
+    if (chdir(home) != 0)
+    {
+      return EXIT_FAILURE;
+    }
+    char *pwd = getenv("PWD");
+    setenv("OLDPWD", pwd, 1);
+    setenv("PWD", home, 1);
+    return EXIT_SUCCESS;
+  }
+  else if (argc == 2)
+  {
+    if (argv[1][0] == '-') // Option
+    {
+      if (argv[1][1] != '\0') // Not supported option
+      {
+        char *err = "tsh: cd: - est la seul option supporté\n";
+        write(STDERR_FILENO, err, strlen(err) + 1);
+        return EXIT_FAILURE;
+      }
+      else // Supported option
+      {
+        free(argv[1]);
+        char *oldpwd = getenv("OLDPWD");
+        if (oldpwd == NULL)
+        {
+          char *err = "tsh: cd: \" OLDPWD \" non défini\n";
+          write(STDERR_FILENO, err, strlen(err) + 1);
+          return EXIT_FAILURE;
+        }
+        else
+        {
+          argv[1] = malloc(PATH_MAX);
+          memcpy(argv[1], oldpwd, strlen(oldpwd) + 1);
+          write(STDOUT_FILENO, oldpwd, strlen(oldpwd));
+          write(STDOUT_FILENO, "\n", 2);
+        }
+      }
+    }
+    else // Not an option
+    {
+      char path[PATH_MAX];
+      int arg_len = strlen(argv[1]);
+      if (arg_len + 1 >= PATH_MAX) //too long
+      {
+        return EXIT_FAILURE;
+      }
+
+      if (argv[1][arg_len-1] != '/')
+      strcat(argv[1], "/");
+
+      if (!reduce_abs_path(argv[1], path))
+      {
+        error_cmd("tsh: cd", argv[1]);
+        return EXIT_FAILURE;
+      }
+
+      char *in_tar = split_tar_abs_path(path);
+
+      if (!in_tar) //No TAR implied
+      {
+        if (chdir(path) != 0)
+        {
+          error_cmd("tsh: cd", argv[1]);
+          return EXIT_FAILURE;
+        }
+
+        setenv("OLDPWD", pwd, 1);
+        setenv("PWD", path, 1);
+      }
+      else //TAR implied
+      {
+        if (*in_tar != '\0') // path inside tar file
+        {
+          if (tar_access(path, in_tar, X_OK) != -1) // check execution permission
+          {
+            int in_tar_len = strlen(in_tar);
+            in_tar[in_tar_len-1] = '\0';
+            in_tar[-1] = '/';
+            setenv("OLDPWD", pwd, 1);
+            setenv("PWD", path, 1);
+            in_tar[-1] = '\0';
+          }
+          else
+          {
+            in_tar[-1] = '/';
+            perror(argv[1]);
+            return EXIT_FAILURE;
+          }
+        }
+        else // going into the root of the TAR
+        {
+          setenv("OLDPWD", pwd, 1);
+          setenv("PWD", path, 1);
+        }
+
+        char *before_tar = strrchr(path, '/'); // Not NULL
+        *before_tar = '\0';
+        chdir(path);
+      }
+    }
+    return EXIT_SUCCESS;
+  }
+  else
+  {
+    char *err = "tsh: cd: trop d'arguments\n";
+    write(STDERR_FILENO, err, strlen(err));
+    return EXIT_FAILURE;
+  }
 }
 
 
