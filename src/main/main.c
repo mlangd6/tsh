@@ -13,7 +13,7 @@
 #define PROMPT "$ "
 #define CMD_NOT_FOUND " : command not found\n"
 #define CMD_NOT_FOUND_SIZE 22
-#define NB_TAR_CMD 1
+#define NB_TAR_CMD 2
 
 #define NB_TSH_FUNC 3
 #define TAR_CMD 1
@@ -38,7 +38,7 @@ static int count_argc(char **argv);
 
 
 char tsh_dir[PATH_MAX];
-char *tar_cmds[NB_TAR_CMD] = {"cat"}; //"ls"};
+char *tar_cmds[NB_TAR_CMD] = {"cat", "ls"};
 char *tsh_funcs[NB_TSH_FUNC] = {"cd", "exit", "pwd"};
 char twd[PATH_MAX];
 char tsh_func[MAX_TSH_FUNC_SIZE];
@@ -49,8 +49,8 @@ static int count_words(const char *str)
   int in_word = 0;
 
   const char *s = str;
-  
-  
+
+
   while (*s)
     {
       if (isspace(*s))
@@ -62,10 +62,10 @@ static int count_words(const char *str)
 	  wc++;
 	  in_word = 1;
 	}
-      
+
       s++;
     }
-  
+
   return wc;
 }
 
@@ -76,25 +76,25 @@ static char **split(char *user_input, int *is_special)
   int nb_tokens = count_words(user_input);
   char **res = malloc((nb_tokens+1) * sizeof(char *)); // +1 pour le NULL à la fin
   char *tok, *src;
-  
+
   res[0] = strtok(user_input, delim);
-  
+
   *is_special = (special_command(res[0], tar_cmds, NB_TAR_CMD, NO_SET_TSH_FUNC)) ? 1 :
     (special_command(res[0], tsh_funcs, NB_TSH_FUNC, SET_TSH_FUNC)) ? 2 : 0;
 
-  
+
   for (int i = 1; i < nb_tokens; i++)
     {
       tok = strtok(NULL, delim);
 
       if (*is_special)
-	{	  	  
+	{
 	  if (*tok != '/' && *tok != '-') // Relative path
 	    {
 	      src = malloc (PATH_MAX);
 	      strcpy (src, twd);
 	      strcat (src, "/");
-	      strcat (src, tok);	      
+	      strcat (src, tok);
 	    }
 	  else //Absolute path or option
 	    {
@@ -106,12 +106,12 @@ static char **split(char *user_input, int *is_special)
 	{
 	  src = tok;
 	}
-      
+
       res[i] = src;
     }
 
   res[nb_tokens] = NULL;
-  
+
   return res;
 }
 
@@ -161,7 +161,7 @@ static int launch_tsh_func(char **argv, int argc)
 static int count_argc(char **argv)
 {
   int i = 0;
-  
+
   while (argv[i++] != NULL)
     ;
 
@@ -199,12 +199,12 @@ static int cd(char **argv, int argc)
 	  write(STDERR_FILENO, error, strlen(error) + 1);
 	  return EXIT_FAILURE;
 	}
-    
+
       if (chdir(home) != 0)
 	{
 	  return EXIT_FAILURE;
 	}
-      
+
       setenv("PWD", home, 1);
       setenv("OLDPWD", twd, 1);
       memcpy(twd, home, strlen(home) + 1);
@@ -250,7 +250,7 @@ static int cd(char **argv, int argc)
 
 	  if (argv[1][arg_len-1] != '/')
 	    strcat(argv[1], "/");
-	  
+
 	  if (!reduce_abs_path(argv[1], path))
 	    {
 	      error_cmd("tsh: cd", argv[1]);
@@ -258,7 +258,7 @@ static int cd(char **argv, int argc)
 	    }
 
 	  char *in_tar = split_tar_abs_path(path);
-	  
+
 	  if (!in_tar) //No TAR implied
 	    {
 	      if (chdir(path) != 0)
@@ -266,7 +266,7 @@ static int cd(char **argv, int argc)
 		  error_cmd("tsh: cd", argv[1]);
 		  return EXIT_FAILURE;
 		}
-	      
+
 	      setenv("PWD", path, 1);
 	      setenv("OLDPWD", twd, 1);
 	      memcpy(twd, path, strlen(path) + 1);
@@ -298,7 +298,7 @@ static int cd(char **argv, int argc)
 		  setenv("OLDPWD", twd, 1);
 		  memcpy(twd, path, strlen(path) + 1);
 		}
-	      
+
 	      char *before_tar = strrchr(path, '/'); // Not NULL
 	      *before_tar = '\0';
 	      chdir(path);
@@ -323,28 +323,28 @@ int main (int argc, char *argv[])
   char **tokens;
   pid_t cpid;
   int  is_special, wstatus;
-  
+
   while ((buf = readline(PROMPT)))
     {
       if (!count_words(buf))
 	continue;
-    
+
       add_history(buf);
-    
+
       tokens = split(buf, &is_special);
       if (is_special == TSH_FUNC)
 	{
 	  ret_value = launch_tsh_func(tokens, count_argc(tokens));
 	}
       else
-	{      
+	{
 	  cpid = fork();
 	  switch (cpid)
 	    {
 	    case -1:
 	      perror ("tsh: fork");
 	      exit (EXIT_FAILURE);
-	  
+
 	    case 0: //son
 	      if (is_special == TAR_CMD)
 		{
@@ -358,7 +358,7 @@ int main (int argc, char *argv[])
 		{
 		  ret_value = execvp(tokens[0], tokens);
 		}
-	  
+
 	      if (errno == ENOENT)
 		{
 		  int size = strlen(tokens[0]) + CMD_NOT_FOUND_SIZE;
@@ -367,14 +367,14 @@ int main (int argc, char *argv[])
 		  strcat(error_msg, CMD_NOT_FOUND);
 		  write(STDOUT_FILENO, error_msg, size);
 		}
-	
+
 	      exit(EXIT_FAILURE);
-	
+
 	    default: // father
 	      wait(&wstatus);
 	      ret_value = WEXITSTATUS(wstatus);
-	    }    
-  
+	    }
+
 	  if (is_special)
 	    {
 	      for (int i = 1; tokens[i] != NULL; i++)
@@ -386,6 +386,6 @@ int main (int argc, char *argv[])
       free(tokens);
       free(buf);
     }
-  
+
   return 0;
 }
