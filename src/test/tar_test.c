@@ -52,32 +52,60 @@ static char *stat_equals(struct stat *s1, struct stat *s2) {
 }
 
 static char *tar_add_file_test() {
-  char *tmp = getcwd(NULL, 0);
-  chdir(TEST_DIR);
+  //test1
   char buff1[TAR_ADD_TEST_SIZE_BUF];
   memset(buff1, 'a', TAR_ADD_TEST_SIZE_BUF);
 
-  int fd = open("tar_test", O_CREAT | O_WRONLY, 0600);
+  int fd = open("/tmp/tsh_test/tar_test", O_CREAT | O_WRONLY, 0600);
   write(fd, buff1, TAR_ADD_TEST_SIZE_BUF);
   close(fd);
   struct stat s1, s2;
-  stat("tar_test", &s1);
-  tar_add_file("test.tar", "tar_test", "tar_test");
-  system("rm tar_test");
-  system("tar -xf test.tar tar_test");
-
-  stat("tar_test", &s2);
-  int fd2 = open("tar_test", O_RDONLY);
+  stat("/tmp/tsh_test/tar_test", &s1);
+  tar_add_file("/tmp/tsh_test/test.tar", "/tmp/tsh_test/tar_test", "tar_test");
+  system("rm /tmp/tsh_test/tar_test");
+  system("tar -C /tmp/tsh_test -xf /tmp/tsh_test/test.tar tar_test");
+  stat("/tmp/tsh_test/tar_test", &s2);
+  int fd2 = open("/tmp/tsh_test/tar_test", O_RDONLY);
   char buff2[TAR_ADD_TEST_SIZE_BUF];
+  memset(buff2, '\0', TAR_ADD_TEST_SIZE_BUF);
   read(fd2, buff2, TAR_ADD_TEST_SIZE_BUF);
   close(fd2);
   char *s = stat_equals(&s1, &s2);
   if (s != 0) {
     return s;
   }
-  mu_assert("tar_add_file_test: error: content of file", strncmp(buff1, buff2, TAR_ADD_TEST_SIZE_BUF) == 0);
-  tar_add_file("test.tar", NULL, "toto_test");
-  tar_add_file("test.tar", NULL, "dir1/dir_test/");
+  mu_assert("tar_add_file_test: 1 error: content of file", strncmp(buff1, buff2, TAR_ADD_TEST_SIZE_BUF) == 0);
+  system("rm /tmp/tsh_test/tar_test");
+
+  //test2
+  system("touch /tmp/tsh_test/taitai");
+  char buff_1[TAR_ADD_TEST_SIZE_BUF];
+  memset(buff_1, 'a', TAR_ADD_TEST_SIZE_BUF);
+  int fd_ = open("/tmp/tsh_test/taitai", O_CREAT | O_WRONLY, 0600);
+  write(fd_, buff_1, TAR_ADD_TEST_SIZE_BUF);
+  close(fd_);
+  system("ln -s /tmp/tsh_test/taitai /tmp/tsh_test/taitai_link");
+  tar_add_file("/tmp/tsh_test/test.tar", "/tmp/tsh_test/taitai_link", "taitai_link");
+  struct stat s1b, s2b;
+  lstat("/tmp/tsh_test/taitai_link", &s1b);
+  system("rm /tmp/tsh_test/taitai_link");
+  system("tar -C /tmp/tsh_test -xf /tmp/tsh_test/test.tar taitai_link");
+  lstat("/tmp/tsh_test/taitai_link", &s2b);
+  int fd_2 = open("/tmp/tsh_test/taitai_link", O_RDONLY);
+  char buff_2[TAR_ADD_TEST_SIZE_BUF];
+  memset(buff_2, '\0', TAR_ADD_TEST_SIZE_BUF);
+  read(fd_2, buff_2, TAR_ADD_TEST_SIZE_BUF);
+  close(fd_2);
+  char *sb = stat_equals(&s1b, &s2b);
+  if (sb != 0) {
+    return sb;
+  }
+  mu_assert("tar_add_file_test: 2 error: content of file", strncmp(buff_1, buff_2, TAR_ADD_TEST_SIZE_BUF) == 0);
+  system("rm /tmp/tsh_test/taitai /tmp/tsh_test/taitai_link");
+
+  //test3
+  tar_add_file("/tmp/tsh_test/test.tar", NULL, "toto_test");
+  tar_add_file("/tmp/tsh_test/test.tar", NULL, "dir1/dir_test/");
   int nb;
   struct posix_header *a_tester = tar_ls("/tmp/tsh_test/test.tar", &nb);
   int test[] = {0, 0};
@@ -89,8 +117,6 @@ static char *tar_add_file_test() {
   mu_assert("tar_add_file_test: error: \"toto_test\" isn't add in the tar", test[0] == 1);
   mu_assert("tar_add_file_test: error: \"dir1/dir_test/\" isn't add in the tar", test[1] == 1);
   free(a_tester);
-  chdir(tmp);
-  free(tmp);
   return 0;
 }
 
