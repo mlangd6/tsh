@@ -124,6 +124,7 @@ static int init_header(struct posix_header *hd, const char *source, const char *
   sprintf(hd -> uid, "%07o", s.st_uid);
   sprintf(hd -> gid, "%07o" ,s.st_gid);
   char buf[100];
+  memset(buf, '\0', 100);
   if(readlink(source, buf, 100) > 0){
     hd -> typeflag = SYMTYPE;
     strcpy(hd -> size, "0000000");

@@ -67,6 +67,7 @@ static char *tar_add_file_test() {
   stat("/tmp/tsh_test/tar_test", &s2);
   int fd2 = open("/tmp/tsh_test/tar_test", O_RDONLY);
   char buff2[TAR_ADD_TEST_SIZE_BUF];
+  memset(buff2, '\0', TAR_ADD_TEST_SIZE_BUF);
   read(fd2, buff2, TAR_ADD_TEST_SIZE_BUF);
   close(fd2);
   char *s = stat_equals(&s1, &s2);
@@ -92,6 +93,7 @@ static char *tar_add_file_test() {
   lstat("/tmp/tsh_test/taitai_link", &s2b);
   int fd_2 = open("/tmp/tsh_test/taitai_link", O_RDONLY);
   char buff_2[TAR_ADD_TEST_SIZE_BUF];
+  memset(buff_2, '\0', TAR_ADD_TEST_SIZE_BUF);
   read(fd_2, buff_2, TAR_ADD_TEST_SIZE_BUF);
   close(fd_2);
   char *sb = stat_equals(&s1b, &s2b);
