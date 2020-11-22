@@ -23,7 +23,7 @@ void set_checksum(struct posix_header *hd)
   for (int i = 0; i < BLOCKSIZE; i++) {
     sum += p[i];
   }
-  sprintf(hd->chksum, "%07o", sum);
+  sprintf(hd->chksum, "%06o", sum);
 }
 
 

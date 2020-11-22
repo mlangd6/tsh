@@ -61,9 +61,9 @@ static char *tar_add_file_test() {
   stat("/tmp/tsh_test/tar_test", &s1);
   tar_add_file("/tmp/tsh_test/test.tar", "/tmp/tsh_test/tar_test", "tar_test");
   system("rm /tmp/tsh_test/tar_test");
-  system("tar -xf /tmp/tsh_test/test.tar tar_test");
-  stat("tar_test", &s2);
-  int fd2 = open("tar_test", O_RDONLY);
+  system("tar -C /tmp/tsh_test -xf /tmp/tsh_test/test.tar tar_test");
+  stat("/tmp/tsh_test/tar_test", &s2);
+  int fd2 = open("/tmp/tsh_test/tar_test", O_RDONLY);
   char buff2[TAR_ADD_TEST_SIZE_BUF];
   read(fd2, buff2, TAR_ADD_TEST_SIZE_BUF);
   close(fd2);
@@ -72,7 +72,7 @@ static char *tar_add_file_test() {
     return s;
   }
   mu_assert("tar_add_file_test: 1 error: content of file", strncmp(buff1, buff2, TAR_ADD_TEST_SIZE_BUF) == 0);
-  system("rm tar_test");
+  system("rm /tmp/tsh_test/tar_test");
 
   //test2
   system("touch /tmp/tsh_test/taitai");
@@ -81,26 +81,13 @@ static char *tar_add_file_test() {
   int fd_ = open("/tmp/tsh_test/taitai", O_CREAT | O_WRONLY, 0600);
   write(fd_, buff_1, TAR_ADD_TEST_SIZE_BUF);
   close(fd_);
-
   system("ln -s /tmp/tsh_test/taitai /tmp/tsh_test/taitai_link");
-  system("ls -l /tmp/tsh_test/");
   tar_add_file("/tmp/tsh_test/test.tar", "/tmp/tsh_test/taitai_link", "taitai_link");
-  //system("ls -l /tmp/tsh_test");
-  //system("touch /tmp/tsh_test/taio");
-  //tar_add_file("/tmp/tsh_test/test.tar", "/tmp/tsh_test/taio", "taio");
-  system("tar tvf /tmp/tsh_test/test.tar");
-  int n_b;
-  struct posix_header *hd = tar_ls("/tmp/tsh_test/test.tar", &n_b);
-  int a = 0;
-  for(int i = 0; i < n_b; i++)
-      if(strcmp(hd[i].linkname, "/tmp/tsh_test/taitai") == 0)a++;
-  mu_assert("tar_add_file_test: 2 error: content of file", a == 1);
-
   struct stat s1b, s2b;
-  stat("/tmp/tsh_test/taitai_link", &s1b);
+  lstat("/tmp/tsh_test/taitai_link", &s1b);
   system("rm /tmp/tsh_test/taitai_link");
-  system("tar -C /tmp/tsh_test -xf /tmp/tsh_test/test.tar taitai_link -C /tmp/tsh_test");
-  stat("/tmp/tsh_test/taitai_link", &s2b);
+  system("tar -C /tmp/tsh_test -xf /tmp/tsh_test/test.tar taitai_link");
+  lstat("/tmp/tsh_test/taitai_link", &s2b);
   int fd_2 = open("/tmp/tsh_test/taitai_link", O_RDONLY);
   char buff_2[TAR_ADD_TEST_SIZE_BUF];
   read(fd_2, buff_2, TAR_ADD_TEST_SIZE_BUF);
