@@ -10,6 +10,7 @@
 #include <grp.h>
 #include <pwd.h>
 #include <dirent.h>
+#include <linux/limits.h>
 
 #include "errors.h"
 #include "tar.h"
@@ -21,7 +22,6 @@ static int seek_end_of_tar(int tar_fd) {
   ssize_t read_size;
   while(1) {
     read_size = read(tar_fd, &hd, BLOCKSIZE);
-
     if (read_size != BLOCKSIZE)
     {
       if (read_size < 0)
@@ -34,7 +34,6 @@ static int seek_end_of_tar(int tar_fd) {
     else
       break;
   }
-
   lseek(tar_fd, -BLOCKSIZE, SEEK_CUR);
   return 0;
 }
@@ -176,6 +175,135 @@ static int add_empty_block(int tar_fd) {
   return 0;
 }
 
+static int modif_header(struct posix_header *hd, const char *tar_name_src, const char *source, const char *dest, int fd, struct posix_header *header, int size){
+  for(int i = 0; i < size; i++){
+    if(strcmp(header[i].name, source) == 0){
+      memcpy(hd, &header[i], BLOCKSIZE);
+      strcpy(hd->name, dest);
+    }
+  }
+  set_checksum(hd);
+  return 0;
+}
+
+static int exists_in_tar(const char *name_to_comp, struct posix_header *hd, int size){
+  for(int i = 0; i < size; i++){
+    if(strcmp(hd[i].name, name_to_comp) == 0){
+      return 1;
+    }
+  }
+  return 0;
+}
+
+static int read_and_write(int fd_src, int fd_dest, struct posix_header hd){
+  //écriture du header
+  if (seek_end_of_tar(fd_dest) < 0)
+    return -1;
+  if (write(fd_dest, &hd, BLOCKSIZE) < 0)
+    return -1;
+
+  //écriture du contenu du header
+  if(read_write_buf_by_buf(fd_src, fd_dest, number_of_block(get_file_size(&hd))*BLOCKSIZE, BLOCKSIZE) < 0)
+    return -1;
+  char buffer[BLOCKSIZE];
+  memset(buffer, '\0', BLOCKSIZE);
+  if(write(fd_dest, buffer, BLOCKSIZE) < 0)
+    return -1;
+  return 0;
+}
+
+int add_tar_file_in_tar_rec(const char *tar_name_src, char *tar_name_dest, const char *source, const char *dest){
+  int s = 0;
+  struct posix_header *header = tar_ls(tar_name_src, &s);
+  int s_2 = 0;
+  struct posix_header *header_2 = tar_ls(tar_name_dest, &s_2);
+
+  //check if dont already exist
+  if(exists_in_tar(dest, header_2, s_2))
+    return error_pt(NULL, 0, errno);
+
+  //We look all the file of tar_name_src
+  for(int i = 0; i < s; i++){
+    char copy[PATH_MAX];
+    int j = 0;
+
+    while(header[i].name[j] == source[j] && j < strlen(source))
+    {
+      copy[j] = source[j];
+      j++;
+    }
+    copy[j] = '\0';
+
+    //if the copy and source are equals
+    if(strcmp(copy, source) == 0 && (header[i].name[j] == '\0' || header[i].name[j-1] == '/')){
+      char copy2[PATH_MAX];
+      int k = 0;
+      for(k = 0; k < strlen(dest); k++){copy2[k] = dest[k];}
+      copy2[k] = '\0';
+      int l = 0;
+      for(l = 0; l < strlen(header[i].name) - strlen(copy); l++){
+        copy2[strlen(dest)+l] = header[i].name[strlen(copy)+l];
+      }
+      copy2[strlen(dest)+l] = '\0';
+
+      //Add Source or a file of source in tar_name_dest as copy2
+      add_tar_file_in_tar(tar_name_src, tar_name_dest, header[i].name, copy2);
+    }
+  }
+  free(header);
+  free(header_2);
+  return 0;
+}
+
+
+int add_tar_file_in_tar(const char *tar_name_src, char *tar_name_dest, const char *source, const char *dest){
+  int s = 0;
+  struct posix_header *header = tar_ls(tar_name_src, &s);
+  int s_2 = 0;
+  struct posix_header *header_2 = tar_ls(tar_name_dest, &s_2);
+  int tar_src_fd = open(tar_name_src, O_RDWR);
+  if ( tar_src_fd < 0)
+    return error_pt(NULL, 0, errno);
+
+  //initialisation of the header
+  struct posix_header hd;
+  memset(&hd, '\0', BLOCKSIZE);
+  if(modif_header(&hd, tar_name_src, source, dest, tar_src_fd, header, s) < 0)
+    return error_pt(&tar_src_fd, 1, errno);
+
+  //check if it don't already exists
+  if(exists_in_tar(dest, header_2, s_2))
+    return error_pt(NULL, 0, errno);
+
+  //Check if we want add in the same tar
+  if(strcmp(tar_name_src, tar_name_dest) != 0)
+  {
+    //open of TAR_NAME_DEST
+    int tar_dest_fd;
+    tar_dest_fd = open(tar_name_dest, O_RDWR);
+    if ( tar_dest_fd < 0)
+      return error_pt(&tar_src_fd, 1, errno);
+    int fds[2] = {tar_dest_fd, tar_src_fd};
+
+    //writing the header and his containing
+    if(read_and_write(tar_src_fd, tar_dest_fd, hd) < 0)
+      return error_pt(fds, 2, errno);
+    add_empty_block(tar_dest_fd);
+    close(tar_dest_fd);
+  }
+  else
+  {
+    //writing the header and his containing
+    if(read_and_write(tar_src_fd, tar_src_fd, hd) < 0)
+      return error_pt(&tar_src_fd, 1, errno);
+    add_empty_block(tar_src_fd);
+  }
+  close(tar_src_fd);
+  free(header);
+  free(header_2);
+  return 0;
+}
+
 /* Add file SOURCE to tar at path TAR_NAME/FILENAME
    Or create file FILENAME to tar at path TAR_NAME/FILENAME */
 int tar_add_file(const char *tar_name, const char *source, const char *filename) {
@@ -235,6 +363,8 @@ int tar_add_file(const char *tar_name, const char *source, const char *filename)
   return 0;
 }
 
+
+
 /* Append file name FILENAME in tarball TAR_NAME with the content of SRC_FD */
 int tar_append_file(const char *tar_name, const char *filename, int src_fd) {
   int tar_fd = open(tar_name, O_RDWR);
@@ -277,6 +407,8 @@ int tar_append_file(const char *tar_name, const char *filename, int src_fd) {
 
 int tar_add_file_rec(const char *tar_name, const char *filename, const char *inside_tar_name, int it){
   //it est toujours initialisé à 0;
+  if(it++ == 0)tar_add_file(tar_name, filename, inside_tar_name);
+
   struct dirent *lecture;
   DIR *rep;
   rep = opendir(filename);
@@ -284,7 +416,6 @@ int tar_add_file_rec(const char *tar_name, const char *filename, const char *ins
     closedir(rep);
     return -1;
   }
-  if(it++ == 0)tar_add_file(tar_name, filename, inside_tar_name);
   //Create a copy of the FILENAME
   char copy[strlen(filename)+1];
   strcpy(copy, filename);
