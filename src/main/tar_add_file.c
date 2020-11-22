@@ -203,7 +203,7 @@ int tar_add_file(const char *tar_name, const char *source, const char *filename)
 
     char buffer[BLOCKSIZE];
     ssize_t read_size;
-    if(hd.typeflag != DIRTYPE || hd.typeflag != SYMTYPE){
+    if(hd.typeflag != DIRTYPE && hd.typeflag != SYMTYPE){
       while((read_size = read(src_fd, buffer, BLOCKSIZE)) > 0 ) {
         if (read_size < 0) {
           int fds[2] ={src_fd, tar_fd};
