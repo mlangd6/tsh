@@ -1,4 +1,4 @@
-#include <sys/stat.h>
+//#include <sys/stat.h>
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <unistd.h>
@@ -8,15 +8,16 @@
 #include <errno.h>
 
 #include "tar.h"
-#include "path_lib.h"
+//#include "path_lib.h"
 #include "errors.h"
-//#include "command_handler.h"
+#include "command_handler.h"
 
 #define CMD_NAME "mkdir"
 
 
 int mkdir(char *tar_name, char *path_name, char *options)
 {
+  printf("Hello\n");
   int length = strlen(path_name);
   if(path_name[length - 1] != '/')
   {
@@ -32,7 +33,7 @@ int mkdir(char *tar_name, char *path_name, char *options)
   return EXIT_SUCCESS;
 }
 
-/*
+
 int main(int argc, char *argv[]){
   command cmd = {
     CMD_NAME,
@@ -43,7 +44,7 @@ int main(int argc, char *argv[]){
   };
   return handle(cmd, argc, argv);
 }
-*/
+/*
 int main(int argc, char *argv[]){
   if(argc == 1){
     execlp(CMD_NAME, CMD_NAME, NULL);
@@ -88,4 +89,4 @@ int main(int argc, char *argv[]){
     }
   }
   return 0;
-}
+}*/
