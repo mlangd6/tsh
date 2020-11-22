@@ -1,8 +1,3 @@
-/*Problems :
-    Quand on declare un fichier comme un répertoire la suppression est rendu impossible par la gestion des chemins et non pas par la fonction rm
-    Meme probleme quand on appelle un fichier sans le dernier /
-*/
-
 #include "tar.h"
 #include "errors.h"
 #include "command_handler.h"
@@ -17,7 +12,6 @@
 
 static int rm_(char *tar_name, char *filename)
 {
-  printf("rm\n");
   if(is_dir_name(filename))
   {
     tar_name[strlen(tar_name)] = '/';
@@ -36,7 +30,6 @@ static int rm_(char *tar_name, char *filename)
 
 static int rm_r(char *tar_name, char *filename)
 {
-  printf("rm -r\n");
   if(is_dir_name(filename)){
     int length = strlen(filename);
     if(filename[length - 1] != '/')
@@ -55,14 +48,12 @@ static int rm_r(char *tar_name, char *filename)
 
 int rm(char *tar_name, char *filename, char *options)
 {
-  printf("rm\n");
   return (strchr(options, 'r'))? rm_r(tar_name, filename) : rm_(tar_name, filename);
 }
 
 
 int main(int argc, char *argv[])
 {
-  printf("main\n");
   command cmd = {
     CMD_NAME,
     rm,
