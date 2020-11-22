@@ -55,7 +55,7 @@ static void init_type(struct posix_header *hd, struct stat *s) {
   } else if (S_ISBLK(s -> st_mode)) {
     hd -> typeflag = BLKTYPE;
   } else if (S_ISLNK(s -> st_mode)) {
-    hd -> typeflag = LNKTYPE;
+    hd -> typeflag = SYMTYPE;
   }  else if (S_ISFIFO(s -> st_mode)) {
     hd -> typeflag = FIFOTYPE;
   } else {
@@ -123,17 +123,15 @@ static int init_header(struct posix_header *hd, const char *source, const char *
   init_mode(hd, &s);
   sprintf(hd -> uid, "%07o", s.st_uid);
   sprintf(hd -> gid, "%07o" ,s.st_gid);
+  init_type(hd, &s);
   char buf[100];
   memset(buf, '\0', 100);
   if(readlink(source, buf, 100) > 0){
-    hd -> typeflag = SYMTYPE;
-    strcpy(hd -> size, "0000000");
     strncpy(hd -> linkname, buf, 100);
     hd->linkname[99] = '\0';
   }
   else {
-    init_type(hd, &s);
-    if(S_ISDIR(s.st_mode)) strcpy(hd -> size, "0");
+    if(hd->typeflag == DIRTYPE || hd->typeflag == SYMTYPE) sprintf(hd -> size, "%07o", 0);
     else sprintf(hd -> size, "%011lo", s.st_size);
   }
   strcpy(hd -> magic, TMAGIC);
