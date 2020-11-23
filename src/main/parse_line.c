@@ -50,7 +50,7 @@ token *char_to_token(char *w)
     res -> val.red = STDERR_APPEND;
     res -> type = REDIR;
   } else if (!strcmp(w, "<")) {
-    res -> val.red = STDERR_APPEND;
+    res -> val.red = STDIN_REDIR;
     res -> type = REDIR;
   } else {
     res -> val.arg = w;
@@ -84,7 +84,7 @@ int exec_tokens(token **tokens, int nb_el, char **argv)
     {
       if (prev_is_redir)
       {
-        write(STDERR_FILENO, "tsh: syntax error: unexpected token after redirection", 53);
+        write(STDERR_FILENO, "tsh: syntax error: unexpected token after redirection\n", 54);
         return -1;
       }
       prev_is_redir = 1;
@@ -92,14 +92,20 @@ int exec_tokens(token **tokens, int nb_el, char **argv)
       if (prev_is_redir)
       {
         launch_redir_before(tokens[i-1] -> val.red, tokens[i] -> val.arg);
+        free(tokens[i-1]);
       }else {
         argv[j++] = tokens[i] -> val.arg;
       }
+      free(tokens[i]);
       prev_is_redir = 0;
     }
   }
+  if (prev_is_redir){
+    write(STDERR_FILENO, "tsh: syntax error: unexpected token after redirection", 53);
+    return -1;
+  }
   argv[j] = NULL;
-  return 0;
+  return j;
 }
 
 
