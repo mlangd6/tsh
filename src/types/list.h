@@ -43,10 +43,12 @@ void *list_remove_last (list_t *list);
 
 
 
-/* Return the first element of LIST */
+/* Get the first element of LIST
+   Returns NULL if LIST is empty otherwise the value of the first element. */
 void *list_first (list_t *list);
 
-/* Return the last element of LIST */
+/* Get the last element of LIST
+   Returns NULL if LIST is empty otherwise the value of the last element. */
 void *list_last (list_t *list);
 
 

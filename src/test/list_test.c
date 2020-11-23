@@ -78,6 +78,7 @@ static char* list_ins_rem_last_test()
     }
 
   
+  mu_assert("List should be empty", 1 == list_is_empty(list));
   list_free(list, false);
 
   return 0;
@@ -105,7 +106,7 @@ static char* list_ins_rem_first_test()
       free(pi);
     }
 
-  
+  mu_assert("List should be empty", 1 == list_is_empty(list));  
   list_free(list, false);
 
   return 0;
