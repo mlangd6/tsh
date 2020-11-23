@@ -34,19 +34,19 @@ static int tar_rm_dir(int tar_fd, const char *dirname)
     if(file_header.name[0] == '\0')
 	  {
 	     ftruncate(tar_fd, tar_end);
-	     return 0;
+	      return 0;
 	  }
     else if(is_prefix(dirname, file_header.name))
 	  {
-  	  file_size  = get_file_size(&file_header);
-  	  file_start = lseek(tar_fd, -BLOCKSIZE, SEEK_CUR); // on était à la fin d'un header, on se place donc au début
-  	  file_end   = file_start + BLOCKSIZE + number_of_block(file_size)*BLOCKSIZE;
+	     file_size  = get_file_size(&file_header);
+	     file_start = lseek(tar_fd, -BLOCKSIZE, SEEK_CUR); // on était à la fin d'un header, on se place donc au début
+	     file_end   = file_start + BLOCKSIZE + number_of_block(file_size)*BLOCKSIZE;
 
-  	  if( fmemmove(tar_fd, file_end, tar_end - file_end, file_start) < 0) // on décale le contenu
-  	    return -1;
+	     if( fmemmove(tar_fd, file_end, tar_end - file_end, file_start) < 0) // on décale le contenu
+	     return -1;
 
-  	  tar_end -= file_end - file_start;    // on réduit virtuellement la taille
-  	}
+	     tar_end -= file_end - file_start;    // on réduit virtuellement la taille
+	  }
     else
 	  {
 	     skip_file_content(tar_fd, &file_header);
