@@ -11,12 +11,6 @@
 #define TSH_FUNC 2
 #define NB_REDIR 5
 
-typedef struct {
-  char *identifier;
-  void (*before)(char *);
-  void (*after)(char *);
-} redir_type;
-
 
 
 int special_command(char *s);
