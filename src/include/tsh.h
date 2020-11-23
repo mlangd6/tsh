@@ -9,26 +9,14 @@
 #define NB_TSH_FUNC 3
 #define TAR_CMD 1
 #define TSH_FUNC 2
+#define NB_REDIR 5
 
 typedef struct {
+  char *identifier;
   void (*before)(char *);
   void (*after)(char *);
 } redir_type;
 
-typedef enum {
-  ARG,
-  REDIR
-} token_type;
-
-typedef union {
-  char *arg;
-  redir_type *red;
-} token_value;
-
-typedef struct {
-  token_value val;
-  token_type type;
-} token;
 
 
 int special_command(char *s);
