@@ -89,7 +89,6 @@ static char *all_tests()
 {
   for (int i = 0; i < STACK_TEST_SIZE; i++)
     {
-      before();
       mu_run_test(tests[i]);
     }
   return 0;
