@@ -65,7 +65,7 @@ static char *exec_tokens_test()
   char *user_input = malloc(PATH_MAX);
   strcpy(user_input, "< in >   out    cat   fic 2>> err_append");
   token **tokens = tokenize(user_input, &nb_el);
-  char **argv = malloc(nb_el * sizeof(char *));
+  char **argv = malloc((nb_el + 1) * sizeof(char *));
   nb_el = exec_tokens(tokens, nb_el, argv);
   mu_assert("Exec tokens test: error on size of argv", nb_el == 2);
   char *tests[] = {"cat", "fic"};

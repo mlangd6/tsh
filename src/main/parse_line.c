@@ -8,6 +8,8 @@
 #include "tsh.h"
 #include "parse_line.h"
 
+static token *char_to_token(char *w); 
+
 int count_words(const char *str)
 {
   int wc = 0;
@@ -34,7 +36,7 @@ int count_words(const char *str)
   return wc;
 }
 
-token *char_to_token(char *w)
+static token *char_to_token(char *w)
 {
   token *res = malloc(sizeof(token));
   if (!strcmp(w, ">")) {
@@ -106,49 +108,4 @@ int exec_tokens(token **tokens, int nb_el, char **argv)
   }
   argv[j] = NULL;
   return j;
-}
-
-
-char **split(char *user_input, int *is_special)
-{
-  const char delim[] = " ";
-  int nb_tokens = count_words(user_input);
-  char **res = malloc((nb_tokens+1) * sizeof(char *)); // +1 pour le NULL à la fin
-  char *tok, *src;
-
-  res[0] = strtok(user_input, delim);
-
-  *is_special = special_command(res[0]);
-
-
-  for (int i = 1; i < nb_tokens; i++)
-  {
-    tok = strtok(NULL, delim);
-
-    if (*is_special)
-    {
-      if (*tok != '/' && *tok != '-') // Relative path
-      {
-        src = malloc (PATH_MAX);
-        strcpy (src, getenv("PWD"));
-        strcat (src, "/");
-        strcat (src, tok);
-      }
-      else //Absolute path or option
-      {
-        src = malloc (strlen(tok)+1);
-        strcpy (src, tok);
-      }
-    }
-    else
-    {
-      src = tok;
-    }
-
-    res[i] = src;
-  }
-
-  res[nb_tokens] = NULL;
-
-  return res;
 }

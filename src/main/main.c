@@ -23,7 +23,6 @@ static int pwd(char **argv, int argc);
 static void init_tsh();
 
 static int launch_tsh_func(char **argv, int argc);
-static int count_argc(char **argv);
 
 
 char tsh_dir[PATH_MAX];
@@ -56,16 +55,6 @@ static int launch_tsh_func(char **argv, int argc)
       return pwd(argv, argc);
     }
   return EXIT_FAILURE;
-}
-
-static int count_argc(char **argv)
-{
-  int i = 0;
-
-  while (argv[i++] != NULL)
-    ;
-
-  return i-1;
 }
 
 static int pwd(char **argv, int argc)
@@ -123,7 +112,6 @@ static int cd(char **argv, int argc)
       }
       else // Supported option
       {
-        free(argv[1]);
         char *oldpwd = getenv("OLDPWD");
         if (oldpwd == NULL)
         {
@@ -142,19 +130,25 @@ static int cd(char **argv, int argc)
     }
     else // Not an option
     {
+      char arg[PATH_MAX];
       char path[PATH_MAX];
-      int arg_len = strlen(argv[1]);
+      if (argv[1][0] != '/')
+        sprintf(arg, "%s%s", getenv("PWD"), argv[1]);
+      else
+        strcpy(arg, argv[1]);
+      strcpy(arg, getenv("PWD"));
+      int arg_len = strlen(arg);
       if (arg_len + 1 >= PATH_MAX) //too long
       {
         return EXIT_FAILURE;
       }
 
-      if (argv[1][arg_len-1] != '/')
-      strcat(argv[1], "/");
+      if (arg[arg_len-1] != '/')
+      strcat(arg, "/");
 
-      if (!reduce_abs_path(argv[1], path))
+      if (!reduce_abs_path(arg, path))
       {
-        error_cmd("tsh: cd", argv[1]);
+        error_cmd("tsh: cd", arg);
         return EXIT_FAILURE;
       }
 
@@ -218,72 +212,72 @@ int main (int argc, char *argv[])
   init_tsh ();
 
   char *buf;
-  char **tokens;
+  token **tokens;
+  char **args;
+  int nb_tokens;
   pid_t cpid;
   int  is_special, wstatus;
 
   while ((buf = readline(PROMPT)))
+  {
+    if (!count_words(buf))
+      continue;
+
+    add_history(buf);
+
+    tokens = tokenize(buf, &nb_tokens);
+    args = malloc((nb_tokens + 1) * sizeof(char *));
+    nb_tokens = exec_tokens(tokens, nb_tokens, args);
+    if (nb_tokens == 0) // TODO: Les redirections devront être annulés
+      continue;
+    is_special = special_command(args[0]);
+    if (is_special == TSH_FUNC)
     {
-      if (!count_words(buf))
-	continue;
-
-      add_history(buf);
-
-      tokens = split(buf, &is_special);
-      if (is_special == TSH_FUNC)
-	{
-	  ret_value = launch_tsh_func(tokens, count_argc(tokens));
-	}
-      else
-	{
-	  cpid = fork();
-	  switch (cpid)
-	    {
-	    case -1:
-	      perror ("tsh: fork");
-	      exit (EXIT_FAILURE);
-
-	    case 0: //son
-	      if (is_special == TAR_CMD)
-		{
-		  char cmd_exec[PATH_MAX];
-		  strcpy(cmd_exec, tsh_dir);
-		  strcat(cmd_exec, "/bin/");
-		  strcat(cmd_exec, tokens[0]);
-		  ret_value = execv(cmd_exec, tokens);
-		}
-	      else
-		{
-		  ret_value = execvp(tokens[0], tokens);
-		}
-
-	      if (errno == ENOENT)
-		{
-		  int size = strlen(tokens[0]) + CMD_NOT_FOUND_SIZE;
-		  char error_msg[size];
-		  strcpy(error_msg, tokens[0]);
-		  strcat(error_msg, CMD_NOT_FOUND);
-		  write(STDOUT_FILENO, error_msg, size);
-		}
-
-	      exit(EXIT_FAILURE);
-
-	    default: // father
-	      wait(&wstatus);
-	      ret_value = WEXITSTATUS(wstatus);
-	    }
-
-	  if (is_special)
-	    {
-	      for (int i = 1; tokens[i] != NULL; i++)
-		{
-		  free(tokens[i]);
-		}
-	    }
-	}
-      free(tokens);
-      free(buf);
+      ret_value = launch_tsh_func(args, nb_tokens);
     }
+    else
+    {
+      cpid = fork();
+      switch (cpid)
+      {
+        case -1:
+        perror ("tsh: fork");
+        exit (EXIT_FAILURE);
+
+        case 0: // child
+        if (is_special == TAR_CMD)
+        {
+          char cmd_exec[PATH_MAX];
+          strcpy(cmd_exec, tsh_dir);
+          strcat(cmd_exec, "/bin/");
+          strcat(cmd_exec, args[0]);
+          ret_value = execv(cmd_exec, args);
+        }
+        else
+        {
+          ret_value = execvp(args[0], args);
+        }
+
+        if (errno == ENOENT)
+        {
+          int size = strlen(args[0]) + CMD_NOT_FOUND_SIZE;
+          char error_msg[size];
+          strcpy(error_msg, args[0]);
+          strcat(error_msg, CMD_NOT_FOUND);
+          write(STDOUT_FILENO, error_msg, size);
+        }
+
+        exit(EXIT_FAILURE);
+
+        default: // father
+        wait(&wstatus);
+        ret_value = WEXITSTATUS(wstatus);
+      }
+
+    }
+    free(args);
+    free(buf);
+  }
 
   return 0;
 }
