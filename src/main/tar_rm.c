@@ -4,6 +4,7 @@
 #include <sys/types.h>
 #include <unistd.h>
 #include <errno.h>
+#include <string.h>
 
 #include "errors.h"
 #include "tar.h"
@@ -103,7 +104,7 @@ int tar_rm(const char *tar_name, const char *filename)
 
   int r;
 
-  if(is_dir_name(filename))
+  if(is_dir_name(filename) || strcmp(filename, "\0")==0)
   {
     r = tar_rm_dir(tar_fd, filename);
   }

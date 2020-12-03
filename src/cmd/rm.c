@@ -6,6 +6,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <unistd.h>
 
 #define CMD_NAME "rm"
 #define SUPPORT_OPT "r"
@@ -42,6 +43,9 @@ static int rm_r(char *tar_name, char *filename)
     tar_name[strlen(tar_name)] = '/';
     error_cmd(CMD_NAME, tar_name);
     return EXIT_FAILURE;
+  }
+  if(strcmp(filename, "\0")==0){
+    execlp("rm", "rm", tar_name, NULL);
   }
   return EXIT_SUCCESS;
 }
