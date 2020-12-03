@@ -44,15 +44,16 @@ static char* array_create_test()
 
 static char* array_size_test()
 {
-  array *arr = array_create(sizeof(int));
+  array *arr = array_create(sizeof(long long));
+  mu_assert("Array should be empty after creation", 0 == array_size(arr));
   
-  const int size = 128;
+  const int size = 2020;
   for (int i=0; i < size; i++)
     {
       array_insert_last(arr, &i);
     }
 
-  mu_assert("Invalid array size, should be 128", size == array_size(arr));
+  mu_assert("Invalid array size, should be 2020", size == array_size(arr));
 
   array_free(arr, false);
 
@@ -64,17 +65,20 @@ static char* array_insert_test()
 {
   array *arr = array_create(sizeof(int));
   
-  const int size = 128;
+  const int size = 4291;
   for (int i=0; i < size; i++)
     {
       array_insert_last(arr, &i);
     }
 
-  mu_assert("Invalid array size, should be 128", size == array_size(arr));
-  
+  mu_assert("Invalid array size, should be 4291", size == array_size(arr));
+
+  int *pi;
   for (int i=0; i < array_size(arr); i++)
     {
-      mu_assert("Wrong value after inserting", i == *(int*)array_get(arr, i));
+      pi = (int*)array_get(arr, i);
+      mu_assert("Wrong value after inserting", i == *pi);
+      free(pi);
     }
 
   for (int i=0, j = 1; i < size; i+=2, j+=2)
@@ -82,11 +86,13 @@ static char* array_insert_test()
       array_insert(arr, i, &j);
     }
 
-  mu_assert("Invalid array size", size+size/2 == array_size(arr));
+  mu_assert("Invalid array size", size + size/2 + size%2 == array_size(arr));
 
   for (int i=0; i < size; i += 2)
     {
-      mu_assert("Wrong value after inserting", i+1 == *(int*)array_get(arr, i));
+      pi = (int*)array_get(arr, i);
+      mu_assert("Wrong value after inserting", i+1 == *pi);
+      free(pi);
     }
 
   array_free(arr, false);
@@ -109,7 +115,8 @@ static char* array_remove_test()
   for (char c='a'; c <= 'z'; c++)
     {
       pc = (char*)array_remove_last(arr);
-      mu_assert("Wrong value after inserting", c == *pc);      
+      mu_assert("Wrong value after inserting", c == *pc);
+      free(pc);
     }
   
   mu_assert("Array should be empty", 0 == array_size(arr));
@@ -148,9 +155,12 @@ static char* array_sort_test()
   array_sort(arr, cmp);
   mu_assert("Invalid array size after sort", name_size == array_size(arr));
 
+  char** ppc;
   for (int i=0; i < name_size; i++)
     {
-      mu_assert("Sort didn't not work", 0 == strcmp(name[i], *(char**)array_get(arr, i)));
+      ppc = (char**)array_get(arr, i);
+      mu_assert("Sort didn't work", 0 == strcmp(name[i], *ppc));
+      free(ppc);
     }
   
   array_free(arr, false);

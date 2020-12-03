@@ -15,7 +15,7 @@ struct array
 
   size_t elem_size;
 
-  void *data;
+  char *data;
 };
 
 
@@ -108,15 +108,25 @@ void array_insert_last (array *arr, void *val)
 
 void *array_get (array *arr, size_t i)
 {
-  return (!arr || arr->size <= i) ? NULL : arr->data + i*arr->elem_size;
+  if (!arr || arr->size <= i)
+    return NULL;
+  
+  void *ret = malloc(arr->elem_size);
+  assert(ret);
+  
+  memmove(ret, arr->data + i*arr->elem_size, arr->elem_size);
+
+  return ret;
 }
 
 void *array_remove (array *arr, size_t i)
 {
   if (!arr || arr->size <= i)
     return NULL;
-  
-  void *ret = arr->data + i;
+
+  void *ret = malloc(arr->elem_size);
+  assert(ret);
+  memmove(ret, arr->data + i*arr->elem_size, arr->elem_size);
   
   memmove (arr->data + i*arr->elem_size, arr->data + (1+i)*arr->elem_size, (arr->size - (i+1))*arr->elem_size);
 
@@ -124,7 +134,7 @@ void *array_remove (array *arr, size_t i)
   
   if (arr->capacity >= 4 * arr->size && arr->capacity > ARRAY_INITIAL_CAPACITY)
     array_resize(arr, arr->capacity / 2);
-
+  
   return ret;
 }
 
