@@ -1,8 +1,11 @@
+/* stack_test.c : Tests for stack data types */
+#include "stack_test.h"
+
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "../types/stack.h"
+#include "stack.h"
 #include "minunit.h"
 #include "tsh_test.h"
 

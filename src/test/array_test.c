@@ -1,3 +1,4 @@
+/* array_test.c : Tests for array data types */
 #include "array_test.h"
 
 #include <stdbool.h>
@@ -5,7 +6,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "../types/array.h"
+#include "array.h"
 #include "minunit.h"
 #include "tsh_test.h"
 

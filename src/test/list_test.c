@@ -1,8 +1,11 @@
+/* list_test.c : Tests for list data types */
+#include "list_test.h"
+
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "../types/list.h"
+#include "list.h"
 #include "minunit.h"
 #include "tsh_test.h"
 
