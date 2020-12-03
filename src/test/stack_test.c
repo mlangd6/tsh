@@ -1,8 +1,11 @@
+/* stack_test.c : Tests for stack data types */
+#include "stack_test.h"
+
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "../types/stack.h"
+#include "stack.h"
 #include "minunit.h"
 #include "tsh_test.h"
 
@@ -89,7 +92,6 @@ static char *all_tests()
 {
   for (int i = 0; i < STACK_TEST_SIZE; i++)
     {
-      before();
       mu_run_test(tests[i]);
     }
   return 0;
