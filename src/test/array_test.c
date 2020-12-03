@@ -3,19 +3,20 @@
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include "../types/array.h"
 #include "minunit.h"
 #include "tsh_test.h"
 
-#define ARRAY_TEST_SIZE 4
+#define ARRAY_TEST_SIZE 5
 
 
 static char* array_create_test();
 static char* array_size_test();
 static char* array_insert_test();
 static char* array_remove_test();
-
+static char* array_sort_test();
 
 extern int tests_run;
 
@@ -24,7 +25,8 @@ static char *(*tests[])(void) =
     array_create_test,
     array_size_test,
     array_insert_test,
-    array_remove_test
+    array_remove_test,
+    array_sort_test
   };
 
 
@@ -111,6 +113,45 @@ static char* array_remove_test()
     }
   
   mu_assert("Array should be empty", 0 == array_size(arr));
+  
+  array_free(arr, false);
+
+  return 0;
+}
+
+static int cmp(const void *l, const void *r)
+{
+  return strcmp((char*)l, (char*)r);
+}
+
+static char* array_sort_test()
+{
+  array *arr = array_create(sizeof(char*));
+  char *name[] =
+    {
+      "dir/",
+      "dir/tata",
+      "dir/tutu",
+      "dir/tata_dir/",
+      "dir/tata_dir/tutu",
+      "dir/z/",
+      "aaa"
+    };
+  const int name_size = 7;
+  
+  for (int i=0; i < name_size; i++)
+    {
+      array_insert_first(arr, name+i);
+    }
+  mu_assert("Invalid array size after inserting", name_size == array_size(arr));
+
+  array_sort(arr, cmp);
+  mu_assert("Invalid array size after sort", name_size == array_size(arr));
+
+  for (int i=0; i < name_size; i++)
+    {
+      mu_assert("Sort didn't not work", 0 == strcmp(name[i], *(char**)array_get(arr, i)));
+    }
   
   array_free(arr, false);
 
