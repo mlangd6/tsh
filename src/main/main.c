@@ -121,10 +121,13 @@ static int cd(char **argv, int argc)
         }
         else
         {
-          argv[1] = malloc(PATH_MAX);
-          memcpy(argv[1], oldpwd, strlen(oldpwd) + 1);
+          char tmp[PATH_MAX];
+          strcpy(tmp, oldpwd);
+          setenv("OLDPWD", pwd, 1);
+          setenv("PWD", tmp, 1);
           write(STDOUT_FILENO, oldpwd, strlen(oldpwd));
           write(STDOUT_FILENO, "\n", 2);
+          chdir(tmp);
         }
       }
     }
@@ -133,10 +136,9 @@ static int cd(char **argv, int argc)
       char arg[PATH_MAX];
       char path[PATH_MAX];
       if (argv[1][0] != '/')
-        sprintf(arg, "%s%s", getenv("PWD"), argv[1]);
+        sprintf(arg, "%s/%s", getenv("PWD"), argv[1]);
       else
         strcpy(arg, argv[1]);
-      strcpy(arg, getenv("PWD"));
       int arg_len = strlen(arg);
       if (arg_len + 1 >= PATH_MAX) //too long
       {
