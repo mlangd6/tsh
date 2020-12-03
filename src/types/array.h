@@ -1,3 +1,4 @@
+/* array.h : Functions prototypes for array manipulation */
 #ifndef ARRAY_H
 #define ARRAY_H
 
@@ -14,7 +15,7 @@ void array_free (array *arr, bool full);
 int array_size (array *arr);
 
 
-void array_set (array *arr, size_t i, void *val);
+void *array_set (array *arr, size_t i, void *val);
 
 void array_insert (array *arr, size_t i, void *val);
 
