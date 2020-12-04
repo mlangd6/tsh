@@ -34,15 +34,15 @@ static char* stack_create_test()
   mu_assert("Invalid stack size, should be 0", 0 == stack_size(stack));
 
   stack_free(stack, false);
-  
+
   return 0;
 }
-  
+
 
 static char* stack_size_test()
 {
   stack_t *stack = stack_create();
-  
+
   const int size = 15;
   for (int i=0; i < size; i++)
     {
@@ -59,11 +59,11 @@ static char* stack_size_test()
 
 static char* stack_push_pop_test()
 {
-  stack_t *stack = stack_create();  
+  stack_t *stack = stack_create();
   const int size = 15;
   int *pi;
 
-  
+
   for (int i=0; i < size; i++)
     {
       pi = malloc(sizeof(int));
@@ -72,7 +72,7 @@ static char* stack_push_pop_test()
     }
 
   mu_assert("Invalid stack size, should be 15", size == stack_size(stack));
-  
+
   for (int i=size-1; i >= 0; i--)
     {
       pi = (int*)stack_pop(stack);
@@ -80,7 +80,7 @@ static char* stack_push_pop_test()
       free(pi);
     }
 
-  
+
   mu_assert("Stack should be empty", 1 == stack_is_empty(stack));
   stack_free(stack, false);
 
@@ -105,15 +105,14 @@ int launch_stack_tests()
   char *results = all_tests();
   if (results != 0)
     {
-      printf("%s\n", results);
+      printf(RED "%s\n" WHITE, results);
     }
   else
     {
-      printf("ALL STACK TESTS PASSED\n");
+      printf(GREEN "ALL STACK TESTS PASSED\n" WHITE);
     }
-  
+
   printf("stack tests run: %d\n\n", tests_run - prec_tests_run);
-  
+
   return (results == 0);
 }
-

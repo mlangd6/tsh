@@ -36,15 +36,15 @@ static char* list_create_test()
   mu_assert("Invalid list size, should be 0", 0 == list_size(list));
 
   list_free(list, false);
-  
+
   return 0;
 }
-  
+
 
 static char* list_size_test()
 {
   list_t *list = list_create();
-  
+
   const int size = 15;
   for (int i=0; i < size; i++)
     {
@@ -61,11 +61,11 @@ static char* list_size_test()
 
 static char* list_ins_rem_last_test()
 {
-  list_t *list = list_create();  
+  list_t *list = list_create();
   const int size = 15;
   int *pi;
 
-  
+
   for (int i=0; i < size; i++)
     {
       pi = malloc(sizeof(int));
@@ -80,7 +80,7 @@ static char* list_ins_rem_last_test()
       free(pi);
     }
 
-  
+
   mu_assert("List should be empty", 1 == list_is_empty(list));
   list_free(list, false);
 
@@ -90,11 +90,11 @@ static char* list_ins_rem_last_test()
 
 static char* list_ins_rem_first_test()
 {
-  list_t *list = list_create();  
+  list_t *list = list_create();
   const int size = 15;
   int *pi;
 
-  
+
   for (int i=0; i < size; i++)
     {
       pi = malloc(sizeof(int));
@@ -109,7 +109,7 @@ static char* list_ins_rem_first_test()
       free(pi);
     }
 
-  mu_assert("List should be empty", 1 == list_is_empty(list));  
+  mu_assert("List should be empty", 1 == list_is_empty(list));
   list_free(list, false);
 
   return 0;
@@ -132,15 +132,14 @@ int launch_list_tests()
   char *results = all_tests();
   if (results != 0)
     {
-      printf("%s\n", results);
+      printf(RED "%s\n" WHITE, results);
     }
   else
     {
-      printf("ALL LIST TESTS PASSED\n");
+      printf(GREEN "ALL LIST TESTS PASSED\n" WHITE);
     }
-  
+
   printf("list tests run: %d\n\n", tests_run - prec_tests_run);
-  
+
   return (results == 0);
 }
-

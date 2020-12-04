@@ -359,10 +359,10 @@ int launch_tar_tests() {
   int prec_tests_run = tests_run;
   char *results = all_tests();
   if (results != 0) {
-    printf("%s\n", results);
+    printf(RED "%s\n" WHITE, results);
   }
   else {
-    printf("ALL TAR TESTS PASSED\n");
+    printf(GREEN "ALL TAR TESTS PASSED\n" WHITE);
   }
   printf("tar tests run: %d\n\n", tests_run - prec_tests_run);
   return (results == 0);
