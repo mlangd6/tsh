@@ -73,16 +73,8 @@ static char *exec_tokens_test()
   mu_assert("Exec tokens test: argv[2] != \"fic\"", !strcmp(argv[1], tests[1]));
   mu_assert("Exec tokens test: argv[2] != NULL", argv[2] == NULL);
   free(tokens);
-  // tokens = malloc(sizeof(token *) * 3);
-  // token t1 = {.val.red = STDOUT_REDIR, REDIR};
-  // token t2 = {.val.red = STDERR_REDIR, REDIR};
-  // tokens[0] = &t1;
-  // tokens[1] = &t2;
-  // tokens[2] = NULL;
-  // mu_assert("Exec tokens test: consecutive redirections should return -1", exec_tokens(tokens, 2, argv) == -1);
   free(user_input);
   free(argv);
-
   return 0;
 }
 
@@ -91,7 +83,6 @@ static char *all_tests()
 {
   for (int i = 0; i < PARSE_LINE_TEST_SIZE; i++)
   {
-    before();
     mu_run_test(tests[i]);
   }
   return 0;

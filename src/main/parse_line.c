@@ -8,7 +8,7 @@
 #include "tsh.h"
 #include "parse_line.h"
 
-static token *char_to_token(char *w); 
+static token *char_to_token(char *w);
 
 int count_words(const char *str)
 {
@@ -103,7 +103,7 @@ int exec_tokens(token **tokens, int nb_el, char **argv)
     }
   }
   if (prev_is_redir){
-    write(STDERR_FILENO, "tsh: syntax error: unexpected token after redirection", 53);
+    write(STDERR_FILENO, "tsh: syntax error: unexpected token after redirection\n", 54);
     return -1;
   }
   argv[j] = NULL;
