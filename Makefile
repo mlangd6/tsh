@@ -33,6 +33,7 @@ BIN_FILES=$(notdir $(basename $(CMD_FILES)))
 BIN_FILES:=$(addprefix $(BIN), $(BIN_FILES))
 
 # TYPES
+TYPES_INCLUDE=$(SRC)/types
 TYPES_FILES=$(wildcard $(SRC)$(TYPES_DIR)*.c)
 TYPES_OBJS=$(notdir $(TYPES_FILES:.c=.o))
 TYPES_OBJS:=$(addprefix $(TARGET)$(TYPES_DIR), $(TYPES_OBJS))
@@ -50,27 +51,27 @@ types: $(TYPES_OBJS)
 
 
 $(EXEC): $(OBJS) $(TYPES_OBJS)
-	@$(CC) -I $(INCLUDE) $(CFLAGS) -o $(EXEC) $^ $(LDLIBS)
+	@$(CC) -I $(INCLUDE) -I $(TYPES_INCLUDE) $(CFLAGS) -o $(EXEC) $^ $(LDLIBS)
 
 $(TEST): $(OBJS_NO_MAIN) $(TEST_OBJS) $(TYPES_OBJS)
-	@$(CC) -I $(INCLUDE) -I $(TEST_INCLUDE) $(CFLAGS) -o $(TEST) $^
+	@$(CC) -I $(INCLUDE) -I $(TEST_INCLUDE) -I $(TYPES_INCLUDE) $(CFLAGS) -o $(TEST) $^
 
 
 $(TARGET)$(MAIN_DIR)%.o : $(SRC)$(MAIN_DIR)%.c
 	@mkdir -p $(dir $@)
-	@$(CC) -I $(INCLUDE) -c $(CFLAGS) -o $@ $<
+	@$(CC) -I $(INCLUDE) -I $(TYPES_INCLUDE) -c $(CFLAGS) -o $@ $<
 
 $(TARGET)$(TEST_DIR)%.o : $(SRC)$(TEST_DIR)%.c
 	@mkdir -p $(dir $@)
-	@$(CC) -I $(INCLUDE) -I $(TEST_INCLUDE) -c $(CFLAGS) -o $@ $<
+	@$(CC) -I $(INCLUDE) -I $(TEST_INCLUDE) -I $(TYPES_INCLUDE) -c $(CFLAGS) -o $@ $<
 
 $(TARGET)$(CMD_DIR)%.o : $(SRC)$(CMD_DIR)%.c
 	@mkdir -p $(dir $@)
-	@$(CC) -I $(INCLUDE) -c $(CFLAGS) -o $@ $<
+	@$(CC) -I $(INCLUDE) -I $(TYPES_INCLUDE) -c $(CFLAGS) -o $@ $<
 
 $(BIN)% : $(OBJS_NO_MAIN) $(TARGET)$(CMD_DIR)%.o
 	@mkdir -p $(BIN)
-	@$(CC) -I $(INCLUDE) $(CFLAGS) -o $@ $^
+	@$(CC) -I $(INCLUDE) -I $(TYPES_INCLUDE) $(CFLAGS) -o $@ $^
 
 $(TARGET)$(TYPES_DIR)%.o : $(SRC)$(TYPES_DIR)%.c
 	@mkdir -p $(dir $@)
