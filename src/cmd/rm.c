@@ -61,7 +61,7 @@ int main(int argc, char *argv[])
   command cmd = {
     CMD_NAME,
     rm,
-    1,
+    0,
     0,
     SUPPORT_OPT
   };
