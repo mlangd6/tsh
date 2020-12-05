@@ -7,10 +7,10 @@
 
 #include "parse_line.h"
 
+#include "parse_line_test.h"
 #include "minunit.h"
 #include "tsh_test.h"
 
-#define PARSE_LINE_TEST_SIZE 2
 
 extern int tests_run;
 
@@ -22,6 +22,31 @@ static char *(*tests[])(void) =
   tokenize_test,
   exec_tokens_test
 };
+
+static char *all_tests()
+{
+  for (int i = 0; i < PARSE_LINE_TEST_SIZE; i++)
+  {
+    mu_run_test(tests[i]);
+  }
+  return 0;
+}
+
+int launch_parse_line_tests()
+{
+  int prec_tests_run = tests_run;
+  char *results = all_tests();
+  if (results != 0) {
+    printf(RED "%s\n" WHITE, results);
+  }
+  else {
+    printf(GREEN "ALL PARSE_LINE TESTS PASSED\n" WHITE);
+  }
+  printf("parse_line tests run: %d\n\n", tests_run - prec_tests_run);
+
+  return (results == 0);
+}
+
 
 static char *tokenize_test()
 {
@@ -76,29 +101,4 @@ static char *exec_tokens_test()
   free(user_input);
   free(argv);
   return 0;
-}
-
-
-static char *all_tests()
-{
-  for (int i = 0; i < PARSE_LINE_TEST_SIZE; i++)
-  {
-    mu_run_test(tests[i]);
-  }
-  return 0;
-}
-
-int launch_parse_line_tests()
-{
-  int prec_tests_run = tests_run;
-  char *results = all_tests();
-  if (results != 0) {
-    printf(RED "%s\n" WHITE, results);
-  }
-  else {
-    printf(GREEN "ALL PATH_LIB TESTS PASSED\n" WHITE);
-  }
-  printf("path_lib tests run: %d\n\n", tests_run - prec_tests_run);
-
-  return (results == 0);
 }

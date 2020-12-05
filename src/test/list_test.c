@@ -8,8 +8,7 @@
 #include "list.h"
 #include "minunit.h"
 #include "tsh_test.h"
-
-#define LIST_TEST_SIZE 4
+#include "list_test.h"
 
 
 static char* list_create_test();
@@ -26,6 +25,35 @@ static char *(*tests[])(void) =
     list_ins_rem_last_test,
     list_ins_rem_first_test
   };
+
+static char *all_tests()
+{
+  for (int i = 0; i < LIST_TEST_SIZE; i++)
+    {
+      mu_run_test(tests[i]);
+    }
+  return 0;
+}
+
+
+int launch_list_tests()
+{
+  int prec_tests_run = tests_run;
+
+  char *results = all_tests();
+  if (results != 0)
+    {
+      printf(RED "%s\n" WHITE, results);
+    }
+  else
+    {
+      printf(GREEN "ALL LIST TESTS PASSED\n" WHITE);
+    }
+
+  printf("list tests run: %d\n\n", tests_run - prec_tests_run);
+
+  return (results == 0);
+}
 
 
 static char* list_create_test()
@@ -113,33 +141,4 @@ static char* list_ins_rem_first_test()
   list_free(list, false);
 
   return 0;
-}
-
-static char *all_tests()
-{
-  for (int i = 0; i < LIST_TEST_SIZE; i++)
-    {
-      mu_run_test(tests[i]);
-    }
-  return 0;
-}
-
-
-int launch_list_tests()
-{
-  int prec_tests_run = tests_run;
-
-  char *results = all_tests();
-  if (results != 0)
-    {
-      printf(RED "%s\n" WHITE, results);
-    }
-  else
-    {
-      printf(GREEN "ALL LIST TESTS PASSED\n" WHITE);
-    }
-
-  printf("list tests run: %d\n\n", tests_run - prec_tests_run);
-
-  return (results == 0);
 }

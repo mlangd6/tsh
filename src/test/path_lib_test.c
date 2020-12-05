@@ -6,8 +6,8 @@
 #include "minunit.h"
 #include "path_lib.h"
 #include "tsh_test.h"
+#include "path_lib_test.h"
 
-#define PATH_LIB_TEST_SIZE 5
 
 static char *split_tar_abs_path_test();
 static char *reduce_abs_path_root_test();
@@ -17,7 +17,36 @@ static char *reduce_abs_path_dir_test();
 
 extern int tests_run;
 
-static char *(*tests[])(void) = {split_tar_abs_path_test, reduce_abs_path_root_test, reduce_abs_path_tar_test, reduce_abs_path_titi_test, reduce_abs_path_dir_test};
+static char *(*tests[])(void) = {
+  split_tar_abs_path_test,
+  reduce_abs_path_root_test,
+  reduce_abs_path_tar_test,
+  reduce_abs_path_titi_test,
+  reduce_abs_path_dir_test
+};
+
+
+static char *all_tests() {
+  for (int i = 0; i < PATH_LIB_TEST_SIZE; i++) {
+    before();
+    mu_run_test(tests[i]);
+  }
+  return 0;
+}
+
+int launch_path_lib_tests() {
+  int prec_tests_run = tests_run;
+  char *results = all_tests();
+  if (results != 0) {
+    printf(RED "%s\n" WHITE, results);
+  }
+  else {
+    printf(GREEN "ALL PATH_LIB TESTS PASSED\n" WHITE);
+  }
+  printf("path_lib tests run: %d\n\n", tests_run - prec_tests_run);
+
+  return (results == 0);
+}
 
 
 static char *split_tar_abs_path_test() {
@@ -141,27 +170,4 @@ static char *reduce_abs_path_dir_test()
 
 
   return 0;
-}
-
-
-static char *all_tests() {
-  for (int i = 0; i < PATH_LIB_TEST_SIZE; i++) {
-    before();
-    mu_run_test(tests[i]);
-  }
-  return 0;
-}
-
-int launch_path_lib_tests() {
-  int prec_tests_run = tests_run;
-  char *results = all_tests();
-  if (results != 0) {
-    printf(RED "%s\n" WHITE, results);
-  }
-  else {
-    printf(GREEN "ALL PATH_LIB TESTS PASSED\n" WHITE);
-  }
-  printf("path_lib tests run: %d\n\n", tests_run - prec_tests_run);
-
-  return (results == 0);
 }

@@ -9,8 +9,7 @@
 #include "array.h"
 #include "minunit.h"
 #include "tsh_test.h"
-
-#define ARRAY_TEST_SIZE 5
+#include "array_test.h"
 
 
 static char* array_create_test();
@@ -30,6 +29,31 @@ static char *(*tests[])(void) =
     array_sort_test
   };
 
+
+static char *all_tests()
+{
+  for (int i = 0; i < ARRAY_TEST_SIZE; i++)
+    {
+      mu_run_test(tests[i]);
+    }
+  return 0;
+}
+
+int launch_array_tests()
+{
+  int prec_tests_run = tests_run;
+  char *results = all_tests();
+  if (results != 0)
+    {
+      printf(RED "%s\n" WHITE, results);
+    }
+  else
+    {
+      printf(GREEN "ALL ARRAY TESTS PASSED\n" WHITE);
+    }
+  printf("array tests run: %d\n\n", tests_run - prec_tests_run);
+  return (results == 0);
+}
 
 static char* array_create_test()
 {
@@ -167,33 +191,4 @@ static char* array_sort_test()
   array_free(arr, false);
 
   return 0;
-}
-
-static char *all_tests()
-{
-  for (int i = 0; i < ARRAY_TEST_SIZE; i++)
-    {
-      mu_run_test(tests[i]);
-    }
-  return 0;
-}
-
-
-int launch_array_tests()
-{
-  int prec_tests_run = tests_run;
-
-  char *results = all_tests();
-  if (results != 0)
-    {
-      printf(RED "%s\n" WHITE, results);
-    }
-  else
-    {
-      printf(GREEN "ALL ARRAY TESTS PASSED\n" WHITE);
-    }
-
-  printf("array tests run: %d\n\n", tests_run - prec_tests_run);
-
-  return (results == 0);
 }

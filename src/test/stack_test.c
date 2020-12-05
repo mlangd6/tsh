@@ -8,8 +8,8 @@
 #include "stack.h"
 #include "minunit.h"
 #include "tsh_test.h"
+#include "stack_test.h"
 
-#define STACK_TEST_SIZE 3
 
 
 static char* stack_create_test();
@@ -19,11 +19,41 @@ static char* stack_push_pop_test();
 extern int tests_run;
 
 static char *(*tests[])(void) =
-  {
-    stack_create_test,
-    stack_size_test,
-    stack_push_pop_test
-  };
+{
+  stack_create_test,
+  stack_size_test,
+  stack_push_pop_test
+};
+
+
+static char *all_tests()
+{
+  for (int i = 0; i < STACK_TEST_SIZE; i++)
+    {
+      mu_run_test(tests[i]);
+    }
+  return 0;
+}
+
+
+int launch_stack_tests()
+{
+  int prec_tests_run = tests_run;
+
+  char *results = all_tests();
+  if (results != 0)
+    {
+      printf(RED "%s\n" WHITE, results);
+    }
+  else
+    {
+      printf(GREEN "ALL STACK TESTS PASSED\n" WHITE);
+    }
+
+  printf("stack tests run: %d\n\n", tests_run - prec_tests_run);
+
+  return (results == 0);
+}
 
 
 static char* stack_create_test()
@@ -85,34 +115,4 @@ static char* stack_push_pop_test()
   stack_free(stack, false);
 
   return 0;
-}
-
-
-static char *all_tests()
-{
-  for (int i = 0; i < STACK_TEST_SIZE; i++)
-    {
-      mu_run_test(tests[i]);
-    }
-  return 0;
-}
-
-
-int launch_stack_tests()
-{
-  int prec_tests_run = tests_run;
-
-  char *results = all_tests();
-  if (results != 0)
-    {
-      printf(RED "%s\n" WHITE, results);
-    }
-  else
-    {
-      printf(GREEN "ALL STACK TESTS PASSED\n" WHITE);
-    }
-
-  printf("stack tests run: %d\n\n", tests_run - prec_tests_run);
-
-  return (results == 0);
 }
