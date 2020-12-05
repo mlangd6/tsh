@@ -13,7 +13,7 @@
 #include "tar.h"
 #include "tsh_test.h"
 
-#define TAR_TEST_SIZE 15
+#define TAR_TEST_SIZE 16
 #define TAR_ADD_TEST_SIZE_BUF 700
 
 
@@ -29,6 +29,7 @@ static char *tar_ls_dir_dir1_rec_test();
 
 // tar_cp
 static char *tar_cp_test();
+static char *tar_extract_dir_man_dir_test();
 
 // tar_rm
 static char *tar_rm_file_test();
@@ -60,6 +61,7 @@ static char *(*tests[])(void) = {
   tar_ls_dir_dir1_rec_test,
   
   tar_cp_test,
+  tar_extract_dir_man_dir_test,
   
   tar_rm_file_test,
   tar_rm_dir_test,
@@ -438,6 +440,22 @@ static char *tar_cp_test() {
   char c;
   mu_assert("File should be empty", read(fd2, &c, 1) == 0);
   close(fd2);
+  return 0;
+}
+
+static char *tar_extract_dir_man_dir_test()
+{
+  system("mkdir /tmp/tsh_test/extract_dir /tmp/tsh_test/man_dir");
+  
+  int r = tar_extract_dir("/tmp/tsh_test/test.tar", "man_dir/", "/tmp/tsh_test/extract_dir");
+  mu_assert("Error during the extraction", r == 0);
+
+  system("tar xf /tmp/tsh_test/test.tar man_dir/ --directory /tmp/tsh_test/man_dir");
+  
+  mu_assert("Error with content of files after extraction", system("diff -r /tmp/tsh_test/man_dir /tmp/tsh_test/extract_dir") == 0);
+  
+  system("rm -rf /tmp/tsh_test/extract_dir /tmp/tsh_test/man_dir");
+  
   return 0;
 }
 

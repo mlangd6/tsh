@@ -97,7 +97,7 @@ int seek_header(int tar_fd, const char *filename, struct posix_header *header);
 unsigned int number_of_block(unsigned int filesize);
 
 /* Return the file size from a given header */
-unsigned int get_file_size(struct posix_header *hd);
+unsigned int get_file_size(const struct posix_header *hd);
 
 /* Increment the file offset of TAR_FD by file size given in HD.
    This function is intended to be use after reading a header in a tar, when the file offset is moved to the end of HD header.
@@ -139,6 +139,8 @@ array* tar_ls_all (int tar_fd);
    0  if FILENAME was found and the copy was done without any issue
    -1 if FILENAME was not found or is not a regular file or a system call failed */
 int tar_cp_file(const char *tar_name, const char *filename, int fd);
+
+int tar_extract_dir(const char *tar_name, const char *dir_name, const char *dest_name);
 
 /* Open the tarball at path TAR_NAME and delete FILENAME if possible
    Return
