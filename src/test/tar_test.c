@@ -1,5 +1,6 @@
 #include <errno.h>
 #include <fcntl.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -7,39 +8,69 @@
 #include <sys/types.h>
 #include <unistd.h>
 
+#include "array.h"
 #include "minunit.h"
-#include "tsh_test.h"
 #include "tar.h"
+#include "tsh_test.h"
 
-#define TAR_TEST_SIZE 11
+#define TAR_TEST_SIZE 15
 #define TAR_ADD_TEST_SIZE_BUF 700
 
 
-static char *tar_add_file_test();
-static char *test_tar_ls();
+// tar
 static char *is_tar_test();
+
+// tar_ls
+static char *test_tar_ls();
+static char *tar_ls_all_test();
+static char *tar_ls_dir_root_test();
+static char *tar_ls_dir_man_dir_test();
+static char *tar_ls_dir_dir1_rec_test();
+
+// tar_cp
 static char *tar_cp_test();
+
+// tar_rm
 static char *tar_rm_file_test();
 static char *tar_rm_dir_test();
+
+// tar_mv
 static char *tar_mv_test();
+
+// tar_access
 static char *tar_access_test();
+
+//  tar_add_file
 static char *tar_append_file_test();
+static char *tar_add_file_test();
 static char *tar_add_file_rec_test();
 static char *add_tar_file_in_tar_test();
 
+
 extern int tests_run;
 
+
 static char *(*tests[])(void) = {
-  tar_add_file_test,
-  test_tar_ls,
   is_tar_test,
+  
+  test_tar_ls,
+  tar_ls_all_test,
+  tar_ls_dir_root_test,
+  tar_ls_dir_man_dir_test,
+  tar_ls_dir_dir1_rec_test,
+  
   tar_cp_test,
+  
   tar_rm_file_test,
   tar_rm_dir_test,
+  
   tar_mv_test,
+  
   tar_access_test,
+  
   tar_append_file_test,
   tar_add_file_rec_test,
+  tar_add_file_test,
   add_tar_file_in_tar_test
 };
 
@@ -202,12 +233,29 @@ static char *is_tar_test() {
 
 static char *test_tar_ls(){
   int tmp, size = 0;
+  
   char *test[] =
-  {"dir1/", "dir1/subdir/", "dir1/subdir/subsubdir/",
-  "dir1/subdir/subsubdir/hello", "dir1/tata", "man_dir/", "man_dir/man",
-  "man_dir/open2", "man_dir/tar", "titi",
-  "titi_link", "toto", "dir2/fic1", "dir2/fic2", "access/no",
-  "access/x", "access/no_x_dir/", "access/no_x_dir/a"};
+    {
+      "dir1/",
+      "dir1/subdir/",
+      "dir1/subdir/subsubdir/",
+      "dir1/subdir/subsubdir/hello",
+      "dir1/tata",
+      "man_dir/",
+      "man_dir/man",
+      "man_dir/open2",
+      "man_dir/tar",
+      "titi",
+      "titi_link",
+      "toto",
+      "dir2/fic1",
+      "dir2/fic2",
+      "access/no",
+      "access/x",
+      "access/no_x_dir/",
+      "access/no_x_dir/a"
+    };
+  
   struct posix_header *a_tester = tar_ls("/tmp/tsh_test/test.tar", &size);
   for(int i = 0; i < size; i++) {
     tmp = 0;
@@ -215,6 +263,159 @@ static char *test_tar_ls(){
       mu_assert("Error, this isn't the good ls", strcmp(test[i], a_tester[j].name) == 0 || tmp++ < size );
   }
   free(a_tester);
+  return 0;
+}
+
+
+static int sort_header_name(const void *lhs, const void *rhs)
+{
+  return strcmp(((tar_file*)lhs)->header.name, ((tar_file*)rhs)->header.name);
+}
+  
+
+static char *tar_ls_all_test()
+{
+  int tar_fd = open("/tmp/tsh_test/test.tar", O_RDONLY);  
+  array *arr = tar_ls_all(tar_fd);
+
+  int n = array_size(arr);
+  mu_assert("There should be 18 files in test.tar", 18 == n);
+  
+  char *test[] =
+    {
+      "access/no",
+      "access/no_x_dir/",
+      "access/no_x_dir/a",
+      "access/x",
+      "dir1/",
+      "dir1/subdir/",
+      "dir1/subdir/subsubdir/",
+      "dir1/subdir/subsubdir/hello",
+      "dir1/tata",
+      "dir2/fic1",
+      "dir2/fic2",
+      "man_dir/",
+      "man_dir/man",
+      "man_dir/open2",
+      "man_dir/tar",
+      "titi",
+      "titi_link",
+      "toto"
+    };
+
+  array_sort(arr, sort_header_name);
+
+  tar_file *tf;
+  for (int i=0; i < n; i++)
+    {
+      tf = (tar_file*)array_get(arr, i);
+      mu_assert("Wrong file descriptor", tf->tar_fd == tar_fd);
+      mu_assert("Invalid ls", !strcmp(tf->header.name, test[i]));
+      free(tf);
+    }
+  
+  array_free(arr, false);
+  close(tar_fd);
+  
+  return 0;
+}
+
+static char *tar_ls_dir_root_test()
+{
+  int tar_fd = open("/tmp/tsh_test/test.tar", O_RDONLY);  
+  array *arr = tar_ls_dir(tar_fd, "", false);
+
+  int n = array_size(arr);
+  mu_assert("There should be 5 files at root in test.tar", n == 5);
+  
+  char *test[] =
+    {      
+      "dir1/",
+      "man_dir/",
+      "titi",
+      "titi_link",
+      "toto"
+    };
+
+  array_sort(arr, sort_header_name);
+
+  tar_file *tf;
+  for (int i=0; i < n; i++)
+    {
+      tf = (tar_file*)array_get(arr, i);
+      mu_assert("Wrong file descriptor", tf->tar_fd == tar_fd);
+      mu_assert("Invalid ls", !strcmp(tf->header.name, test[i]));
+      free(tf);
+    }
+  
+  array_free(arr, false);
+  close(tar_fd);
+  
+  return 0;
+}
+
+static char *tar_ls_dir_man_dir_test()
+{
+  int tar_fd = open("/tmp/tsh_test/test.tar", O_RDONLY);  
+  array *arr = tar_ls_dir(tar_fd, "man_dir/", false);
+
+  int n = array_size(arr);
+  mu_assert("There should be 3 files in man_dir/ in test.tar", n == 3);
+  
+  char *test[] =
+    {
+      "man_dir/man",
+      "man_dir/open2",
+      "man_dir/tar"
+    };
+
+  array_sort(arr, sort_header_name);
+
+  tar_file *tf;
+  for (int i=0; i < n; i++)
+    {
+      tf = (tar_file*)array_get(arr, i);
+      mu_assert("Wrong file descriptor", tf->tar_fd == tar_fd);
+      mu_assert("Invalid ls", !strcmp(tf->header.name, test[i]));
+      free(tf);
+    }
+  
+  array_free(arr, false);
+  close(tar_fd);
+  
+  return 0;
+}
+
+static char *tar_ls_dir_dir1_rec_test()
+{
+  int tar_fd = open("/tmp/tsh_test/test.tar", O_RDONLY);  
+  array *arr = tar_ls_dir(tar_fd, "dir1/", true);
+
+  int n = array_size(arr);
+  mu_assert("There should be 4 files in dir1/ subdirectories in test.tar", n == 4);
+  
+  char *test[] =
+    {
+      "dir1/subdir/",
+      "dir1/subdir/subsubdir/",
+      "dir1/subdir/subsubdir/hello",
+      "dir1/tata"
+    };
+
+  array_sort(arr, sort_header_name);
+
+  tar_file *tf;
+  for (int i=0; i < n; i++)
+    {
+      tf = (tar_file*)array_get(arr, i);
+      mu_assert("Wrong file descriptor", tf->tar_fd == tar_fd);
+      mu_assert("Invalid ls", !strcmp(tf->header.name, test[i]));
+      free(tf);
+    }
+  
+  array_free(arr, false);
+  close(tar_fd);
+
   return 0;
 }
 

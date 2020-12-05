@@ -69,7 +69,7 @@ $(TARGET)$(CMD_DIR)%.o : $(SRC)$(CMD_DIR)%.c
 	@mkdir -p $(dir $@)
 	@$(CC) -I $(INCLUDE) -I $(TYPES_INCLUDE) -c $(CFLAGS) -o $@ $<
 
-$(BIN)% : $(OBJS_NO_MAIN) $(TARGET)$(CMD_DIR)%.o
+$(BIN)% : $(OBJS_NO_MAIN) $(TARGET)$(CMD_DIR)%.o $(TYPES_OBJS)
 	@mkdir -p $(BIN)
 	@$(CC) -I $(INCLUDE) -I $(TYPES_INCLUDE) $(CFLAGS) -o $@ $^
 

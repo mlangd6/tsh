@@ -2,6 +2,10 @@
 #define TAR_H
 /* Code taken from https://www.gnu.org/software/tar/manual/html_node/Standard.html and on https://gaufre.informatique.univ-paris-diderot.fr/klimann/systL3_2020-2021/blob/master/TP/TP1/tar.h */
 
+#include <sys/types.h>
+
+#include "array.h"
+
 /* tar Header Block, from POSIX 1003.1-1990.  */
 #define BLOCKSIZE 512
 #define BLOCKBITS 9
@@ -45,6 +49,18 @@ struct posix_header
 
 #define OLDGNU_MAGIC "ustar  "  /* 7 chars and a null */
 
+/** 
+ * Represents a file with its header and data in a tar.
+ *
+ * Be extremely careful after any changes (mainly write) on #tar_fd as this structure may not stay coherent.
+ */
+typedef struct
+{
+  int tar_fd;                 /**< a file descriptor referencing the tar owning this file */
+  struct posix_header header; /**< the posix header for this file */
+  off_t file_start;           /**< the beginning of the header of this file in #tar_fd */
+  
+} tar_file;
 
 
 /* Compute and write the checksum of a header, by adding all (unsigned) bytes in
@@ -111,11 +127,12 @@ int nb_files_in_tar(int tar_fd);
 /* Return the number of files in the tar TAR_NAME */
 int nb_files_in_tar_c(char *tar_name);
 
-/* List all files contained in the tar at path TAR_NAME
-   Return :
-   On success, a malloc array of all headers
-   On failure, NULL */
+
 struct posix_header *tar_ls(const char *tar_name, int *size);
+
+array* tar_ls_dir (int tar_fd, const char *dir_name, bool rec);
+
+array* tar_ls_all (int tar_fd);
 
 /* Open the tar at path TAR_NAME and copy the content of FILENAME into FD
    Return :
