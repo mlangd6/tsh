@@ -31,14 +31,6 @@ static int rm_(char *tar_name, char *filename)
 
 static int rm_r(char *tar_name, char *filename)
 {
-  if(is_dir_name(filename)){
-    int length = strlen(filename);
-    if(filename[length - 1] != '/')
-    {
-      filename[length] = '/';
-      filename[length+1] = '\0';
-    }
-  }
   if(tar_rm(tar_name, filename) == -1){
     tar_name[strlen(tar_name)] = '/';
     error_cmd(CMD_NAME, tar_name);
