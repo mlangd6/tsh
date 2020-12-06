@@ -44,6 +44,36 @@ static int rm_r(char *tar_name, char *filename)
 
 int rm(char *tar_name, char *filename, char *options)
 {
+  char *ntn = malloc(4096);
+  strcpy(ntn, tar_name);
+  ntn[strlen(ntn)] = '/';
+  ntn[strlen(ntn)+1] = '\0';
+
+  char *ntf = malloc(100);
+  strcpy(ntf, filename);
+
+  char *nn = malloc(4096);
+  strcpy(nn, ntn);
+  strcat(nn, ntf);
+
+  char *env = malloc(4096);
+  strcpy(env, getenv("PWD"));
+  env[strlen(env)] = '/';
+  env[strlen(env)+1] = '\0';
+
+  if(strstr(env, nn) != NULL)
+  {
+    tar_name[strlen(tar_name)] = '/';
+    error_cmd(CMD_NAME, tar_name);
+    free(ntn);
+    free(ntf);
+    free(nn);
+    return EXIT_FAILURE;
+  }
+
+  free(ntn);
+  free(ntf);
+  free(nn);
   return (strchr(options, 'r'))? rm_r(tar_name, filename) : rm_(tar_name, filename);
 }
 
