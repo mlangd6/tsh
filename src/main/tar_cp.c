@@ -1,3 +1,4 @@
+#include <dirent.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <stdbool.h>
@@ -55,15 +56,44 @@ static int extract_reg_file (const tar_file *tf, const char *extract_path)
 }
 
 
+static int make_path(const char* dest, char *path)
+{
+  int dest_fd = open(dest, O_DIRECTORY);
+  if (dest_fd < 0)
+    return -1;
+  
+  char *p = path;
+  while ((p = strchr(p, '/')) && p[1])
+    {      
+      *p = '\0';
+
+      if (mkdirat(dest_fd, path, 0777 & ~getumask()) == -1)
+	{
+	  if (errno != EEXIST)
+	    {
+	      *p = '/';
+	      close(dest_fd);
+	      return -1;
+	    }
+	}
+      
+      *p = '/';
+      p++;
+    }  
+
+  close(dest_fd);
+  return 0;
+}
+
 /**
  * Extracts the content of a directory from a tar.
  *
  * @param tar_name the path to the tar
  * @param dir_name the directory to extract from #tar_name
- * @param dest_name the path to the output directory
+ * @param dest the path to the output directory
  * @return On success 0; otherwise -1
  */
-int tar_extract_dir(const char *tar_name, const char *dir_name, const char *dest_name)
+int tar_extract_dir(const char *tar_name, const char *dir_name, const char *dest)
 {
   int tar_fd;
   array *arr;
@@ -80,10 +110,11 @@ int tar_extract_dir(const char *tar_name, const char *dir_name, const char *dest
   arr = tar_ls_dir(tar_fd, dir_name, true);
   if (!arr)
     goto error;
+
   
   array_sort(arr, extract_order);
   
-  size_t dest_len = strlen(dest_name);
+  size_t dest_len = strlen(dest);
   if (dest_len == 0)
     goto error;
   
@@ -91,7 +122,7 @@ int tar_extract_dir(const char *tar_name, const char *dir_name, const char *dest
   if (!extract_path)
     goto error;
 
-  strcpy(extract_path, dest_name);
+  strcpy(extract_path, dest);
   extract_path_end = extract_path + dest_len;
 
   // on doit vérifier si le dossier de destination se termine par un /
@@ -109,9 +140,13 @@ int tar_extract_dir(const char *tar_name, const char *dir_name, const char *dest
 
       if (!tf)
 	goto error;
-
+      
       // on construit le chemin complet d'extraction
       strcpy(extract_path_end, tf->header.name);
+
+      // on crée le chemin d'extraction si besoin
+      if (make_path(dest, tf->header.name) < 0)
+	goto error;
       
       switch (tf->header.typeflag)
 	{
@@ -161,7 +196,8 @@ int tar_extract_dir(const char *tar_name, const char *dir_name, const char *dest
   
 
 /* Open the tarball TAR_NAME and copy the content of FILENAME into FD */
-int tar_cp_file(const char *tar_name, const char *filename, int fd) {
+int tar_cp_file(const char *tar_name, const char *filename, int fd)
+{
   int tar_fd = open(tar_name, O_RDONLY);
 
   if (tar_fd < 0)
@@ -171,20 +207,25 @@ int tar_cp_file(const char *tar_name, const char *filename, int fd) {
   struct posix_header file_header;
   int r = seek_header(tar_fd, filename, &file_header);
 
-  if(r < 0) // erreur
-    return error_pt(&tar_fd, 1, errno);
-  else if( r == 0) {
-    return error_pt(&tar_fd, 1, ENOENT);
-  }
-  else if (file_header.typeflag == DIRTYPE) {
-    return error_pt(&tar_fd, 1, EISDIR);
-  }
-  else if (file_header.typeflag != AREGTYPE && file_header.typeflag != REGTYPE) {
-    return error_pt(&tar_fd, 1, EPERM);
-  }
+  if (r < 0) // erreur
+    {
+      return error_pt(&tar_fd, 1, errno);
+    }
+  else if (r == 0)
+    {
+      return error_pt(&tar_fd, 1, ENOENT);
+    }
+  else if (file_header.typeflag == DIRTYPE)
+    {
+      return error_pt(&tar_fd, 1, EISDIR);
+    }
+  else if (file_header.typeflag != AREGTYPE && file_header.typeflag != REGTYPE)
+    {
+      return error_pt(&tar_fd, 1, EPERM);
+    }
 
   file_size = get_file_size(&file_header);
-  if( read_write_buf_by_buf(tar_fd, fd, file_size, BUFSIZE) < 0)
+  if (read_write_buf_by_buf(tar_fd, fd, file_size, BUFSIZE) < 0)
     return error_pt(&tar_fd, 1, errno);
 
   close(tar_fd);

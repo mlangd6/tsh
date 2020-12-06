@@ -445,16 +445,18 @@ static char *tar_cp_test() {
 
 static char *tar_extract_dir_man_dir_test()
 {
-  system("mkdir /tmp/tsh_test/extract_dir /tmp/tsh_test/man_dir");
-  
-  int r = tar_extract_dir("/tmp/tsh_test/test.tar", "man_dir/", "/tmp/tsh_test/extract_dir");
+  int r = tar_extract_dir("/tmp/tsh_test/test.tar", "man_dir/", "/tmp/tsh_test");
   mu_assert("Error during the extraction", r == 0);
 
-  system("tar xf /tmp/tsh_test/test.tar man_dir/ --directory /tmp/tsh_test/man_dir");
+  system("man man > /tmp/tsh_test/man_dir/man_diff;"		\
+	 "man 2 open > /tmp/tsh_test/man_dir/open2_diff;"	\
+	 "man tar > /tmp/tsh_test/man_dir/tar_diff");
   
-  mu_assert("Error with content of files after extraction", system("diff -r /tmp/tsh_test/man_dir /tmp/tsh_test/extract_dir") == 0);
+  mu_assert("system(\"diff /tmp/tsh_test/man_dir/man_diff /tmp/tsh_test/man_dir/man\") == 0)", system("diff /tmp/tsh_test/man_dir/man_diff /tmp/tsh_test/man_dir/man") == 0);
+  mu_assert("system(\"diff /tmp/tsh_test/man_dir/open2_diff /tmp/tsh_test/man_dir/open2\") == 0)", system("diff /tmp/tsh_test/man_dir/open2_diff /tmp/tsh_test/man_dir/open2") == 0);
+  mu_assert("system(\"diff /tmp/tsh_test/man_dir/tar_diff /tmp/tsh_test/man_dir/tar\") == 0)", system("diff /tmp/tsh_test/man_dir/tar_diff /tmp/tsh_test/man_dir/tar") == 0);
   
-  system("rm -rf /tmp/tsh_test/extract_dir /tmp/tsh_test/man_dir");
+  system("rm -r /tmp/tsh_test/man_dir");  
   
   return 0;
 }
