@@ -17,11 +17,15 @@ static char *tar_add_file_rec_test();
 static char *add_tar_file_in_tar_test();
 static char *tar_add_file_test();
 static char *tar_append_file_test();
+static char *tar_add_file_no_source_test();
+static char *tar_add_file_link_test();
 
 static char *all_tests();
 
 static char *(*tests[])(void) = {
   tar_add_file_test,
+  tar_add_file_link_test,
+  tar_add_file_no_source_test,
   tar_add_file_rec_test,
   add_tar_file_in_tar_test,
   tar_append_file_test
@@ -60,8 +64,52 @@ static char *stat_equals(struct stat *s1, struct stat *s2) {
   return 0;
 }
 
+static char *tar_add_file_link_test()
+{
+  char buff_1[TAR_ADD_TEST_SIZE_BUF];
+  memset(buff_1, 'a', TAR_ADD_TEST_SIZE_BUF);
+  int fd = open("/tmp/tsh_test/taitai", O_CREAT | O_WRONLY, 0600);
+  write(fd, buff_1, TAR_ADD_TEST_SIZE_BUF);
+  close(fd);
+  system("ln -s /tmp/tsh_test/taitai /tmp/tsh_test/taitai_link");
+  tar_add_file("/tmp/tsh_test/test.tar", "/tmp/tsh_test/taitai_link", "taitai_link");
+  struct stat s1b, s2b;
+  lstat("/tmp/tsh_test/taitai_link", &s1b);
+  system("rm /tmp/tsh_test/taitai_link");
+  system("tar -C /tmp/tsh_test -xf /tmp/tsh_test/test.tar taitai_link");
+  lstat("/tmp/tsh_test/taitai_link", &s2b);
+  fd = open("/tmp/tsh_test/taitai_link", O_RDONLY);
+  char buff_2[TAR_ADD_TEST_SIZE_BUF];
+  memset(buff_2, '\0', TAR_ADD_TEST_SIZE_BUF);
+  read(fd, buff_2, TAR_ADD_TEST_SIZE_BUF);
+  close(fd);
+  char *sb = stat_equals(&s1b, &s2b);
+  if (sb != 0) {
+    return sb;
+  }
+  mu_assert("tar_add_file_test: 2 error: content of file", strncmp(buff_1, buff_2, TAR_ADD_TEST_SIZE_BUF) == 0);
+  return 0;
+}
+
+static char *tar_add_file_no_source_test()
+{
+  tar_add_file("/tmp/tsh_test/test.tar", NULL, "toto_test");
+  tar_add_file("/tmp/tsh_test/test.tar", NULL, "dir1/dir_test/");
+  int nb;
+  struct posix_header *a_tester = tar_ls("/tmp/tsh_test/test.tar", &nb);
+  int test[] = {0, 0};
+  for (int i = 0; i < nb; i++)
+  {
+    if (strcmp(a_tester[i].name, "toto_test") == 0) test[0]++;
+    if (strcmp(a_tester[i].name, "dir1/dir_test/") == 0) test[1]++;
+  }
+  mu_assert("tar_add_file_test: error: \"toto_test\" isn't add in the tar", test[0] == 1);
+  mu_assert("tar_add_file_test: error: \"dir1/dir_test/\" isn't add in the tar", test[1] == 1);
+  free(a_tester);
+  return 0;
+}
+
 static char *tar_add_file_test() {
-  //test1
   char buff1[TAR_ADD_TEST_SIZE_BUF];
   memset(buff1, 'a', TAR_ADD_TEST_SIZE_BUF);
 
@@ -85,68 +133,25 @@ static char *tar_add_file_test() {
   }
   mu_assert("tar_add_file_test: 1 error: content of file", strncmp(buff1, buff2, TAR_ADD_TEST_SIZE_BUF) == 0);
   system("rm /tmp/tsh_test/tar_test");
-
-  //test2
-  system("touch /tmp/tsh_test/taitai");
-  char buff_1[TAR_ADD_TEST_SIZE_BUF];
-  memset(buff_1, 'a', TAR_ADD_TEST_SIZE_BUF);
-  int fd_ = open("/tmp/tsh_test/taitai", O_CREAT | O_WRONLY, 0600);
-  write(fd_, buff_1, TAR_ADD_TEST_SIZE_BUF);
-  close(fd_);
-  system("ln -s /tmp/tsh_test/taitai /tmp/tsh_test/taitai_link");
-  tar_add_file("/tmp/tsh_test/test.tar", "/tmp/tsh_test/taitai_link", "taitai_link");
-  struct stat s1b, s2b;
-  lstat("/tmp/tsh_test/taitai_link", &s1b);
-  system("rm /tmp/tsh_test/taitai_link");
-  system("tar -C /tmp/tsh_test -xf /tmp/tsh_test/test.tar taitai_link");
-  lstat("/tmp/tsh_test/taitai_link", &s2b);
-  int fd_2 = open("/tmp/tsh_test/taitai_link", O_RDONLY);
-  char buff_2[TAR_ADD_TEST_SIZE_BUF];
-  memset(buff_2, '\0', TAR_ADD_TEST_SIZE_BUF);
-  read(fd_2, buff_2, TAR_ADD_TEST_SIZE_BUF);
-  close(fd_2);
-  char *sb = stat_equals(&s1b, &s2b);
-  if (sb != 0) {
-    return sb;
-  }
-  mu_assert("tar_add_file_test: 2 error: content of file", strncmp(buff_1, buff_2, TAR_ADD_TEST_SIZE_BUF) == 0);
-  system("rm /tmp/tsh_test/taitai /tmp/tsh_test/taitai_link");
-
-  //test3
-  tar_add_file("/tmp/tsh_test/test.tar", NULL, "toto_test");
-  tar_add_file("/tmp/tsh_test/test.tar", NULL, "dir1/dir_test/");
-  int nb;
-  struct posix_header *a_tester = tar_ls("/tmp/tsh_test/test.tar", &nb);
-  int test[] = {0, 0};
-  for (int i = 0; i < nb; i++)
-  {
-    if (strcmp(a_tester[i].name, "toto_test") == 0) test[0]++;
-    if (strcmp(a_tester[i].name, "dir1/dir_test/") == 0) test[1]++;
-  }
-  mu_assert("tar_add_file_test: error: \"toto_test\" isn't add in the tar", test[0] == 1);
-  mu_assert("tar_add_file_test: error: \"dir1/dir_test/\" isn't add in the tar", test[1] == 1);
-  free(a_tester);
   return 0;
 }
 
 static char *tar_add_file_rec_test() {
-  int nb = 0;
+  system("mkdir -p /tmp/tsh_test/rec/sub_rec1/../sub_rec2");
+  system("touch /tmp/tsh_test/rec/rec_f /tmp/tsh_test/rec/sub_rec1/sub_rec_f");
+  tar_add_file_rec("/tmp/tsh_test/test.tar", "/tmp/tsh_test/rec", "dir1/rec_root/", 0);
+  int nb;
   struct posix_header *a_tester = tar_ls("/tmp/tsh_test/test.tar", &nb);
+  int tmp[] = {0, 0, 0, 0, 0};
   for(int i = 0; i < nb; i++){
-    mu_assert("tar_add_file_rec_test: error: \"./src/cmd/ls.c\" is already in the tar", strcmp("dir1/src/cmd/ls.c", a_tester[i].name) != 0);
+    if(strcmp("dir1/rec_root/", a_tester[i].name) == 0)tmp[0]++;
+    if(strcmp("dir1/rec_root/sub_rec1/", a_tester[i].name) == 0)tmp[1]++;
+    if(strcmp("dir1/rec_root/sub_rec2/", a_tester[i].name) == 0)tmp[2]++;
+    if(strcmp("dir1/rec_root/sub_rec1/sub_rec_f", a_tester[i].name) == 0)tmp[3]++;
+    if(strcmp("dir1/rec_root/rec_f", a_tester[i].name) == 0)tmp[4]++;
   }
-  tar_add_file_rec("/tmp/tsh_test/test.tar", ".", "dir1/tsh/", 0);
-  int nb2 = 0;
-  struct posix_header *a_tester2 = tar_ls("/tmp/tsh_test/test.tar", &nb2);
-  int tmp[4] = {nb2, nb2, nb2, nb2};
-  for(int i = 0; i < nb2; i++){
-    if(strcmp("dir1/tsh/", a_tester2[i].name) == 0)tmp[0] = i;
-    if(strcmp("dir1/tsh/src/cmd/ls.c", a_tester2[i].name) == 0)tmp[1] = i;
-    if(strcmp("dir1/tsh/bin/", a_tester2[i].name) == 0)tmp[2] = i;
-    if(strcmp("dir1/tsh/target/cmd/ls.o", a_tester2[i].name) == 0)tmp[3] = i;
-  }
-  for(int i = 0; i < 4; i++){
-    mu_assert("tar_add_file_test: error: \"./\" isn't add in the tar", tmp[i] < nb2 );
+  for(int i = 0; i < 5; i++){
+    mu_assert("tar_add_file_rec_test: error: \"./\" isn't add in the tar", tmp[i] == 1 );
   }
   return 0;
 }
