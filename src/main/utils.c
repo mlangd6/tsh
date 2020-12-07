@@ -83,18 +83,12 @@ int is_dir_name(const char *filename)
  */
 int is_prefix (const char *prefix, const char *str)
 {
-  int i, j;
-  for (i=0, j=0; prefix[i] && str[j]; i++, j++)
+  size_t prefix_len = strlen(prefix);
+  
+  if (!strncmp(prefix, str, prefix_len))
     {
-      if (prefix[i] != str[j])
-	return 0;      
+      return strlen(str) == prefix_len ? 2 : 1;
     }
 
-  if (!str[j])
-    return 0;
-  
-  if (prefix[i] == str[j])
-    return 2;
-  
-  return 1;
+  return 0;
 }
