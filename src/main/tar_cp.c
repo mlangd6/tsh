@@ -42,11 +42,11 @@ static int extract_order(const void *lhs, const void *rhs)
 }
 
 
-static int extract_reg_file (const tar_file *tf, const char *extract_path)
+static int extract_reg_file (const tar_file *tf, int dest_fd)
 {
   lseek(tf->tar_fd, tf->file_start + BLOCKSIZE, SEEK_SET);
   
-  int fd = open(extract_path, O_CREAT | O_TRUNC | O_WRONLY, S_IRUSR | S_IWUSR);
+  int fd = openat(dest_fd, tf->header.name, O_CREAT | O_TRUNC | O_WRONLY, S_IRUSR | S_IWUSR);
   if (fd < 0)
     return -1;
   
@@ -56,12 +56,8 @@ static int extract_reg_file (const tar_file *tf, const char *extract_path)
 }
 
 
-static int make_path(const char* dest, char *path)
-{
-  int dest_fd = open(dest, O_DIRECTORY);
-  if (dest_fd < 0)
-    return -1;
-  
+static int make_path(int dest_fd, char *path)
+{  
   char *p = path;
   while ((p = strchr(p, '/')) && p[1])
     {      
@@ -72,7 +68,6 @@ static int make_path(const char* dest, char *path)
 	  if (errno != EEXIST)
 	    {
 	      *p = '/';
-	      close(dest_fd);
 	      return -1;
 	    }
 	}
@@ -81,7 +76,6 @@ static int make_path(const char* dest, char *path)
       p++;
     }  
 
-  close(dest_fd);
   return 0;
 }
 
@@ -99,16 +93,18 @@ static int make_path(const char* dest, char *path)
  */
 int tar_extract_dir(const char *tar_name, const char *dir_name, const char *dest)
 {
-  int tar_fd;
+  int tar_fd, dest_fd;
   array *arr;
-  char *extract_path, *extract_path_end;
   tar_file *tf;
 
   tf = NULL;
-  extract_path = NULL;
   
   tar_fd = open(tar_name, O_RDONLY);
   if (tar_fd < 0)    
+    return -1;
+
+  dest_fd = open(dest, O_DIRECTORY);
+  if (dest_fd < 0)
     return error_pt(&tar_fd, 1, errno);
   
   arr = tar_ls_dir(tar_fd, dir_name, true);
@@ -117,26 +113,8 @@ int tar_extract_dir(const char *tar_name, const char *dir_name, const char *dest
 
   
   array_sort(arr, extract_order);
+
   
-  size_t dest_len = strlen(dest);
-  if (dest_len == 0)
-    goto error;
-  
-  extract_path = malloc(dest_len + 102) ; // name[100] + 1 (\0 à la fin) + 1 (le / du milieu si besoin) = 102
-  if (!extract_path)
-    goto error;
-
-  strcpy(extract_path, dest);
-  extract_path_end = extract_path + dest_len;
-
-  // on doit vérifier si le dossier de destination se termine par un /
-  if (extract_path_end[-1] != '/')
-    {
-      *extract_path_end = '/';
-      *(++extract_path_end) = '\0';
-    }
-
-
   // on extrait un par un les fichiers
   for (int i=0; i < array_size(arr); i++)
     {
@@ -145,30 +123,27 @@ int tar_extract_dir(const char *tar_name, const char *dir_name, const char *dest
       if (!tf)
 	goto error;
       
-      // on construit le chemin complet d'extraction
-      strcpy(extract_path_end, tf->header.name);
-
       // on crée le chemin d'extraction si besoin
-      if (make_path(dest, tf->header.name) < 0)
+      if (make_path(dest_fd, tf->header.name) < 0)
 	goto error;
       
       switch (tf->header.typeflag)
 	{
 	case AREGTYPE:
 	case REGTYPE:
-	  extract_reg_file(tf, extract_path);
+	  extract_reg_file(tf, dest_fd);
 	  break;
 	  
 	case DIRTYPE:
-	  mkdir(extract_path, 0777 & ~getumask());
+	  mkdirat(dest_fd, tf->header.name, 0777 & ~getumask());
 	  break;
 
 	case SYMTYPE:
-	  symlink(tf->header.linkname, extract_path);
+	  symlinkat(tf->header.linkname, dest_fd, tf->header.name);
 	  break;
 
 	case LNKTYPE:
-	  link(tf->header.linkname, extract_path);
+	  linkat(AT_FDCWD, tf->header.linkname, dest_fd, tf->header.name, 0);
 	  break;	  
 	}
 
@@ -176,6 +151,7 @@ int tar_extract_dir(const char *tar_name, const char *dir_name, const char *dest
     }
 
   array_free(arr, false);
+  close(dest_fd);
   close(tar_fd);
   
   return 0;
@@ -184,11 +160,11 @@ int tar_extract_dir(const char *tar_name, const char *dir_name, const char *dest
   if (tar_fd >= 0)
     close(tar_fd);
 
+  if (dest_fd >= 0)
+    close(dest_fd);
+  
   if (arr)
     array_free(arr, false);
-
-  if (extract_path)
-    free(extract_path);
 
   if (tf)
     free(tf);
