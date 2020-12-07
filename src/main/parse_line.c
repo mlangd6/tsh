@@ -93,7 +93,7 @@ int exec_tokens(token **tokens, int nb_el, char **argv)
     } else {
       if (prev_is_redir)
       {
-        launch_redir_before(tokens[i-1] -> val.red, tokens[i] -> val.arg);
+        launch_redir(tokens[i-1] -> val.red, tokens[i] -> val.arg);
         free(tokens[i-1]);
       }else {
         argv[j++] = tokens[i] -> val.arg;

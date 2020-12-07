@@ -10,7 +10,8 @@ typedef enum {
 } redir_type;
 
 
-void launch_redir_before(redir_type r, char *arg);
-void launch_redir_after (redir_type r, char *arg);
+void launch_redir(redir_type r, char *arg);
+void init_redirections();
+void reset_redirs();
 
 #endif

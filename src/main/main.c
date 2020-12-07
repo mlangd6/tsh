@@ -38,6 +38,7 @@ static void init_tsh()
   strcpy(tsh_dir, home);
   strcat(tsh_dir, "/.tsh");
   ret_value = EXIT_SUCCESS;
+  init_redirections();
 }
 
 static int launch_tsh_func(char **argv, int argc)
@@ -279,6 +280,7 @@ int main (int argc, char *argv[])
     }
     free(args);
     free(buf);
+    reset_redirs();
   }
 
   return 0;
