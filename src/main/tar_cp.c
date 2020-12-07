@@ -1,4 +1,3 @@
-#include <dirent.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <stdbool.h>
@@ -13,6 +12,7 @@
 #include "errors.h"
 #include "tar.h"
 #include "utils.h"
+
 
 #define BUFSIZE BLOCKSIZE
 
@@ -85,13 +85,17 @@ static int make_path(const char* dest, char *path)
   return 0;
 }
 
+
 /**
  * Extracts the content of a directory from a tar.
  *
+ * `dest` must designate an already existing directory.
+ * Files from `dir_name` are extracted in `dest/dir_name/`.
+ *
  * @param tar_name the path to the tar
- * @param dir_name the directory to extract from #tar_name
+ * @param dir_name the directory to extract from the tar
  * @param dest the path to the output directory
- * @return On success 0; otherwise -1
+ * @return on success 0; otherwise -1
  */
 int tar_extract_dir(const char *tar_name, const char *dir_name, const char *dest)
 {
@@ -193,9 +197,14 @@ int tar_extract_dir(const char *tar_name, const char *dir_name, const char *dest
 }
   
 
-  
-
-/* Open the tarball TAR_NAME and copy the content of FILENAME into FD */
+/**
+ * Copy the content of a file from a tar into a file descriptor.
+ *
+ * @param tar_name the tar in which we want to read `filename`
+ * @param filename the file we want to read
+ * @param fd a file descriptor to write to
+ * @return 0 on success; -1 otherwise
+ */
 int tar_cp_file(const char *tar_name, const char *filename, int fd)
 {
   int tar_fd = open(tar_name, O_RDONLY);

@@ -1,3 +1,10 @@
+/**
+ * @file tar.h
+ * Tar manipulations
+ *
+ * All manipulations on tar file are done using low level I/O.
+ */
+
 #ifndef TAR_H
 #define TAR_H
 /* Code taken from https://www.gnu.org/software/tar/manual/html_node/Standard.html and on https://gaufre.informatique.univ-paris-diderot.fr/klimann/systL3_2020-2021/blob/master/TP/TP1/tar.h */
@@ -134,10 +141,7 @@ array* tar_ls_dir (int tar_fd, const char *dir_name, bool rec);
 
 array* tar_ls_all (int tar_fd);
 
-/* Open the tar at path TAR_NAME and copy the content of FILENAME into FD
-   Return :
-   0  if FILENAME was found and the copy was done without any issue
-   -1 if FILENAME was not found or is not a regular file or a system call failed */
+
 int tar_cp_file(const char *tar_name, const char *filename, int fd);
 
 int tar_extract_dir(const char *tar_name, const char *dir_name, const char *dest_name);

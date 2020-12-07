@@ -56,6 +56,9 @@ static bool always_true(const struct posix_header *header)
 
 /** 
  * Lists all files in a tar.
+ *
+ * The file descriptor `tar_fd` must be already opened with at least read mode.
+ *
  * @param tar_fd the file descriptor referencing a tar
  * @return a pointer to an array of tar_file; `NULL` if there are errors
  */
@@ -71,7 +74,7 @@ array* tar_ls_all (int tar_fd)
  * The file descriptor `tar_fd` must be already opened with at least read mode and `dir_name` must be a null terminated string.
  * To list files at root just put an empty string for `dir_name` otherwise make sure `dir_name` ends with a `/`.
  * 
- * Note that, the returned array has no entry for the listed directory.
+ * Note that, the returned array has no entry for the listed directory (i.e. `dir_name`).
  *
  * @param tar_fd a file descriptor referencing a tar
  * @param dir_name the directory to list
@@ -101,10 +104,13 @@ array* tar_ls_dir (int tar_fd, const char *dir_name, bool rec)
 
 
 
-/* List all files contained in the tar at path TAR_NAME
-   Return :
-   On success, a malloc array of all headers
-   On failure, NULL */
+/** 
+ * List all files contained in a tar. 
+ *
+ * @param tar_name the tar to list
+ * @param nb_headers an address to store the size of the returned array
+ * @return on success, a malloc'd array of all headers; NULL on failure
+ */
 struct posix_header *tar_ls(const char *tar_name, int *nb_headers)
 {
   int tar_fd = open(tar_name, O_RDONLY);
@@ -120,16 +126,16 @@ struct posix_header *tar_ls(const char *tar_name, int *nb_headers)
   assert(list_header);
 
   for(int i=0; i < *nb_headers; i++)
-  {
-    size_read = read(tar_fd, list_header+i, BLOCKSIZE);
+    {
+      size_read = read(tar_fd, list_header+i, BLOCKSIZE);
 
-    if(size_read != BLOCKSIZE)
-	  {
-	     free(list_header);
-	     return error_p(&tar_fd, 1, errno);
-	  }
-    skip_file_content(tar_fd, list_header+i);
-  }
+      if(size_read != BLOCKSIZE)
+	{
+	  free(list_header);
+	  return error_p(&tar_fd, 1, errno);
+	}
+      skip_file_content(tar_fd, list_header+i);
+    }
   close(tar_fd);
   return list_header;
 }
