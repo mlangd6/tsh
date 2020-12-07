@@ -3,7 +3,7 @@
 #include <getopt.h>
 #include <unistd.h>
 #include <stdlib.h>
-#include <wait.h>
+#include <sys/wait.h>
 #include <stdio.h>
 
 #include "errors.h"
