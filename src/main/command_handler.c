@@ -3,7 +3,7 @@
 #include <getopt.h>
 #include <unistd.h>
 #include <stdlib.h>
-#include <wait.h>
+#include <sys/wait.h>
 #include <stdio.h>
 
 #include "errors.h"
@@ -28,7 +28,7 @@ int handle(command cmd, int argc, char **argv) {
     0,
     0,
     0,
-    calloc(argc+1, sizeof(char *))
+    calloc(argc+2, sizeof(char *))
   };
   info.options[info.opt_c++] = cmd.name;
   argv = parse_args(&argc, argv, &info);
@@ -77,9 +77,11 @@ int handle(command cmd, int argc, char **argv) {
         ret = EXIT_FAILURE;
       info.options[info.opt_c] = NULL;
     }
-
+    free(argv[i]);
   }
   free(info.options);
+  free(argv);
+  free(tar_opt);
   return ret;
 }
 
@@ -99,19 +101,25 @@ static char **parse_args(int *argc, char **argv, arg_info *info)
     }
     else
     {
-      char *tmp = reduce_abs_path(argv[i], path);
+      char *new_argv_tmp = malloc(PATH_MAX);
+      if (*argv[i] != '/') // Relative path
+        sprintf(new_argv_tmp, "%s/%s", getenv("PWD"), argv[i]);
+      else
+        strcpy(new_argv_tmp, argv[i]);
+      char *tmp = reduce_abs_path(new_argv_tmp, path);
       if (!tmp)
       {
         info -> err_arg = 1;
         error_cmd(argv[0], argv[i]);
+        free(new_argv_tmp);
         continue;
       }
-      strcpy(argv[i], path);
+      strcpy(new_argv_tmp, path);
       if (split_tar_abs_path(path) != NULL)
         info -> nb_in_tar++;
       else
         info -> nb_out++;
-      new_argv[new_argc++] = argv[i];
+      new_argv[new_argc++] = new_argv_tmp;
     }
   }
   new_argv[new_argc] = NULL;

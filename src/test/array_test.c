@@ -9,8 +9,7 @@
 #include "array.h"
 #include "minunit.h"
 #include "tsh_test.h"
-
-#define ARRAY_TEST_SIZE 5
+#include "array_test.h"
 
 
 static char* array_create_test();
@@ -31,6 +30,31 @@ static char *(*tests[])(void) =
   };
 
 
+static char *all_tests()
+{
+  for (int i = 0; i < ARRAY_TEST_SIZE; i++)
+    {
+      mu_run_test(tests[i]);
+    }
+  return 0;
+}
+
+int launch_array_tests()
+{
+  int prec_tests_run = tests_run;
+  char *results = all_tests();
+  if (results != 0)
+    {
+      printf(RED "%s\n" WHITE, results);
+    }
+  else
+    {
+      printf(GREEN "ALL ARRAY TESTS PASSED\n" WHITE);
+    }
+  printf("array tests run: %d\n\n", tests_run - prec_tests_run);
+  return (results == 0);
+}
+
 static char* array_create_test()
 {
   array *arr = array_create(sizeof(char));
@@ -38,16 +62,16 @@ static char* array_create_test()
   mu_assert("Invalid array size, should be 0", 0 == array_size(arr));
 
   array_free(arr, false);
-  
+
   return 0;
 }
-  
+
 
 static char* array_size_test()
 {
   array *arr = array_create(sizeof(long long));
   mu_assert("Array should be empty after creation", 0 == array_size(arr));
-  
+
   const int size = 2020;
   for (int i=0; i < size; i++)
     {
@@ -65,7 +89,7 @@ static char* array_size_test()
 static char* array_insert_test()
 {
   array *arr = array_create(sizeof(int));
-  
+
   const int size = 4291;
   for (int i=0; i < size; i++)
     {
@@ -97,14 +121,14 @@ static char* array_insert_test()
     }
 
   array_free(arr, false);
-  
+
   return 0;
 }
 
 static char* array_remove_test()
 {
   array *arr = array_create(sizeof(char));
-  
+
   for (char c='a'; c <= 'z'; c++)
     {
       array_insert_first(arr, &c);
@@ -119,9 +143,9 @@ static char* array_remove_test()
       mu_assert("Wrong value after inserting", c == *pc);
       free(pc);
     }
-  
+
   mu_assert("Array should be empty", 0 == array_size(arr));
-  
+
   array_free(arr, false);
 
   return 0;
@@ -146,7 +170,7 @@ static char* array_sort_test()
       "aaa"
     };
   const int name_size = 7;
-  
+
   for (int i=0; i < name_size; i++)
     {
       array_insert_first(arr, name+i);
@@ -163,37 +187,8 @@ static char* array_sort_test()
       mu_assert("Sort didn't work", 0 == strcmp(name[i], *ppc));
       free(ppc);
     }
-  
+
   array_free(arr, false);
 
   return 0;
-}
-
-static char *all_tests()
-{
-  for (int i = 0; i < ARRAY_TEST_SIZE; i++)
-    {
-      mu_run_test(tests[i]);
-    }
-  return 0;
-}
-
-
-int launch_array_tests()
-{
-  int prec_tests_run = tests_run;
-
-  char *results = all_tests();
-  if (results != 0)
-    {
-      printf("%s\n", results);
-    }
-  else
-    {
-      printf("ALL ARRAY TESTS PASSED\n");
-    }
-  
-  printf("array tests run: %d\n\n", tests_run - prec_tests_run);
-  
-  return (results == 0);
 }

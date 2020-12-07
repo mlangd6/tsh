@@ -58,7 +58,10 @@ int is_tar(const char *path)
   while( !fail )
     {
     if((read_size=read(tar_fd, &file_header, BLOCKSIZE)) < 0)
+    {
+      close(tar_fd);
       return -1;
+    }
 
     if( read_size != BLOCKSIZE )
       fail = 1;
