@@ -1,17 +1,18 @@
+#include "tar.h"
+
 #include <errno.h>
 #include <fcntl.h>
-#include <stdio.h>
+#include <grp.h>
+#include <linux/limits.h>
+#include <pwd.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <unistd.h>
-#include <pwd.h>
-#include <grp.h>
-#include <linux/limits.h>
 
+#include "array.h"
 #include "errors.h"
-#include "tar.h"
 #include "utils.h"
 
 static int is_mode_correct(int mode)
@@ -34,10 +35,10 @@ static int type_of_user(struct posix_header hd, struct passwd *pwd, gid_t *group
     return 0;
   gid_t gid =strtol(hd.gid, NULL, 8);
   for (int i = 0; i < nb_groups; i++)
-  {
-    if (gid == groups[i])
-      return 1;
-  }
+    {
+      if (gid == groups[i])
+	return 1;
+    }
   /* Test current gid because: it is unspecified whether the effective group ID
      of the calling process is included in the returned list (getgroups man page)*/
   if (pwd -> pw_gid == groups[1])
@@ -53,19 +54,19 @@ static int has_rights(struct posix_header hd, struct passwd *pwd, int mode)
 
   int type_u = type_of_user(hd, pwd, groups, nb_groups);
   int rights[] =
-  {
-    hd.mode[4] - '0',
-    hd.mode[5] - '0',
-    hd.mode[6] - '0'
-  };
+    {
+      hd.mode[4] - '0',
+      hd.mode[5] - '0',
+      hd.mode[6] - '0'
+    };
 
   if ( (mode & R_OK && !(R_OK & rights[type_u]))
-  ||   (mode & W_OK && !(W_OK & rights[type_u]))
-  ||   (mode & X_OK && !(X_OK & rights[type_u])) )
-  {
-    errno = EACCES;
-    return -1;
-  }
+       ||   (mode & W_OK && !(W_OK & rights[type_u]))
+       ||   (mode & X_OK && !(X_OK & rights[type_u])) )
+    {
+      errno = EACCES;
+      return -1;
+    }
   return 0;
 }
 
@@ -74,35 +75,51 @@ static int has_rights(struct posix_header hd, struct passwd *pwd, int mode)
    1 if file was found and has the rights
    2 if file is a dir and has beeen found in his subfile
 */
-static int simple_tar_access(const char *filename, struct posix_header *hds, int nb_hds, struct passwd *pwd, int mode)
+static int simple_tar_access(const char *filename, array *headers, struct passwd *pwd, int mode)
 {
+  int r;
   int found = 0;
   int index = -1;
   int is_dir = is_dir_name(filename);
-  for (int i = 0; i < nb_hds; i++)
-  {
-    if (! strcmp(hds[i].name, filename))
+  tar_file *tf = NULL;
+  
+  for (int i = 0; i < array_size(headers); i++)
     {
-      found = 1;
-      index = i;
-    }
-    else if (is_dir && is_prefix(filename, hds[i].name) && found != 1)
-      found = 2;
-  }
-  if (!found)
-  {
-    errno = ENOENT;
-    return -1;
-  }
-  else if (mode == F_OK || found == 2)
-    return found;
-  // else found == 1
-  return (has_rights(hds[index], pwd, mode) == 0) ? 1 : -1;
+      tf = array_get(headers, i);
 
+      if (!strcmp(tf->header.name, filename))
+	{
+	  found = 1;
+	  index = i;
+	}
+      else if (is_dir && is_prefix(filename, tf->header.name) && found != 1)
+	{
+	  found = 2;
+	}
+
+      free(tf);
+    }
+  
+  if (!found)
+    {
+      errno = ENOENT;
+      return -1;
+    }
+  else if (mode == F_OK || found == 2)
+    {
+      return found;
+    }
+  // else found == 1
+
+  tf = array_get(headers, index);
+  r = has_rights(tf->header, pwd, mode);
+  free(tf);
+  
+  return r == 0 ? 1 : -1;
 }
 
 /* Check user's permissions for every parent directory of FILENAME and FILENAME itself */
-static int tar_access_all(const char *filename, struct posix_header *hds, int nb_hds, struct passwd *pwd, int mode)
+static int tar_access_all(const char *filename, array *headers, struct passwd *pwd, int mode)
 {
   size_t filename_len = strlen(filename);
   char *cpy = malloc(filename_len + 1);
@@ -110,42 +127,56 @@ static int tar_access_all(const char *filename, struct posix_header *hds, int nb
   char *it = cpy;
   char tmp;
   while ((it = strchr(it, '/')) != NULL && it[1] != '\0')
-  {
-    tmp = it[1];
-    it[1] = '\0';
-    if (simple_tar_access(cpy, hds, nb_hds, pwd, X_OK) == -1) // Test if parent dir is executable
     {
+      tmp = it[1];
+      it[1] = '\0';
+      if (simple_tar_access(cpy, headers, pwd, X_OK) == -1) // Test if parent dir is executable
+	{
+	  it[1] = tmp;
+	  free(cpy);
+	  return -1;
+	}
       it[1] = tmp;
-      free(cpy);
-      return -1;
+      it++;
     }
-    it[1] = tmp;
-    it++;
-  }
-  return simple_tar_access(cpy, hds, nb_hds, pwd, mode);
+  return simple_tar_access(cpy, headers, pwd, mode);
 }
 
 /* Check user's permissions for file FILE_NAME in tar at path TAR_NAME */
 int tar_access(const char *tar_name, const char *file_name, int mode)
 {
-  if(!is_mode_correct(mode))
-  {
-    errno = EINVAL;
+  int tar_fd = open(tar_name, O_RDONLY);
+  if (tar_fd <0)
     return -1;
-  }
 
-  int nb_hds;
-  struct posix_header *hds = tar_ls(tar_name, &nb_hds);
-  if( !hds )
+  int r = ftar_access(tar_fd, file_name, mode);
+
+  close(tar_fd);
+  return r;
+}
+
+/* identical to tar_access except that the tar about which information is to be retrieved is specified by the file descriptor tar_fd.*/
+int ftar_access(int tar_fd, const char *file_name, int mode)
+{
+  if (!is_mode_correct(mode))
+    {
+      errno = EINVAL;
+      return -1;
+    }
+
+  array *headers = tar_ls_all(tar_fd);
+  if (!headers)
     return -1;
 
   struct passwd *pwd = getpwuid(getuid());
   int found;
+  
   if (pwd -> pw_uid == 0)
-    found = simple_tar_access(file_name, hds, nb_hds, pwd, F_OK);
+    found = simple_tar_access(file_name, headers, pwd, F_OK);
   else
-    found = tar_access_all(file_name, hds, nb_hds, pwd, mode);
-  free(hds);
+    found = tar_access_all(file_name, headers, pwd, mode);
+
+  array_free(headers, false);
 
   return found;
 }

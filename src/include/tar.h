@@ -173,6 +173,8 @@ int tar_mv_file(const char *tar_name, const char *filename, int fd);
    EINVAL MODE was incorrectly specified. */
 int tar_access(const char *tar_name, const char *file_name, int mode);
 
+int ftar_access(int tar_fd, const char *file_name, int mode);
+
 /* Append file name FILENAME in tarball TAR_NAME with the content of SRC_FD
    Return :
    0 if everything worked

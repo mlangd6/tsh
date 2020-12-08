@@ -86,6 +86,9 @@ array* tar_ls_all (int tar_fd)
  */
 array* tar_ls_dir (int tar_fd, const char *dir_name, bool rec)
 {
+  // on vérifie que dir_name existe bien
+  
+  
   bool in_dir(const struct posix_header *header)
   {
     if (is_prefix(dir_name, header->name) != 1)
