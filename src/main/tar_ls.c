@@ -1,3 +1,5 @@
+#include "tar.h"
+
 #include <assert.h>
 #include <errno.h>
 #include <fcntl.h>
@@ -8,11 +10,12 @@
 
 #include "array.h"
 #include "errors.h"
-#include "tar.h"
 #include "utils.h"
 
 
-
+/**
+ * Lists all files passing a predicate in a tar.
+ */
 static array* tar_ls_if (int tar_fd, bool (*predicate)(const struct posix_header *))
 {
   array *ret;
@@ -28,7 +31,7 @@ static array* tar_ls_if (int tar_fd, bool (*predicate)(const struct posix_header
       if (size_read != BLOCKSIZE)
 	{	  
 	  array_free(ret, false);
-	  return error_p(&tar_fd, 1, errno);
+	  return NULL;
 	}
 
       if (tf.header.name[0] == '\0')
@@ -48,7 +51,7 @@ static array* tar_ls_if (int tar_fd, bool (*predicate)(const struct posix_header
 }
 
 
-static bool always_true(const struct posix_header *header)
+static bool always_true (const struct posix_header *header)
 {
   return true;
 }
@@ -69,7 +72,7 @@ array* tar_ls_all (int tar_fd)
 
 
 /** 
- * Lists all files in a directory in a tar.
+ * Lists all files from a directory contained in a tar.
  *
  * The file descriptor `tar_fd` must be already opened with at least read mode and `dir_name` must be a null terminated string.
  * To list files at root just put an empty string for `dir_name` otherwise make sure `dir_name` ends with a `/`.
@@ -92,7 +95,7 @@ array* tar_ls_dir (int tar_fd, const char *dir_name, bool rec)
       return true;
     
     char *c = strchr(header->name + strlen(dir_name), '/');
-    return !c || !c[1];
+    return !c || !c[1]; // pas de '/' ou '/' à la fin
   }
   
   if(*dir_name == '\0' || is_dir_name(dir_name))          
