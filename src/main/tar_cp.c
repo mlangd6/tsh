@@ -1,3 +1,5 @@
+#include "tar.h"
+
 #include <errno.h>
 #include <fcntl.h>
 #include <stdbool.h>
@@ -10,7 +12,6 @@
 
 #include "array.h"
 #include "errors.h"
-#include "tar.h"
 #include "utils.h"
 
 
@@ -41,7 +42,9 @@ static int extract_order(const void *lhs, const void *rhs)
   return strcmp(lhd.name, rhd.name);
 }
 
-
+/**
+ * Extract a regular file from a tar
+ */
 static int extract_reg_file (const tar_file *tf, int dest_fd)
 {
   lseek(tf->tar_fd, tf->file_start + BLOCKSIZE, SEEK_SET);
@@ -55,7 +58,9 @@ static int extract_reg_file (const tar_file *tf, int dest_fd)
   return read_write_buf_by_buf(tf->tar_fd, fd, file_size, BUFSIZE);
 }
 
-
+/**
+ * Create a path from a directory
+ */
 static int make_path(int dest_fd, char *path)
 {  
   char *p = path;
@@ -143,7 +148,7 @@ int tar_extract_dir(const char *tar_name, const char *dir_name, const char *dest
 	  break;
 
 	case LNKTYPE:
-	  linkat(AT_FDCWD, tf->header.linkname, dest_fd, tf->header.name, 0);
+	  linkat(dest_fd, tf->header.linkname, dest_fd, tf->header.name, 0);
 	  break;	  
 	}
 
@@ -156,12 +161,9 @@ int tar_extract_dir(const char *tar_name, const char *dir_name, const char *dest
   
   return 0;
 
- error:
-  if (tar_fd >= 0)
-    close(tar_fd);
-
-  if (dest_fd >= 0)
-    close(dest_fd);
+ error:  
+  close(dest_fd);
+  close(tar_fd);  
   
   if (arr)
     array_free(arr, false);
