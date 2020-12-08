@@ -21,13 +21,15 @@ static char *tar_ls_all_test();
 static char *tar_ls_dir_root_test();
 static char *tar_ls_dir_man_dir_test();
 static char *tar_ls_dir_dir1_rec_test();
+static char *tar_ls_fail_test();
 
 static char *(*tests[])(void) = {
   tar_ls_test,
   tar_ls_all_test,
   tar_ls_dir_root_test,
   tar_ls_dir_man_dir_test,
-  tar_ls_dir_dir1_rec_test
+  tar_ls_dir_dir1_rec_test,
+  tar_ls_fail_test
 };
 
 int launch_tar_ls_tests()
@@ -244,5 +246,20 @@ static char *tar_ls_dir_dir1_rec_test()
   array_free(arr, false);
   close(tar_fd);
 
+  return 0;
+}
+
+
+static char *tar_ls_fail_test()
+{
+  int tar_fd = open("/tmp/tsh_test/test.tar", O_RDONLY);  
+
+  mu_assert("tar_ls_dir(tar_fd, \"not_a_dir_name\", true) != NULL", tar_ls_dir(tar_fd, "not_a_dir_name", true) == NULL);
+  mu_assert("tar_ls_dir(tar_fd, \"not_a_dir_name\", false) != NULL", tar_ls_dir(tar_fd, "not_a_dir_name", false) == NULL);
+
+  mu_assert("tar_ls_dir(tar_fd, \"not_existing/\", true) != NULL", tar_ls_dir(tar_fd, "not_existing/", true) == NULL);
+  mu_assert("tar_ls_dir(tar_fd, \"not_existing/\", false) != NULL", tar_ls_dir(tar_fd, "not_existing/", false) == NULL);
+
+  close(tar_fd);
   return 0;
 }

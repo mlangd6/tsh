@@ -85,10 +85,7 @@ array* tar_ls_all (int tar_fd)
  * @return a pointer to an array of tar_file; `NULL` if there are errors
  */
 array* tar_ls_dir (int tar_fd, const char *dir_name, bool rec)
-{
-  // on vérifie que dir_name existe bien
-  
-  
+{  
   bool in_dir(const struct posix_header *header)
   {
     if (is_prefix(dir_name, header->name) != 1)
@@ -100,11 +97,15 @@ array* tar_ls_dir (int tar_fd, const char *dir_name, bool rec)
     char *c = strchr(header->name + strlen(dir_name), '/');
     return !c || !c[1]; // pas de '/' ou '/' à la fin
   }
-  
-  if(*dir_name == '\0' || is_dir_name(dir_name))          
+
+  if (*dir_name == '\0')
     return tar_ls_if(tar_fd, in_dir);
-      
-  return NULL;
+    
+  // on vérifie que dir_name est un dossier et qu'il existe bien
+  if (!is_dir_name(dir_name) || ftar_access(tar_fd, dir_name, F_OK) == -1)
+    return NULL;
+  
+  return tar_ls_if(tar_fd, in_dir);
 }
 
 
