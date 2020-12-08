@@ -14,6 +14,8 @@ static char *reduce_abs_path_root_test();
 static char *reduce_abs_path_tar_test();
 static char *reduce_abs_path_titi_test();
 static char *reduce_abs_path_dir_test();
+static char *reduce_abs_path_non_existing_file();
+
 
 extern int tests_run;
 
@@ -22,7 +24,8 @@ static char *(*tests[])(void) = {
   reduce_abs_path_root_test,
   reduce_abs_path_tar_test,
   reduce_abs_path_titi_test,
-  reduce_abs_path_dir_test
+  reduce_abs_path_dir_test,
+  reduce_abs_path_non_existing_file
 };
 
 
@@ -147,8 +150,27 @@ static char *reduce_abs_path_titi_test() {
       mu_assert("reduce_abs_path: error: Should return \"/tmp/tsh_test/test.tar/titi\"", strcmp(reduce_abs_path(to_test[i], path), "/tmp/tsh_test/test.tar/titi") == 0);
     }
 
-  mu_assert("reduce_abs_path should fail", reduce_abs_path("/tmp/tsh_test/test.tar/titi/", path) == NULL);
+  mu_assert("reduce_abs_path should return \"/tmp/tsh_test/test.tar/titi/\"", !strcmp(reduce_abs_path("/tmp/tsh_test/test.tar/titi/////", path), "/tmp/tsh_test/test.tar/titi/"));
+  mu_assert("reduce_abs_path shouldn't change path", !strcmp(reduce_abs_path("/tmp/tsh_test/test.tar/titi/", path), "/tmp/tsh_test/test.tar/titi/"));
 
+  return 0;
+}
+
+static char *reduce_abs_path_non_existing_file()
+{
+  char path[PATH_MAX];
+  const char *to_test[] =
+  {
+    "/tmp/tsh_test/test.tar/file",
+    "/tmp/.//////////////////.././tmp/././././/tsh_test/.//test.tar/../test.tar/file",
+    "/tmp/.////////tsh_test/../tsh_test/test.tar/dir1/../access/./////../file"
+  };
+  for (int i = 0; i < 3; i++)
+  {
+    mu_assert("reduce_abs_path: error: should return \"/tmp/tsh_test/test.tar/file\"", !strcmp(reduce_abs_path(to_test[i], path), "/tmp/tsh_test/test.tar/file"));
+  }
+  mu_assert("reduce_abs_path: error: should return \"/tmp/tsh_test/file\"", !strcmp(reduce_abs_path("/tmp/./tsh_test/file", path), "/tmp/tsh_test/file"));
+  mu_assert("reduce_abs_path: error: should return \"/tmp/tsh_test/test.tar/dir1/subdir/subsubdir/file\"", !strcmp(reduce_abs_path("/tmp/tsh_test/test.tar/dir1/.///////./././///subdir/../././../dir1/subdir/subsubdir/././///file", path), "/tmp/tsh_test/test.tar/dir1/subdir/subsubdir/file"));
   return 0;
 }
 
@@ -166,7 +188,7 @@ static char *reduce_abs_path_dir_test()
       mu_assert("reduce_abs_path: error: Should return \"/tmp/tsh_test/test.tar/dir1/subdir/\"", strcmp(reduce_abs_path(to_test[i], path), "/tmp/tsh_test/test.tar/dir1/subdir/") == 0);
     }
 
-  mu_assert("reduce_abs_path should fail", reduce_abs_path("/tmp/tsh_test/test.tar/dir1/subdir", path) == NULL);
+  mu_assert("reduce_abs_path shouldn't change path", !strcmp(reduce_abs_path("/tmp/tsh_test/test.tar/dir1/subdir", path), "/tmp/tsh_test/test.tar/dir1/subdir"));
 
 
   return 0;
