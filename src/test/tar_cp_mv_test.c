@@ -14,11 +14,13 @@ extern int tests_run;
 
 static char *tar_cp_test();
 static char *tar_mv_test();
+static char *tar_extract_dir_man_dir_test();
 static char *all_tests();
 
 static char *(*tests[])(void) = {
   tar_cp_test,
-  tar_mv_test
+  tar_mv_test,
+  tar_extract_dir_man_dir_test
 };
 
 int launch_tar_cp_mv_tests() {
@@ -38,10 +40,10 @@ int launch_tar_cp_mv_tests() {
 static char *all_tests()
 {
   for (int i = 0; i < TAR_CP_MV_TEST_SIZE; i++)
-  {
-    before();
-    mu_run_test(tests[i]);
-  }
+    {
+      before();
+      mu_run_test(tests[i]);
+    }
   return 0;
 }
 
@@ -60,12 +62,31 @@ static char *tar_cp_test() {
     mu_assert("Open didn't worked", 0);
   }
   mu_assert("The file doesn't exists and the function shouldn't return 0",
-    tar_cp_file("/tmp/tsh_test/test.tar", "dont_exist", fd2) != 0);
+	    tar_cp_file("/tmp/tsh_test/test.tar", "dont_exist", fd2) != 0);
   char c;
   mu_assert("File should be empty", read(fd2, &c, 1) == 0);
   close(fd2);
   return 0;
 }
+
+static char *tar_extract_dir_man_dir_test()
+{
+  int r = tar_extract_dir("/tmp/tsh_test/test.tar", "man_dir/", "/tmp/tsh_test");
+  mu_assert("Error during the extraction", r == 0);
+
+  system("man man > /tmp/tsh_test/man_dir/man_diff;"		\
+	 "man 2 open > /tmp/tsh_test/man_dir/open2_diff;"	\
+	 "man tar > /tmp/tsh_test/man_dir/tar_diff");
+  
+  mu_assert("system(\"diff /tmp/tsh_test/man_dir/man_diff /tmp/tsh_test/man_dir/man\") == 0)", system("diff /tmp/tsh_test/man_dir/man_diff /tmp/tsh_test/man_dir/man") == 0);
+  mu_assert("system(\"diff /tmp/tsh_test/man_dir/open2_diff /tmp/tsh_test/man_dir/open2\") == 0)", system("diff /tmp/tsh_test/man_dir/open2_diff /tmp/tsh_test/man_dir/open2") == 0);
+  mu_assert("system(\"diff /tmp/tsh_test/man_dir/tar_diff /tmp/tsh_test/man_dir/tar\") == 0)", system("diff /tmp/tsh_test/man_dir/tar_diff /tmp/tsh_test/man_dir/tar") == 0);
+  
+  system("rm -r /tmp/tsh_test/man_dir");  
+  
+  return 0;
+}
+
 
 
 static char *tar_mv_test()
