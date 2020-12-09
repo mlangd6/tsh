@@ -18,8 +18,6 @@ int read_write_buf_by_buf(int read_fd, int write_fd, size_t count, size_t bufsiz
 int is_dir_name(const char *filename);
 
 
-/* Check if STR starts with PREFIX.
-   If true then return 1 else 0*/
 int is_prefix(const char *prefix, const char *str);
 
 

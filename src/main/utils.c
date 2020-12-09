@@ -72,8 +72,23 @@ int is_dir_name(const char *filename)
 }
 
 
-/* Check if STR starts with PREFIX */
-int is_prefix(const char *prefix, const char *str)
+/** 
+ * Tests if a string starts with a specified prefix.
+ *
+ * Strings must be null-terminated.
+ *
+ * @param prefix the prefix
+ * @param str the string to test
+ * @return 1 if `prefix` is indeed a prefix of `str`; 2 if `str` and `prefix` are equal; 0 otherwise
+ */
+int is_prefix (const char *prefix, const char *str)
 {
-  return !strncmp(prefix, str, strlen(prefix));
+  size_t prefix_len = strlen(prefix);
+  
+  if (!strncmp(prefix, str, prefix_len))
+    {
+      return strlen(str) == prefix_len ? 2 : 1;
+    }
+
+  return 0;
 }
