@@ -231,8 +231,11 @@ int main (int argc, char *argv[])
     tokens = tokenize(buf, &nb_tokens);
     args = malloc((nb_tokens + 1) * sizeof(char *));
     nb_tokens = exec_tokens(tokens, nb_tokens, args);
+    free(tokens);
     if (nb_tokens <= 0) // No tokens or an error occured
     {
+      free(buf);
+      free(args);
       reset_redirs(); // In case some redirections worked
       continue;
     }

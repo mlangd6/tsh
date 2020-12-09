@@ -9,6 +9,7 @@
 #include "parse_line.h"
 
 static token *char_to_token(char *w);
+static void free_tokens(token **tokens, int start, int size);
 
 int count_words(const char *str)
 {
@@ -94,7 +95,10 @@ int exec_tokens(token **tokens, int nb_el, char **argv)
       if (prev_is_redir)
       {
         if (launch_redir(tokens[i-1] -> val.red, tokens[i] -> val.arg) != 0)
-          return -1;  ;
+        {
+          free_tokens(tokens, i-1, nb_el);
+          return -1;
+        }
         free(tokens[i-1]);
       }else {
         argv[j++] = tokens[i] -> val.arg;
@@ -109,4 +113,12 @@ int exec_tokens(token **tokens, int nb_el, char **argv)
   }
   argv[j] = NULL;
   return j;
+}
+
+static void free_tokens(token **tokens, int start, int size)
+{
+  for (int i = start; i < size; i++)
+  {
+    free(tokens[i]);
+  }
 }

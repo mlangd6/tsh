@@ -51,6 +51,7 @@ void reset_redirs()
     struct reset_redir *reset = stack_pop(reset_fds);
     dup2(reset -> reset_fd, reset -> fd);
     close(reset -> reset_fd);
+    free(reset);
   }
 }
 
