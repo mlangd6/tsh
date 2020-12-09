@@ -13,20 +13,6 @@
 #include "errors.h"
 #include "parse_line.h"
 
-<<<<<<< HEAD
-#define PROMPT "$ "
-#define CMD_NOT_FOUND " : command not found\n"
-#define CMD_NOT_FOUND_SIZE 22
-#define NB_TAR_CMD 3
-#define NB_TSH_FUNC 3
-#define TAR_CMD 1
-#define TSH_FUNC 2
-#define MAX_TSH_FUNC_SIZE 5
-#define SET_TSH_FUNC 1
-#define NO_SET_TSH_FUNC 0
-=======
->>>>>>> develop
-
 static int ret_value;
 
 static int cd(char **argv, int argc);
@@ -39,83 +25,8 @@ static int launch_tsh_func(char **argv, int argc);
 
 
 char tsh_dir[PATH_MAX];
-<<<<<<< HEAD
-char *tar_cmds[NB_TAR_CMD] = {"cat", "ls", "mkdir"};
-char *tsh_funcs[NB_TSH_FUNC] = {"cd", "exit", "pwd"};
-char twd[PATH_MAX];
-char tsh_func[MAX_TSH_FUNC_SIZE];
-
-static int count_words(const char *str)
-{
-  int wc = 0;
-  int in_word = 0;
-
-  const char *s = str;
-
-  while (*s)
-  {
-    if (isspace(*s))
-	  {
-	    in_word = 0;
-	  }
-    else if (in_word == 0)
-	  {
-	    wc++;
-	    in_word = 1;
-	  }
-    s++;
-  }
-  return wc;
-}
 
 
-static char **split(char *user_input, int *is_special)
-{
-  const char delim[] = " ";
-  int nb_tokens = count_words(user_input);
-  char **res = malloc((nb_tokens+1) * sizeof(char *)); // +1 pour le NULL à la fin
-  char *tok, *src;
-
-  res[0] = strtok(user_input, delim);
-
-  *is_special = (special_command(res[0], tar_cmds, NB_TAR_CMD, NO_SET_TSH_FUNC)) ? 1 :
-    (special_command(res[0], tsh_funcs, NB_TSH_FUNC, SET_TSH_FUNC)) ? 2 : 0;
-
-
-  for (int i = 1; i < nb_tokens; i++)
-  {
-    tok = strtok(NULL, delim);
-
-    if (*is_special)
-	  {
-	     if (*tok != '/' && *tok != '-') // Relative path
-	     {
-	        src = malloc (PATH_MAX);
-	        strcpy (src, twd);
-	        strcat (src, "/");
-	        strcat (src, tok);
-	     }
-	     else //Absolute path or option
-	     {
-	        src = malloc (strlen(tok)+1);
-	        strcpy (src, tok);
-	     }
-	  }
-    else
-	  {
-	     src = tok;
-	  }
-
-    res[i] = src;
-  }
-
-  res[nb_tokens] = NULL;
-
-  return res;
-}
-=======
-
->>>>>>> develop
 
 
 static void init_tsh()
@@ -129,25 +40,6 @@ static void init_tsh()
   ret_value = EXIT_SUCCESS;
 }
 
-<<<<<<< HEAD
-static int special_command(char *s, char **tab, int tab_l, int set_tsh_func)
-{
-  for (int i = 0; i < tab_l; i++)
-  {
-    if (strcmp(s, tab[i]) == 0)
-	  {
-	     if (set_tsh_func)
-	     {
-	        memcpy(tsh_func, tab[i], strlen(tab[i]) + 1);
-	     }
-	     return 1;
-	  }
-  }
-  return 0;
-}
-
-=======
->>>>>>> develop
 static int launch_tsh_func(char **argv, int argc)
 {
   if (strcmp(argv[0], "cd") == 0)
