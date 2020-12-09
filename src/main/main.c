@@ -272,7 +272,7 @@ int main (int argc, char *argv[])
 
         exit(EXIT_FAILURE);
 
-        default: // father
+        default: // parent
         wait(&wstatus);
         ret_value = WEXITSTATUS(wstatus);
       }

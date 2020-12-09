@@ -38,13 +38,6 @@ static int seek_end_of_tar(int tar_fd) {
   return 0;
 }
 
-/* Set mtime of header to actual time */
-static void set_hd_time(struct posix_header *hd) {
-  time_t now;
-  time(&now);
-  sprintf(hd -> mtime, "%011o", (unsigned int) now);
-}
-
 static void init_type(struct posix_header *hd, struct stat *s) {
   if (S_ISREG(s -> st_mode)) {
     hd -> typeflag = REGTYPE;

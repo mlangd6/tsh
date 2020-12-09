@@ -170,4 +170,7 @@ int add_tar_file_in_tar(const char *tar_name_src, char *tar_name_dest, const cha
   -1 if they couldn't */
 int add_tar_file_in_tar_rec(const char *tar_name_src, char *tar_name_dest, const char *source, const char *dest);
 
+/* Set mtime of header to actual time */
+void set_hd_time(struct posix_header *hd);
+
 #endif

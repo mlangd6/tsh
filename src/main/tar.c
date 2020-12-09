@@ -6,6 +6,7 @@
 #include <sys/types.h>
 #include <unistd.h>
 #include <linux/limits.h>
+#include <time.h>
 
 #include "tar.h"
 #include "path_lib.h"
@@ -156,4 +157,10 @@ int nb_files_in_tar_c(char *tar_name){
   int nb = nb_files_in_tar(tar_fd);
   close(tar_fd);
   return nb;
+}
+
+void set_hd_time(struct posix_header *hd) {
+  time_t now;
+  time(&now);
+  sprintf(hd -> mtime, "%011o", (unsigned int) now);
 }
