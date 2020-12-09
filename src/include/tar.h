@@ -120,7 +120,7 @@ struct posix_header *tar_ls(const char *tar_name, int *size);
 /* Open the tar at path TAR_NAME and copy the content of FILENAME into FD
    Return :
    0  if FILENAME was found and the copy was done without any issue
-   -1 if FILENAME was not found or is not a regular file or a system call failed */
+   -1 if FILENAME was not found or is not a regular file or a system call failed or if the file is not readable */
 int tar_cp_file(const char *tar_name, const char *filename, int fd);
 
 /* Open the tarball at path TAR_NAME and delete FILENAME if possible

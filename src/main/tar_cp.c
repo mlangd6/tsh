@@ -15,6 +15,9 @@ extern int errno;
 
 /* Open the tarball TAR_NAME and copy the content of FILENAME into FD */
 int tar_cp_file(const char *tar_name, const char *filename, int fd) {
+  if (tar_access(tar_name, filename, R_OK) != 1) {
+    return -1;
+  }
   int tar_fd = open(tar_name, O_RDONLY);
 
   if (tar_fd < 0)
