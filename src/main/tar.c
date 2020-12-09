@@ -59,7 +59,10 @@ int is_tar(const char *path)
   while( !fail )
     {
     if((read_size=read(tar_fd, &file_header, BLOCKSIZE)) < 0)
+    {
+      close(tar_fd);
       return -1;
+    }
 
     if( read_size != BLOCKSIZE )
       fail = 1;
@@ -110,7 +113,7 @@ unsigned int number_of_block(unsigned int filesize)
 
 
 /* Return the file size from a given header */
-unsigned int get_file_size(struct posix_header *hd)
+unsigned int get_file_size(const struct posix_header *hd)
 {
   unsigned int file_size = 0;
   sscanf(hd->size, "%o", &file_size);
