@@ -231,8 +231,11 @@ int main (int argc, char *argv[])
     tokens = tokenize(buf, &nb_tokens);
     args = malloc((nb_tokens + 1) * sizeof(char *));
     nb_tokens = exec_tokens(tokens, nb_tokens, args);
-    if (nb_tokens <= 0) // TODO: Les redirections devront être annulés (si < 0)
+    if (nb_tokens <= 0) // No tokens or an error occured
+    {
+      reset_redirs(); // In case some redirections worked
       continue;
+    }
     is_special = special_command(args[0]);
     if (is_special == TSH_FUNC)
     {
