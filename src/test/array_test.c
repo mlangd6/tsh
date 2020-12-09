@@ -153,7 +153,9 @@ static char* array_remove_test()
 
 static int cmp(const void *l, const void *r)
 {
-  return strcmp((char*)l, (char*)r);
+  const char **ll = (const char **)l;
+  const char **rr = (const char **)r;
+  return strcmp(*ll, *rr);
 }
 
 static char* array_sort_test()
@@ -161,20 +163,21 @@ static char* array_sort_test()
   array *arr = array_create(sizeof(char*));
   char *name[] =
     {
+      "aaa",
       "dir/",
       "dir/tata",
-      "dir/tutu",
       "dir/tata_dir/",
       "dir/tata_dir/tutu",
-      "dir/z/",
-      "aaa"
+      "dir/tutu",
+      "dir/z/"
     };
   const int name_size = 7;
-
+  
   for (int i=0; i < name_size; i++)
-    {
-      array_insert_first(arr, name+i);
+    {  
+      array_insert_last(arr, name+i);
     }
+  
   mu_assert("Invalid array size after inserting", name_size == array_size(arr));
 
   array_sort(arr, cmp);
