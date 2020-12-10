@@ -90,6 +90,9 @@ static int print_string(const char *string)
 
 static int print_files (array *files, bool long_format)
 {
+  if (array_size(files) == 0)
+    return 0;
+  
   tar_file *tf;
   int i;
   
