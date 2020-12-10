@@ -18,6 +18,11 @@ int read_write_buf_by_buf(int read_fd, int write_fd, size_t count, size_t bufsiz
 int is_dir_name(const char *filename);
 
 
+/* Check if filename is the name of a directory in the tar.
+   If true then return 1 else 0 */
+int is_dir(const char *tar_name, const char *filename);
+
+
 int is_prefix(const char *prefix, const char *str);
 
 

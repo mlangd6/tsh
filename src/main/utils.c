@@ -4,8 +4,12 @@
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <fcntl.h>
+#include <errno.h>
 
+#include "tar.h"
 #include "utils.h"
+#include "errors.h"
 
 #define BUFFER_SIZE 4096
 
@@ -71,8 +75,32 @@ int is_dir_name(const char *filename)
   return filename[pos_last_char] == '/' ? 1 : 0;
 }
 
+int is_dir(const char *tar_name, const char *filename)
+{
+  int i = 0;
+  struct posix_header *header = tar_ls(tar_name, &i);
+  int tar_fd = open(tar_name, O_RDONLY);
+  if(tar_fd < 0)
+    return error_pt(&tar_fd, 1, errno);
+  int length = strlen(filename);
+  char copy[length+1];
+  strcpy(copy, filename);
+  if(copy[length - 1] != '/'){
+    copy[length] = '/';
+    copy[length + 1] = '\0';
+  }
+  if(seek_header(tar_fd, copy, header) == 1)
+  {
+    close(tar_fd);
+    return 1;
+  }
+  free(header);
+  close(tar_fd);
+  return 0;
+}
 
-/** 
+
+/**
  * Tests if a string starts with a specified prefix.
  *
  * Strings must be null-terminated.
@@ -84,7 +112,7 @@ int is_dir_name(const char *filename)
 int is_prefix (const char *prefix, const char *str)
 {
   size_t prefix_len = strlen(prefix);
-  
+
   if (!strncmp(prefix, str, prefix_len))
     {
       return strlen(str) == prefix_len ? 2 : 1;
