@@ -34,11 +34,15 @@
 /* static int total_block; */
 
 static char *get_corrected_name (const char *tar_name, const char *filename); 
+static char *get_last_component(char *path);
 
 static int print_string(const char *string);
 
+
 static int print_files (array *files, bool long_format);
 static int print_header (struct posix_header *header, bool long_format, bool newline);
+
+static int print_filename(struct posix_header *header);
 
 /* static int convert_rights_nb_in_ch(char *rights); */
 /* static int file_type(char c); */
@@ -125,10 +129,11 @@ static int print_header (struct posix_header *header, bool long_format, bool new
   if (long_format)
     {
 
+      
     }
   else
     {
-      print_string(header->name);      
+      print_filename(header);
     }
   
   if (newline)
@@ -137,6 +142,31 @@ static int print_header (struct posix_header *header, bool long_format, bool new
   return 0;
 }
 
+static char *get_last_component(char *path)
+{
+  char *ret = strrchr(path, '/');
+
+  // si on ne trouve pas de slash (i.e. un fichier à la racine)
+  if (!ret)
+    return path;
+
+  // on est dans le cas : dir/fic
+  if (ret[1] != '\0')
+    return ret + 1;
+    
+  // on va cherche le début du mot
+  ret--;
+  for (; ret != path && *ret != '/'; ret--)
+    ;
+
+  return *ret == '/' ? ret + 1 : ret;
+}
+
+static int print_filename(struct posix_header *header)
+{
+  char *name = get_last_component(header->name);
+  return print_string(name);
+}
 
 /* /\* Convert a char pointer of rights with cipher format "0000755" in */
 /*    a char pointer format "rwxr-xr-x" *\/ */
