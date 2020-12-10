@@ -24,14 +24,23 @@ static int rm_(char *tar_name, char *filename)
   }
   else {
     int r = 0;
-    if((r = tar_rm(tar_name, filename)) == -1){
+    if((r = tar_rm(tar_name, filename)) == -1)
+    {
       errno = EINTR;
       tar_name[strlen(tar_name)] = '/';
       error_cmd(CMD_NAME, tar_name);
       return EXIT_FAILURE;
     }
-    if(r == -2){
+    if(r == -2)
+    {
       errno = ENOENT;
+      tar_name[strlen(tar_name)] = '/';
+      error_cmd(CMD_NAME, tar_name);
+      return EXIT_FAILURE;
+    }
+    if(r == -3)
+    {
+      errno = EPERM;
       tar_name[strlen(tar_name)] = '/';
       error_cmd(CMD_NAME, tar_name);
       return EXIT_FAILURE;
@@ -44,14 +53,23 @@ static int rm_(char *tar_name, char *filename)
 static int rm_r(char *tar_name, char *filename)
 {
   int r = 0;
-  if((r = tar_rm(tar_name, filename)) == -1){
+  if((r = tar_rm(tar_name, filename)) == -1)
+  {
     errno = EINTR;
     tar_name[strlen(tar_name)] = '/';
     error_cmd(CMD_NAME, tar_name);
     return EXIT_FAILURE;
   }
-  if(r == -2){
+  if(r == -2)
+  {
     errno = ENOENT;
+    tar_name[strlen(tar_name)] = '/';
+    error_cmd(CMD_NAME, tar_name);
+    return EXIT_FAILURE;
+  }
+  if(r == -3)
+  {
+    errno = EPERM;
     tar_name[strlen(tar_name)] = '/';
     error_cmd(CMD_NAME, tar_name);
     return EXIT_FAILURE;

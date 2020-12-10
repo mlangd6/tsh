@@ -34,7 +34,7 @@ man tar > man_dir/tar
 man 2 open > man_dir/open2
 man man > man_dir/man
 touch dir2/fic1 dir2/fic2
-tar cf test.tar toto dir1 titi man_dir titi_link dir2/*
+tar cf test.tar toto dir1 titi man_dir titi_link dir2/* access/
 tar -rf test.tar --mode='u=x' access/x
 tar -rf test.tar --mode='u=' access/no
 tar -rf test.tar --no-recursion --mode='u-x' access/no_x_dir/
