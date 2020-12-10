@@ -26,6 +26,9 @@ static int rm_(char *tar_name, char *filename)
       return EXIT_FAILURE;
     }
   }
+  if(strcmp(filename, "\0")==0){
+    execlp("rm", "rm", tar_name, NULL);
+  }
   return EXIT_SUCCESS;
 }
 
