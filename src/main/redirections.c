@@ -128,8 +128,6 @@ static int handle_inside_tar_redir(int fd, char *tar_name, char *in_tar)
     return -1;
   }
   add_reset_redir(fd);
-  dup2(pipefd[1], fd);
-  close(pipefd[1]);
   switch(fork())
   {
     case -1:
@@ -137,6 +135,7 @@ static int handle_inside_tar_redir(int fd, char *tar_name, char *in_tar)
       break;
     case 0: // child
     {
+      close(pipefd[1]);
       int tar_fd = open(tar_name, O_RDWR);
       ssize_t read_size;
       char buff[4096];
@@ -146,7 +145,9 @@ static int handle_inside_tar_redir(int fd, char *tar_name, char *in_tar)
         {
           case -1:
             perror("read on pipe");
+            break;
           case 0:
+            exit(EXIT_SUCCESS);
             break;
           default:
           {
@@ -173,9 +174,10 @@ static int handle_inside_tar_redir(int fd, char *tar_name, char *in_tar)
           }
         }
       }
-      break;
     }
     default: // parent
+      dup2(pipefd[1], fd);
+      close(pipefd[1]);
       close(pipefd[0]);
       break;
   }

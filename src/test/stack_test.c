@@ -58,7 +58,7 @@ int launch_stack_tests()
 
 static char* stack_create_test()
 {
-  stack_t *stack = stack_create();
+  stack *stack = stack_create();
 
   mu_assert("Stack should be empty", 1 == stack_is_empty(stack));
   mu_assert("Invalid stack size, should be 0", 0 == stack_size(stack));
@@ -71,7 +71,7 @@ static char* stack_create_test()
 
 static char* stack_size_test()
 {
-  stack_t *stack = stack_create();
+  stack *stack = stack_create();
 
   const int size = 15;
   for (int i=0; i < size; i++)
@@ -89,7 +89,7 @@ static char* stack_size_test()
 
 static char* stack_push_pop_test()
 {
-  stack_t *stack = stack_create();
+  stack *stack = stack_create();
   const int size = 15;
   int *pi;
 
