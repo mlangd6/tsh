@@ -28,6 +28,8 @@ static int stderr_redir(char *s);
 static int stdout_append(char *s);
 static int stderr_append(char *s);
 static int stdin_redir(char *s);
+static void add_reset_redir(int fd);
+static int handle_inside_tar_redir(int fd, char *tar_name, char *in_tar);
 
 stack_t *reset_fds;
 
@@ -39,11 +41,22 @@ static int (*redirs[])(char *) = {
   stdin_redir
 };
 
+/* Add a reset struct to the stack of the reseter of redirections */
+static void add_reset_redir(int fd)
+{
+  struct reset_redir *reset = malloc(sizeof(struct reset_redir));
+  reset -> reset_fd = dup(fd);
+  reset -> fd = fd;
+  stack_push(reset_fds, reset);
+}
+
+/* Init the stack of reset struct */
 void init_redirections()
 {
   reset_fds = stack_create();
 }
 
+/* Reset all redirections that has been launched */
 void reset_redirs()
 {
   while(!stack_is_empty(reset_fds))
@@ -55,6 +68,7 @@ void reset_redirs()
   }
 }
 
+/* Launch redirection of type r to file name arg */
 int launch_redir(redir_type r, char *arg)
 {
   return redirs[r](arg);
@@ -62,6 +76,7 @@ int launch_redir(redir_type r, char *arg)
 
 /* DEFINITION OF REDIRECTIONS FUNCTIONS BELOW */
 
+/* Function to handle both append redirections */
 static int redir_append(char *s, int fd)
 {
   char path[PATH_MAX];
@@ -81,9 +96,7 @@ static int redir_append(char *s, int fd)
   }
   else
   {
-    struct reset_redir *reset = malloc(sizeof(struct reset_redir));
-    reset -> reset_fd = dup(fd);
-    reset -> fd = fd;
+    add_reset_redir(fd);
     int new_fd = open(s, O_CREAT | O_APPEND | O_WRONLY, 0666);
     if (new_fd < 0)
     {
@@ -92,44 +105,24 @@ static int redir_append(char *s, int fd)
     }
     dup2(new_fd, fd);
     close(new_fd);
-    stack_push(reset_fds, reset);
     return 0;
   }
 
 
 }
 
-static int tar_redir_append(char *tar_name, char *in_tar, int fd)
+/* Handle main loop for > >> 2> 2>> redirections inside tar */
+static int handle_inside_tar_redir(int fd, char *tar_name, char *in_tar)
 {
-  if (tar_access(tar_name, in_tar, W_OK) != 1)
-  {
-    if (errno == EACCES)
-    {
-      goto error;
-    }
-    else if (errno == ENOENT)
-    {
-      tar_add_file(tar_name, NULL, in_tar);
-    }
-  }
-  if (in_tar[strlen(in_tar) - 1] == '/')
-  {
-    errno = EISDIR;
-    goto error;
-  }
   int pipefd[2];
   if (pipe(pipefd) == -1)
   {
     perror("Redirections: pipe");
     return -1;
   }
-  struct reset_redir *reset = malloc(sizeof(struct reset_redir));
-  reset -> reset_fd = dup(fd);
-  reset -> fd = fd;
-  stack_push(reset_fds, reset);
+  add_reset_redir(fd);
   dup2(pipefd[1], fd);
   close(pipefd[1]);
-  // pause();
   switch(fork())
   {
     case -1:
@@ -149,17 +142,17 @@ static int tar_redir_append(char *tar_name, char *in_tar, int fd)
           case 0:
             break;
           default:
-            lseek(tar_fd, 0, SEEK_SET);
-            seek_header(tar_fd, in_tar, &hd);
-            int size = get_file_size(&hd);
-            long unsigned int new_size = size + read_size;
-            lseek(tar_fd, -BLOCKSIZE, SEEK_CUR);
-            set_hd_time(&hd);
-            sprintf(hd.size, "%011lo", new_size);
-            set_checksum(&hd);
-            write(tar_fd, &hd, BLOCKSIZE);
-            int padding = BLOCKSIZE - (size % BLOCKSIZE);
-            off_t beg = lseek(tar_fd, size, SEEK_CUR);
+          {
+            void update_size(struct posix_header *hd)
+            {
+              int size = get_file_size(hd);
+              long unsigned int new_size = size + read_size;
+              sprintf(hd -> size, "%011lo", new_size);
+            }
+            update_header(&hd, tar_fd, in_tar, update_size);
+            int old_size = get_file_size(&hd) - read_size;
+            int padding = BLOCKSIZE - (old_size % BLOCKSIZE);
+            off_t beg = lseek(tar_fd, old_size, SEEK_CUR);
             off_t tar_size = lseek(tar_fd, 0, SEEK_END);
 
             int required_blocks = read_size <= padding ? 0 : number_of_block(read_size);
@@ -170,8 +163,7 @@ static int tar_redir_append(char *tar_name, char *in_tar, int fd)
             lseek(tar_fd, beg, SEEK_SET);
             write(tar_fd, buff, read_size);
             break;
-
-
+          }
         }
       }
       break;
@@ -180,6 +172,29 @@ static int tar_redir_append(char *tar_name, char *in_tar, int fd)
       close(pipefd[0]);
       break;
   }
+  return 0;
+}
+
+/* Handle >> 2>> redirections inside tar */
+static int tar_redir_append(char *tar_name, char *in_tar, int fd)
+{
+  if (tar_access(tar_name, in_tar, W_OK) != 1)
+  {
+    if (errno == EACCES)
+    {
+      goto error;
+    }
+    else if (errno == ENOENT)
+    {
+      tar_add_file(tar_name, NULL, in_tar);
+    }
+  }
+  if (in_tar[strlen(in_tar) - 1] == '/')
+  {
+    errno = EISDIR;
+    goto error;
+  }
+  handle_inside_tar_redir(fd, tar_name, in_tar);
   return 0;
   error: {
     char error[PATH_MAX];
