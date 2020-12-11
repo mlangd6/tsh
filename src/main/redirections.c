@@ -7,6 +7,7 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <errno.h>
+#include <stdbool.h>
 
 #include "redirection.h"
 #include "tsh.h"
@@ -54,6 +55,12 @@ static void add_reset_redir(int fd)
 void init_redirections()
 {
   reset_fds = stack_create();
+}
+
+void exit_redirections()
+{
+  reset_redirs(); // In case there is redirections while exiting
+  stack_free(reset_fds, true);
 }
 
 /* Reset all redirections that has been launched */

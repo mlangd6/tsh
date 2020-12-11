@@ -13,5 +13,6 @@ typedef enum {
 int launch_redir(redir_type r, char *arg);
 void init_redirections();
 void reset_redirs();
+void exit_redirections();
 
 #endif

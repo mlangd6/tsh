@@ -70,6 +70,7 @@ static int pwd(char **argv, int argc)
 
 static int exit_tsh(char **argv, int argc)
 {
+  exit_redirections();
   for (int i = 1; i < argc; i++)
     {
       free(argv[i]);
