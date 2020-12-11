@@ -141,6 +141,7 @@ static int handle_inside_tar_redir(int fd, char *tar_name, char *in_tar)
       perror("Redirections: fork");
       break;
     case 0: // child
+    // Le procesus fils écrit lit dans le tube et écrit directement dans le tar
     {
       close(pipefd[1]);
       int tar_fd = open(tar_name, O_RDWR);
@@ -148,6 +149,9 @@ static int handle_inside_tar_redir(int fd, char *tar_name, char *in_tar)
       char buff[4096];
       struct posix_header hd;
       while(1) {
+        // tant que rien n'est lu dans le tube, le processus est en attente
+        // Ainsi, read_size == 0 si et seulement si il n'y pas plus d'écrivain,
+        // i.e si la redirection est fini
         switch((read_size = read(pipefd[0], buff, 4096)))
         {
           case -1:
@@ -158,6 +162,7 @@ static int handle_inside_tar_redir(int fd, char *tar_name, char *in_tar)
             break;
           default:
           {
+            // On met à jour la taille du header par rapport à read_size
             void update_size(struct posix_header *hd)
             {
               int size = get_file_size(hd);
@@ -165,16 +170,20 @@ static int handle_inside_tar_redir(int fd, char *tar_name, char *in_tar)
               sprintf(hd -> size, "%011lo", new_size);
             }
             update_header(&hd, tar_fd, in_tar, update_size);
+
+            // Calcul du décalage nécessaire
             int old_size = get_file_size(&hd) - read_size;
             int padding = BLOCKSIZE - (old_size % BLOCKSIZE);
             off_t beg = lseek(tar_fd, old_size, SEEK_CUR);
             off_t tar_size = lseek(tar_fd, 0, SEEK_END);
-
             int required_blocks = read_size <= padding ? 0 : number_of_block(read_size);
+
+            // On crée un espace en blocs pour pouvoir écrire ce qui a été lu
             if (fmemmove(tar_fd, beg + padding, tar_size - (beg + padding), beg + padding + required_blocks*BLOCKSIZE)) {
               close(tar_fd);
               return -1;
             }
+            // On revient à l'endroit où on veut écrire et on écrit
             lseek(tar_fd, beg, SEEK_SET);
             write(tar_fd, buff, read_size);
             break;
@@ -183,6 +192,9 @@ static int handle_inside_tar_redir(int fd, char *tar_name, char *in_tar)
       }
     }
     default: // parent
+      // Ajout du reset et on ferme les deux fd du tube (stdout ou stderr sera
+      // redirigé vers le pipe avant de fermé, le tube aura donc toujours un lecteur
+      // et un écrivain. c'est ce procesus (père) qui lance ensuite la commande
       add_reset_redir(fd, pid);
       dup2(pipefd[1], fd);
       close(pipefd[1]);
@@ -195,6 +207,14 @@ static int handle_inside_tar_redir(int fd, char *tar_name, char *in_tar)
 /* Handle >> 2>> redirections inside tar */
 static int tar_redir_append(char *tar_name, char *in_tar, int fd)
 {
+  // On vérifie que la redirection n'est pas vers un dossier
+  if (in_tar[0] == '\0' || in_tar[strlen(in_tar) - 1] == '/')
+  {
+    errno = EISDIR;
+    goto error;
+  }
+
+  // On vérifie si le fichier existe déjà et si oui si on peut écrire dedans
   if (tar_access(tar_name, in_tar, W_OK) != 1)
   {
     if (errno == EACCES)
@@ -203,13 +223,9 @@ static int tar_redir_append(char *tar_name, char *in_tar, int fd)
     }
     else if (errno == ENOENT)
     {
+      // Si le fichier n'existe pas on lé crée
       tar_add_file(tar_name, NULL, in_tar);
     }
-  }
-  if (in_tar[strlen(in_tar) - 1] == '/')
-  {
-    errno = EISDIR;
-    goto error;
   }
   handle_inside_tar_redir(fd, tar_name, in_tar);
   return 0;
