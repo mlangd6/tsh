@@ -16,6 +16,7 @@
 #include "tar_ls_test.h"
 #include "tar_rm_test.h"
 #include "tar_cp_mv_test.h"
+#include "utils_test.h"
 
 
 int tests_run;
@@ -30,7 +31,8 @@ static char *tests_names[] = {
   "parse_line",
   "list",
   "stack",
-  "array"
+  "array",
+  "utils"
 };
 
 static int (*launch_tests[])(void) = {
@@ -43,7 +45,8 @@ static int (*launch_tests[])(void) = {
   launch_parse_line_tests,
   launch_list_tests,
   launch_stack_tests,
-  launch_array_tests
+  launch_array_tests,
+  launch_utils_tests
 };
 
 static int index_of(char *s)

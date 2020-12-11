@@ -1,6 +1,17 @@
+/**
+ * @file tar.h
+ * Tar manipulations
+ *
+ * All manipulations on tar file are done using low level I/O.
+ */
+
 #ifndef TAR_H
 #define TAR_H
 /* Code taken from https://www.gnu.org/software/tar/manual/html_node/Standard.html and on https://gaufre.informatique.univ-paris-diderot.fr/klimann/systL3_2020-2021/blob/master/TP/TP1/tar.h */
+
+#include <sys/types.h>
+
+#include "array.h"
 
 /* tar Header Block, from POSIX 1003.1-1990.  */
 #define BLOCKSIZE 512
@@ -45,6 +56,18 @@ struct posix_header
 
 #define OLDGNU_MAGIC "ustar  "  /* 7 chars and a null */
 
+/**
+ * Represents a file with its header and data in a tar.
+ *
+ * Be extremely careful after any changes (mainly write) on #tar_fd as this structure may not stay coherent.
+ */
+typedef struct
+{
+  int tar_fd;                 /**< a file descriptor referencing the tar owning this file */
+  struct posix_header header; /**< the posix header for this file */
+  off_t file_start;           /**< the beginning of the header of this file in #tar_fd */
+
+} tar_file;
 
 
 /* Compute and write the checksum of a header, by adding all (unsigned) bytes in
@@ -81,7 +104,7 @@ int seek_header(int tar_fd, const char *filename, struct posix_header *header);
 unsigned int number_of_block(unsigned int filesize);
 
 /* Return the file size from a given header */
-unsigned int get_file_size(struct posix_header *hd);
+unsigned int get_file_size(const struct posix_header *hd);
 
 /* Increment the file offset of TAR_FD by file size given in HD.
    This function is intended to be use after reading a header in a tar, when the file offset is moved to the end of HD header.
@@ -111,17 +134,17 @@ int nb_files_in_tar(int tar_fd);
 /* Return the number of files in the tar TAR_NAME */
 int nb_files_in_tar_c(char *tar_name);
 
-/* List all files contained in the tar at path TAR_NAME
-   Return :
-   On success, a malloc array of all headers
-   On failure, NULL */
+
 struct posix_header *tar_ls(const char *tar_name, int *size);
 
-/* Open the tar at path TAR_NAME and copy the content of FILENAME into FD
-   Return :
-   0  if FILENAME was found and the copy was done without any issue
-   -1 if FILENAME was not found or is not a regular file or a system call failed or if the file is not readable */
+array* tar_ls_dir (int tar_fd, const char *dir_name, bool rec);
+
+array* tar_ls_all (int tar_fd);
+
+
 int tar_cp_file(const char *tar_name, const char *filename, int fd);
+
+int tar_extract_dir(const char *tar_name, const char *dir_name, const char *dest_name);
 
 /* Open the tarball at path TAR_NAME and delete FILENAME if possible
    Return
@@ -149,6 +172,8 @@ int tar_mv_file(const char *tar_name, const char *filename, int fd);
    ENOENT A component of FILE_NAME does not exist
    EINVAL MODE was incorrectly specified. */
 int tar_access(const char *tar_name, const char *file_name, int mode);
+
+int ftar_access(int tar_fd, const char *file_name, int mode);
 
 /* Append file name FILENAME in tarball TAR_NAME with the content of SRC_FD
    Return :
