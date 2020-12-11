@@ -280,7 +280,7 @@ int main (int argc, char *argv[])
         exit(EXIT_FAILURE);
 
         default: // parent
-        wait(&wstatus);
+        waitpid(cpid, &wstatus, 0);
         ret_value = WEXITSTATUS(wstatus);
       }
 

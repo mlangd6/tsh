@@ -8,6 +8,7 @@
 #include <unistd.h>
 #include <errno.h>
 #include <stdbool.h>
+#include <wait.h>
 
 #include "redirection.h"
 #include "tsh.h"
@@ -20,6 +21,7 @@
 struct reset_redir {
   int fd;
   int reset_fd;
+  pid_t pid;
 };
 
 static int redir_append(char *s, int fd);
@@ -29,10 +31,10 @@ static int stderr_redir(char *s);
 static int stdout_append(char *s);
 static int stderr_append(char *s);
 static int stdin_redir(char *s);
-static void add_reset_redir(int fd);
+static void add_reset_redir(int fd, pid_t pid);
 static int handle_inside_tar_redir(int fd, char *tar_name, char *in_tar);
 
-stack_t *reset_fds;
+stack *reset_fds;
 
 static int (*redirs[])(char *) = {
   stdout_redir,
@@ -43,11 +45,12 @@ static int (*redirs[])(char *) = {
 };
 
 /* Add a reset struct to the stack of the reseter of redirections */
-static void add_reset_redir(int fd)
+static void add_reset_redir(int fd, pid_t pid)
 {
   struct reset_redir *reset = malloc(sizeof(struct reset_redir));
   reset -> reset_fd = dup(fd);
   reset -> fd = fd;
+  reset -> pid = pid;
   stack_push(reset_fds, reset);
 }
 
@@ -71,6 +74,10 @@ void reset_redirs()
     struct reset_redir *reset = stack_pop(reset_fds);
     dup2(reset -> reset_fd, reset -> fd);
     close(reset -> reset_fd);
+    if (reset -> pid != 0)
+    {
+      waitpid(reset -> pid, NULL, 0);
+    }
     free(reset);
   }
 }
@@ -103,7 +110,7 @@ static int redir_append(char *s, int fd)
   }
   else
   {
-    add_reset_redir(fd);
+    add_reset_redir(fd, 0);
     int new_fd = open(s, O_CREAT | O_APPEND | O_WRONLY, 0666);
     if (new_fd < 0)
     {
@@ -127,8 +134,8 @@ static int handle_inside_tar_redir(int fd, char *tar_name, char *in_tar)
     perror("Redirections: pipe");
     return -1;
   }
-  add_reset_redir(fd);
-  switch(fork())
+  pid_t pid = fork();
+  switch(pid)
   {
     case -1:
       perror("Redirections: fork");
@@ -176,6 +183,7 @@ static int handle_inside_tar_redir(int fd, char *tar_name, char *in_tar)
       }
     }
     default: // parent
+      add_reset_redir(fd, pid);
       dup2(pipefd[1], fd);
       close(pipefd[1]);
       close(pipefd[0]);
