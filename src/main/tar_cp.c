@@ -48,13 +48,13 @@ static int extract_order(const void *lhs, const void *rhs)
 static int extract_reg_file (const tar_file *tf, int dest_fd)
 {
   lseek(tf->tar_fd, tf->file_start + BLOCKSIZE, SEEK_SET);
-  
+
   int fd = openat(dest_fd, tf->header.name, O_CREAT | O_TRUNC | O_WRONLY, S_IRUSR | S_IWUSR);
   if (fd < 0)
     return -1;
-  
+
   size_t file_size = get_file_size(&tf->header);
-  
+
   return read_write_buf_by_buf(tf->tar_fd, fd, file_size, BUFSIZE);
 }
 
@@ -62,10 +62,10 @@ static int extract_reg_file (const tar_file *tf, int dest_fd)
  * Create a path from a directory
  */
 static int make_path(int dest_fd, char *path)
-{  
+{
   char *p = path;
   while ((p = strchr(p, '/')) && p[1])
-    {      
+    {
       *p = '\0';
 
       if (mkdirat(dest_fd, path, 0777 & ~getumask()) == -1)
@@ -76,10 +76,10 @@ static int make_path(int dest_fd, char *path)
 	      return -1;
 	    }
 	}
-      
+
       *p = '/';
       p++;
-    }  
+    }
 
   return 0;
 }
@@ -103,23 +103,23 @@ int tar_extract_dir(const char *tar_name, const char *dir_name, const char *dest
   tar_file *tf;
 
   tf = NULL;
-  
+
   tar_fd = open(tar_name, O_RDONLY);
-  if (tar_fd < 0)    
+  if (tar_fd < 0)
     return -1;
 
   dest_fd = open(dest, O_DIRECTORY);
   if (dest_fd < 0)
     return error_pt(&tar_fd, 1, errno);
-  
+
   arr = tar_ls_dir(tar_fd, dir_name, true);
   if (!arr)
     goto error;
 
-  
+
   array_sort(arr, extract_order);
 
-  
+
   // on extrait un par un les fichiers
   for (int i=0; i < array_size(arr); i++)
     {
@@ -127,18 +127,18 @@ int tar_extract_dir(const char *tar_name, const char *dir_name, const char *dest
 
       if (!tf)
 	goto error;
-      
+
       // on crée le chemin d'extraction si besoin
       if (make_path(dest_fd, tf->header.name) < 0)
 	goto error;
-      
+
       switch (tf->header.typeflag)
 	{
 	case AREGTYPE:
 	case REGTYPE:
 	  extract_reg_file(tf, dest_fd);
 	  break;
-	  
+
 	case DIRTYPE:
 	  mkdirat(dest_fd, tf->header.name, 0777 & ~getumask());
 	  break;
@@ -149,7 +149,7 @@ int tar_extract_dir(const char *tar_name, const char *dir_name, const char *dest
 
 	case LNKTYPE:
 	  linkat(dest_fd, tf->header.linkname, dest_fd, tf->header.name, 0);
-	  break;	  
+	  break;
 	}
 
       free(tf);
@@ -158,33 +158,35 @@ int tar_extract_dir(const char *tar_name, const char *dir_name, const char *dest
   array_free(arr, false);
   close(dest_fd);
   close(tar_fd);
-  
+
   return 0;
 
- error:  
+ error:
   close(dest_fd);
-  close(tar_fd);  
-  
+  close(tar_fd);
+
   if (arr)
     array_free(arr, false);
 
   if (tf)
     free(tf);
-  
+
   return -1;
 }
-  
+
 
 /**
  * Copy the content of a file from a tar into a file descriptor.
- *
+ * filename should be readable
  * @param tar_name the tar in which we want to read `filename`
  * @param filename the file we want to read
  * @param fd a file descriptor to write to
  * @return 0 on success; -1 otherwise
  */
-int tar_cp_file(const char *tar_name, const char *filename, int fd)
-{
+int tar_cp_file(const char *tar_name, const char *filename, int fd) {
+  if (tar_access(tar_name, filename, R_OK) != 1) {
+    return -1;
+  }
   int tar_fd = open(tar_name, O_RDONLY);
 
   if (tar_fd < 0)

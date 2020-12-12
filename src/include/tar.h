@@ -56,7 +56,7 @@ struct posix_header
 
 #define OLDGNU_MAGIC "ustar  "  /* 7 chars and a null */
 
-/** 
+/**
  * Represents a file with its header and data in a tar.
  *
  * Be extremely careful after any changes (mainly write) on #tar_fd as this structure may not stay coherent.
@@ -66,7 +66,7 @@ typedef struct
   int tar_fd;                 /**< a file descriptor referencing the tar owning this file */
   struct posix_header header; /**< the posix header for this file */
   off_t file_start;           /**< the beginning of the header of this file in #tar_fd */
-  
+
 } tar_file;
 
 
