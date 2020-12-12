@@ -98,28 +98,6 @@ static int tar_rm_file(int tar_fd, const char *filename)
 /* Open the tarball at path TAR_NAME and delete FILENAME if possible */
 int tar_rm(const char *tar_name, const char *filename)
 {
-  int length = strlen(filename);
-  char copy[length];
-  strcpy(copy, filename);
-  if(copy[length-1] == '/')
-    copy[length - 1] = '\0';
-  char *search = malloc(length);
-  search = strrchr(copy, '/');
-  if(search != NULL)
-  {
-    copy[length - strlen(search) + 1] = '\0';
-    if(tar_access(tar_name, copy, W_OK) < 0)
-      return -3;
-  }
-  else
-  {
-    if(access(tar_name, W_OK) < 0)
-      return -3;
-  }
-  if(tar_access(tar_name, filename, W_OK) < 0)
-    return -3;
-
-
   int tar_fd = open(tar_name, O_RDWR);
 
   if (tar_fd < 0)

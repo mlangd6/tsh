@@ -12,6 +12,34 @@
 #define CMD_NAME "rm"
 #define SUPPORT_OPT "r"
 
+
+//check if the access right are good to use rm
+static int rm_access(char *tar_name, char *filename)
+{
+  int length = strlen(filename);
+  char copy[length];
+  strcpy(copy, filename);
+  if(copy[length-1] == '/')
+    copy[length - 1] = '\0';
+  char *search = malloc(length);
+  search = strrchr(copy, '/');
+  if(search != NULL)
+  {
+    copy[length - strlen(search) + 1] = '\0';
+    if(tar_access(tar_name, copy, W_OK) < 0)
+      return -1;
+  }
+  else
+  {
+    if(access(tar_name, W_OK) < 0)
+      return -1;
+  }
+  if(tar_access(tar_name, filename, W_OK) < 0)
+    return -1;
+
+  return 0;
+}
+
 //"rm ..."
 static int rm_(char *tar_name, char *filename)
 {
@@ -38,13 +66,6 @@ static int rm_(char *tar_name, char *filename)
       error_cmd(CMD_NAME, tar_name);
       return EXIT_FAILURE;
     }
-    if(r == -3)
-    {
-      errno = EPERM;
-      tar_name[strlen(tar_name)] = '/';
-      error_cmd(CMD_NAME, tar_name);
-      return EXIT_FAILURE;
-    }
   }
   return EXIT_SUCCESS;
 }
@@ -63,13 +84,6 @@ static int rm_r(char *tar_name, char *filename)
   if(r == -2)
   {
     errno = ENOENT;
-    tar_name[strlen(tar_name)] = '/';
-    error_cmd(CMD_NAME, tar_name);
-    return EXIT_FAILURE;
-  }
-  if(r == -3)
-  {
-    errno = EPERM;
     tar_name[strlen(tar_name)] = '/';
     error_cmd(CMD_NAME, tar_name);
     return EXIT_FAILURE;
@@ -122,6 +136,21 @@ int rm(char *tar_name, char *filename, char *options)
       filename[length] = '/';
       filename[length + 1] = '\0';
     }
+  }
+
+  if(rm_access(tar_name, filename) == -1){
+    char a;
+    char buf[1024];
+    strcpy(buf, CMD_NAME);
+    strcat(buf, " : remove \"");
+    strcat(buf, tar_name);
+    strcat(buf, "/");
+    strcat(buf, filename);
+    strcat(buf, "\" which is protected in writing ? : put \'y\' for yes \n");
+    write(STDOUT_FILENO, buf, strlen(buf));
+    a = getchar();
+    if(a != 'y')
+      return EXIT_FAILURE;
   }
 
   return (strchr(options, 'r'))? rm_r(tar_name, filename) : rm_(tar_name, filename);
