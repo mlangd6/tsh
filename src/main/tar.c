@@ -170,6 +170,7 @@ void set_hd_time(struct posix_header *hd) {
 
 int update_header(struct posix_header *hd, int tar_fd, char *filename, void (*update)(struct posix_header *hd))
 {
+
   if (lseek(tar_fd, 0, SEEK_SET) != 0)
     return -1;
   if (seek_header(tar_fd, filename, hd) != 1)
@@ -177,7 +178,7 @@ int update_header(struct posix_header *hd, int tar_fd, char *filename, void (*up
   update(hd);
   set_hd_time(hd);
   set_checksum(hd);
-  if (lseek(tar_fd, -BLOCKSIZE, SEEK_CUR) != 0 || write(tar_fd, hd, BLOCKSIZE) < 0)
+  if (lseek(tar_fd, -BLOCKSIZE, SEEK_CUR) < 0 || write(tar_fd, hd, BLOCKSIZE) < 0)
     return -1;
   return 0;
 }

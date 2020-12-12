@@ -174,14 +174,18 @@ static int handle_inside_tar_redir(int fd, char *tar_name, char *in_tar)
             // Calcul du décalage nécessaire
             int old_size = get_file_size(&hd) - read_size;
             int padding = BLOCKSIZE - (old_size % BLOCKSIZE);
+            if (padding == BLOCKSIZE) padding = 0;
             off_t beg = lseek(tar_fd, old_size, SEEK_CUR);
             off_t tar_size = lseek(tar_fd, 0, SEEK_END);
-            int required_blocks = read_size <= padding ? 0 : number_of_block(read_size);
+            int required_blocks = read_size <= padding ? 0 : number_of_block(read_size-padding);
 
             // On crée un espace en blocs pour pouvoir écrire ce qui a été lu
-            if (fmemmove(tar_fd, beg + padding, tar_size - (beg + padding), beg + padding + required_blocks*BLOCKSIZE)) {
-              close(tar_fd);
-              return -1;
+            if (required_blocks > 0)
+            {
+              if (fmemmove(tar_fd, beg + padding, tar_size - (beg + padding), beg + padding + required_blocks*BLOCKSIZE)) {
+                close(tar_fd);
+                return -1;
+              }
             }
             // On revient à l'endroit où on veut écrire et on écrit
             lseek(tar_fd, beg, SEEK_SET);
