@@ -209,4 +209,6 @@ void set_hd_time(struct posix_header *hd);
  */
 int update_header(struct posix_header *hd, int tar_fd, char *filename, void (*update)(struct posix_header *hd));
 
+int move_file_to_end_of_tar(char *tar_name, char *filename);
+
 #endif

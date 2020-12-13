@@ -450,3 +450,47 @@ int tar_add_file_rec(const char *tar_name, const char *filename, const char *ins
   }
   return 0;
 }
+
+/**
+ * Move header and content of file inside a tarball to the end of the tarball
+ * @param tar_name the name of the tarball
+ * @param filename the name of the file inside the tar
+ * @return 0 on success, -1 else
+ */
+int move_file_to_end_of_tar(char *tar_name, char *filename)
+{
+  int tar_fd = open(tar_name, O_RDWR);
+  if (tar_fd < 0)
+    return -1;
+
+  seek_end_of_tar(tar_fd);
+  off_t end_tar = lseek(tar_fd, 0, SEEK_CUR);
+
+  struct posix_header hd;
+  lseek(tar_fd, 0, SEEK_SET);
+  if (seek_header(tar_fd, filename, &hd) != 1)
+    return -1;
+
+  size_t move_size = BLOCKSIZE * (number_of_block(get_file_size(&hd)) + 1);
+  off_t whence = lseek(tar_fd, -BLOCKSIZE, SEEK_CUR);
+  if (whence + move_size == end_tar)
+  {
+    // Le fichier est déjà le dernier fichier du tar
+    return 0;
+  }
+  // On récupère le header et contenue du fichier
+  char *move_buff = malloc(move_size);
+  read(tar_fd, move_buff, move_size);
+
+  // On récupère le contenue de tout ce qu'il y a après ce fichier dans le tar (sans les blocs vides)
+  size_t after_size = end_tar - (whence + move_size);
+  char *after_buff = malloc(after_size);
+  read(tar_fd, after_buff, after_size);
+  lseek(tar_fd, whence, SEEK_SET);
+  // On échange les deux emplacement
+  write(tar_fd, after_buff, after_size);
+  write(tar_fd, move_buff, move_size);
+  free(after_buff);
+  free(move_buff);
+  return 0;
+}
