@@ -231,6 +231,10 @@ static int tar_redir_append(char *tar_name, char *in_tar, int fd)
       tar_add_file(tar_name, NULL, in_tar);
     }
   }
+  else // On le déplace à la fin du tar pour éviter tout problème possible avec des lecture sur le même tar en même temps
+  {
+    move_file_to_end_of_tar(tar_name, in_tar);
+  }
   handle_inside_tar_redir(fd, tar_name, in_tar);
   return 0;
   error: {
