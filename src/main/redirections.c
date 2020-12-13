@@ -24,6 +24,7 @@ struct reset_redir {
   pid_t pid;
 };
 
+static int get_required_blocks(size_t old_size, size_t read_size, int *padding);
 static int redir_append(char *s, int fd);
 static int tar_redir_append(char *tar_name, char *in_tar, int fd);
 static int stdout_redir(char *s);
@@ -125,6 +126,14 @@ static int redir_append(char *s, int fd)
 
 }
 
+/* Returns the number of required blocks to add content, and set padding to then current padding of file */
+static int get_required_blocks(size_t old_size, size_t read_size, int *padding)
+{
+  *padding = BLOCKSIZE - (old_size % BLOCKSIZE);
+  if (*padding == BLOCKSIZE) *padding = 0;
+  return read_size <= *padding ? 0 : number_of_block(read_size - *padding);
+}
+
 /* Handle main loop for > >> 2> 2>> redirections inside tar */
 static int handle_inside_tar_redir(int fd, char *tar_name, char *in_tar)
 {
@@ -173,13 +182,12 @@ static int handle_inside_tar_redir(int fd, char *tar_name, char *in_tar)
 
             // Calcul du décalage nécessaire
             int old_size = get_file_size(&hd) - read_size;
-            int padding = BLOCKSIZE - (old_size % BLOCKSIZE);
-            if (padding == BLOCKSIZE) padding = 0;
-            off_t beg = lseek(tar_fd, old_size, SEEK_CUR);
-            off_t tar_size = lseek(tar_fd, 0, SEEK_END);
-            int required_blocks = read_size <= padding ? 0 : number_of_block(read_size-padding);
+            int padding;
+            int required_blocks = get_required_blocks(old_size, read_size, &padding);
 
             // On crée un espace en blocs pour pouvoir écrire ce qui a été lu
+            off_t beg = lseek(tar_fd, old_size, SEEK_CUR);
+            off_t tar_size = lseek(tar_fd, 0, SEEK_END);
             if (required_blocks > 0)
             {
               if (fmemmove(tar_fd, beg + padding, tar_size - (beg + padding), beg + padding + required_blocks*BLOCKSIZE)) {
