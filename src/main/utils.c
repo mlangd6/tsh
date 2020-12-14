@@ -75,30 +75,17 @@ int is_dir_name(const char *filename)
   return filename[pos_last_char] == '/' ? 1 : 0;
 }
 
-int is_dir(const char *tar_name, const char *filename)
+char *append_slash(const char *str)
 {
-  int i = 0;
-  struct posix_header *header = tar_ls(tar_name, &i);
-  int tar_fd = open(tar_name, O_RDONLY);
-  if(tar_fd < 0)
-    return error_pt(&tar_fd, 1, errno);
-  int length = strlen(filename);
-  char copy[length+1];
-  strcpy(copy, filename);
+  int length = strlen(str);
+  char *copy = malloc(length+2);
+  strcpy(copy, str);
   if(copy[length - 1] != '/'){
     copy[length] = '/';
     copy[length + 1] = '\0';
   }
-  if(seek_header(tar_fd, copy, header) == 1)
-  {
-    close(tar_fd);
-    return 1;
-  }
-  free(header);
-  close(tar_fd);
-  return 0;
+  return copy;
 }
-
 
 /**
  * Tests if a string starts with a specified prefix.
