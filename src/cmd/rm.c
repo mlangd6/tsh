@@ -30,18 +30,15 @@ static int rm_access_in_writing(char *tar_name, char *filename)
   int length = strlen(filename);
   char copy[length+2];
   strcpy(copy, filename);
+  char *search = malloc(length);
   if(copy[length-1] == '/')
     copy[length - 1] = '\0';
-  else{
-    copy[length] = '/';
-    copy[length+1] = '\0';
-  }
-  char *search = malloc(length);
+
   search = strrchr(copy, '/');
   if(search != NULL)
   {
-    copy[strlen(copy) - strlen(search) ] = '\0';
-    if(tar_access(tar_name, copy, W_OK) < 0)
+    copy[strlen(copy) - strlen(search)+1 ] = '\0';
+    if(filename[length-1] == '/' && tar_access(tar_name, copy, W_OK) < 0)
       return -1;
     if(tar_access(tar_name, filename, W_OK) < 0)
       return -1;
@@ -50,7 +47,6 @@ static int rm_access_in_writing(char *tar_name, char *filename)
   {
     if(access(tar_name, W_OK) < 0)
       return -1;
-
   }
 
   return 0;
@@ -80,13 +76,14 @@ static int is_pwd_prefix(char *tar_name, char *filename)
     free(ntn);
     free(ntf);
     free(nn);
+    free(env);
     return -1;
   }
 
   free(ntn);
   free(ntf);
   free(nn);
-
+  free(env);
   return 0;
 }
 
@@ -101,7 +98,7 @@ static int prompt_remove(char *tar_name, char *filename)
   char a;
   char buf[1024];
   strcpy(buf, CMD_NAME);
-  sprintf(buf, "%s%s%s%s%s%s", CMD_NAME, " : remove \"", tar_name, "/", filename, "\" which is protected in writing ? : put \'y\' for yes \n");
+  sprintf(buf, "%s : remove \"%s/%s\" which is protected in writing ? : put \'y\' for yes \n", CMD_NAME, tar_name, filename);
   write(STDOUT_FILENO, buf, strlen(buf));
   a = get_char();
   if(a != 'y')
@@ -165,8 +162,7 @@ int rm(char *tar_name, char *filename, char *options)
   //Check if the file is directory in the tar
   if(is_dir(tar_name, filename))
   {
-    char *copy_filename = malloc(strlen(filename)+2);
-    copy_filename = append_slash(filename);
+    char *copy_filename = append_slash(filename);
     new_filename[0] = '\0';
     strcpy(new_filename, copy_filename);
     free(copy_filename);

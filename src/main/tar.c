@@ -167,23 +167,12 @@ int nb_files_in_tar_c(char *tar_name){
 
 int is_dir(const char *tar_name, const char *filename)
 {
-  int i = 0;
-  struct posix_header *header = tar_ls(tar_name, &i);
-  int tar_fd = open(tar_name, O_RDONLY);
-  if(tar_fd < 0){
-    return error_pt(&tar_fd, 1, errno);
-  }
-  char *copy =malloc(strlen(filename)+2);
-  copy = append_slash(filename);
+  char *copy = append_slash(filename);
   if(tar_access(tar_name, copy, F_OK) > 0)
   {
-    free(header);
     free(copy);
-    close(tar_fd);
     return 1;
   }
-  free(header);
   free(copy);
-  close(tar_fd);
   return 0;
 }
