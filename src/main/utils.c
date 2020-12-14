@@ -68,7 +68,6 @@ int fmemmove(int fd, off_t whence, size_t size, off_t where)
 }
 
 
-/* Check if FILENAME ends with '/' */
 int is_dir_name(const char *filename)
 {
   int pos_last_char = strlen(filename)-1;
@@ -87,15 +86,12 @@ char *append_slash(const char *str)
   return copy;
 }
 
-/**
- * Tests if a string starts with a specified prefix.
- *
- * Strings must be null-terminated.
- *
- * @param prefix the prefix
- * @param str the string to test
- * @return 1 if `prefix` is indeed a prefix of `str`; 2 if `str` and `prefix` are equal; 0 otherwise
- */
+int is_empty_string(char *filename)
+{
+  return ((!*filename)?1:0);
+}
+
+
 int is_prefix (const char *prefix, const char *str)
 {
   size_t prefix_len = strlen(prefix);

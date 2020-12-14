@@ -14,7 +14,7 @@
 
 static int rm_access_in_existing(char *tar_name, char *filename)
 {
-  if(strcmp(filename, "\0")==0){
+  if(is_empty_string(filename)){
     if(access(tar_name, F_OK) < 0)
       return -1;
   }
@@ -89,8 +89,8 @@ static int is_pwd_prefix(char *tar_name, char *filename)
 
 static int get_char()
 {
-  char c;
-  return (read(0, &c, 1)==1?(int)c:EOF);
+  char c[2];
+  return (read(STDIN_FILENO, &c, 2)==1?(int)c[0]:EOF);
 }
 
 static int prompt_remove(char *tar_name, char *filename)
@@ -109,7 +109,7 @@ static int prompt_remove(char *tar_name, char *filename)
 //"rm ..."
 static int rm_(char *tar_name, char *filename)
 {
-  if(is_dir_name(filename) || strcmp(filename, "\0") == 0)
+  if(is_dir_name(filename) || is_empty_string(filename))
   {
     errno = EISDIR;
     tar_name[strlen(tar_name)] = '/';
@@ -138,7 +138,7 @@ static int rm_r(char *tar_name, char *filename)
     error_cmd(CMD_NAME, tar_name);
     return EXIT_FAILURE;
   }
-  if(strcmp(filename, "\0")==0){
+  if(is_empty_string(filename)){
     execlp("rm", "rm", tar_name, NULL);
   }
   return EXIT_SUCCESS;
