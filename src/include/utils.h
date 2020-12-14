@@ -44,6 +44,6 @@ int fmemmove(int fd, off_t whence, size_t size, off_t where);
 /**
   * Add a slash at the end of STR and return it.
   */
-char *append_slash(const char *str);
+char *append_slash(char *str);
 
 #endif

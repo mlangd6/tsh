@@ -30,25 +30,27 @@ static int rm_access_in_writing(char *tar_name, char *filename)
   int length = strlen(filename);
   char copy[length+2];
   strcpy(copy, filename);
-  char *search = malloc(length);
-  if(copy[length-1] == '/')
+  if(length > 0 && copy[length-1] == '/')
     copy[length - 1] = '\0';
+  char *search = strrchr(copy, '/');
 
-  search = strrchr(copy, '/');
   if(search != NULL)
   {
-    copy[strlen(copy) - strlen(search)+1 ] = '\0';
-    if(filename[length-1] == '/' && tar_access(tar_name, copy, W_OK) < 0)
+    int a = strlen(search);
+    copy[strlen(copy) - a + 1 ] = '\0';
+    if(filename[length-1] == '/' && tar_access(tar_name, copy, W_OK) < 0){
       return -1;
-    if(tar_access(tar_name, filename, W_OK) < 0)
+    }
+    if(tar_access(tar_name, filename, W_OK) < 0){
       return -1;
+    }
   }
   else
   {
-    if(access(tar_name, W_OK) < 0)
+    if(access(tar_name, W_OK) < 0){
       return -1;
+    }
   }
-
   return 0;
 }
 
@@ -56,20 +58,14 @@ static int is_pwd_prefix(char *tar_name, char *filename)
 {
   char *ntn = malloc(4096);
   strcpy(ntn, tar_name);
-  ntn[strlen(ntn)] = '/';
-  ntn[strlen(ntn)+1] = '\0';
 
   char *ntf = malloc(100);
   strcpy(ntf, filename);
 
   char *nn = malloc(4096);
-  strcpy(nn, ntn);
-  strcat(nn, ntf);
+  sprintf(nn, "%s/%s", ntn, ntf);
 
-  char *env = malloc(4096);
-  strcpy(env, getenv("PWD"));
-  env[strlen(env)] = '/';
-  env[strlen(env)+1] = '\0';
+  char *env =append_slash(getenv("PWD"));
 
   if(is_prefix(nn, env) > 0)
   {

@@ -74,8 +74,15 @@ int is_dir_name(const char *filename)
   return filename[pos_last_char] == '/' ? 1 : 0;
 }
 
-char *append_slash(const char *str)
+
+int is_empty_string(char *filename)
 {
+  return ((!*filename)?1:0);
+}
+
+char *append_slash(char *str)
+{
+  if(is_empty_string(str))return NULL;
   int length = strlen(str);
   char *copy = malloc(length+2);
   strcpy(copy, str);
@@ -84,11 +91,6 @@ char *append_slash(const char *str)
     copy[length + 1] = '\0';
   }
   return copy;
-}
-
-int is_empty_string(char *filename)
-{
-  return ((!*filename)?1:0);
 }
 
 
