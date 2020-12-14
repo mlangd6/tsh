@@ -47,13 +47,13 @@ static bool no_arg (arg_info *info);
 static char *check_options (int argc, char **argv, char *optstring);
 static void invalid_options (char *cmd_name);
 
-static int handle_arg (command *cmd, struct arg *token, arg_info *info, char *options);
-static int handle_reg_file (command *cmd, arg_info *info, char *arg);
-static int handle_tar_file (command *cmd, char *arg, char *detected_options);
-static int handle_with_pwd (command *cmd, int argc, char **argv, char *detected_options);
+static int handle_arg (unary_command *cmd, struct arg *token, arg_info *info, char *options);
+static int handle_reg_file (unary_command *cmd, arg_info *info, char *arg);
+static int handle_tar_file (unary_command *cmd, char *arg, char *detected_options);
+static int handle_with_pwd (unary_command *cmd, int argc, char **argv, char *detected_options);
 
-static void print_arg_before (command *cmd, char *arg, int nb_valid_file);
-static void print_arg_after (command *cmd, int *rest);
+static void print_arg_before (unary_command *cmd, char *arg, int nb_valid_file);
+static void print_arg_after (unary_command *cmd, int *rest);
 
 static void free_all (struct arg *tokens, int argc, arg_info *info, char *options);
 
@@ -304,7 +304,7 @@ static void invalid_options (char *cmd_name)
 }
 
 
-static int handle_arg (command *cmd, struct arg *token, arg_info *info, char *options)
+static int handle_arg (unary_command *cmd, struct arg *token, arg_info *info, char *options)
 {
   int ret;
   
@@ -320,7 +320,7 @@ static int handle_arg (command *cmd, struct arg *token, arg_info *info, char *op
   return ret;
 }
 
-static int handle_reg_file (command *cmd, arg_info *info, char *arg)
+static int handle_reg_file (unary_command *cmd, arg_info *info, char *arg)
 {
   int wstatus, ret;
   pid_t cpid;
@@ -350,7 +350,7 @@ static int handle_reg_file (command *cmd, arg_info *info, char *arg)
   return ret;
 }
 
-static int handle_tar_file (command *cmd, char *arg, char *detected_options)
+static int handle_tar_file (unary_command *cmd, char *arg, char *detected_options)
 {
   if (!detected_options)
     return EXIT_FAILURE;
@@ -366,7 +366,7 @@ static int handle_tar_file (command *cmd, char *arg, char *detected_options)
   return ret;
 }
 
-static int handle_with_pwd (command *cmd, int argc, char **argv, char *detected_options)
+static int handle_with_pwd (unary_command *cmd, int argc, char **argv, char *detected_options)
 {
   int ret;
   char *pwd, *in_tar;
@@ -398,7 +398,7 @@ static int handle_with_pwd (command *cmd, int argc, char **argv, char *detected_
 }
 
 
-static void print_arg_before (command *cmd, char *arg, int nb_valid_file)
+static void print_arg_before (unary_command *cmd, char *arg, int nb_valid_file)
 {
   if (cmd->print_multiple_arg && nb_valid_file > 1)
     {  
@@ -407,7 +407,7 @@ static void print_arg_before (command *cmd, char *arg, int nb_valid_file)
     }
 }
 
-static void print_arg_after (command *cmd, int *rest)
+static void print_arg_after (unary_command *cmd, int *rest)
 {
   if (--(*rest) > 0 && cmd->print_multiple_arg)
     write_string(STDOUT_FILENO, "\n");
@@ -427,7 +427,7 @@ static void free_all (struct arg *tokens, int argc, arg_info *info, char *option
 }
 
 
-int handle (command cmd, int argc, char **argv)
+int handle_unary_command (unary_command cmd, int argc, char **argv)
 {
   int ret;
   char *tar_options;

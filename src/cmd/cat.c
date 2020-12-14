@@ -23,7 +23,7 @@ int cat (char *tar_name, char *filename, char *options)
 
 int main (int argc, char *argv[])
 {
-  command cmd =
+  unary_command cmd =
     {
       CMD_NAME,
       cat,
@@ -32,5 +32,5 @@ int main (int argc, char *argv[])
       ""
     };
   
-  return handle(cmd, argc, argv);
+  return handle_unary_command (cmd, argc, argv);
 }

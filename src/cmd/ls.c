@@ -356,12 +356,12 @@ int ls_(char *tar_name, char *name_in_tar) {
   return 0;
 }
 int main(int argc, char **argv) {
-  command cmd = {
+  unary_command cmd = {
     CMD_NAME,
     ls,
     true,
     true,
     SUPPORT_OPT
   };
-  return handle(cmd, argc, argv);
+  return handle_unary_command (cmd, argc, argv);
 }
