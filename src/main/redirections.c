@@ -25,7 +25,7 @@ struct reset_redir {
 };
 
 static int get_required_blocks(size_t old_size, size_t read_size, int *padding);
-static int redir_append(char *s, int fd);
+static int redir_append(char *s, int fd, redir_type r);
 static int tar_redir_append(char *tar_name, char *in_tar, int fd);
 static int stdout_redir(char *s);
 static int stderr_redir(char *s);
@@ -34,6 +34,7 @@ static int stderr_append(char *s);
 static int stdin_redir(char *s);
 static void add_reset_redir(int fd, pid_t pid);
 static int handle_inside_tar_redir(int fd, char *tar_name, char *in_tar);
+static int launch_redir_tar_link(char *tar_name, char *in_tar, redir_type r);
 
 stack *reset_fds;
 
@@ -92,7 +93,7 @@ int launch_redir(redir_type r, char *arg)
 /* DEFINITION OF REDIRECTIONS FUNCTIONS BELOW */
 
 /* Function to handle both append redirections */
-static int redir_append(char *s, int fd)
+static int redir_append(char *s, int fd, redir_type r)
 {
   char path[PATH_MAX];
   if (*s == '/')
@@ -107,6 +108,8 @@ static int redir_append(char *s, int fd)
   char *in_tar;
   if ((in_tar = split_tar_abs_path(resolved)))
   {
+    int link_res = launch_redir_tar_link(resolved, in_tar, r);
+    if (link_res != -2) return link_res;
     return tar_redir_append(resolved, in_tar, fd);
   }
   else
@@ -226,7 +229,6 @@ static int tar_redir_append(char *tar_name, char *in_tar, int fd)
     goto error;
   }
   enum file_type type = type_of_file(tar_name, in_tar, false);
-  fprintf(stderr, "%s %d\n", in_tar, type);
   switch(type)
   {
     case NONE:
@@ -268,6 +270,42 @@ static int tar_redir_append(char *tar_name, char *in_tar, int fd)
   }
 }
 
+/* Launch redirections on linked file if in_tar is a link, else returns -2 */
+static int launch_redir_tar_link(char *tar_name, char *in_tar, redir_type r)
+{
+  int tar_fd = open(tar_name, O_RDONLY);
+  if (tar_fd < 0)
+    return -1;
+  struct posix_header hd;
+  seek_header(tar_fd, in_tar, &hd);
+  if (hd.typeflag == LNKTYPE || hd.typeflag == SYMTYPE)
+  {
+    char arg[PATH_MAX];
+    if (hd.linkname[0] != '/')
+    {
+      char *last_slash = strrchr(hd.name, '/');
+      if (last_slash)
+      {
+        last_slash[1] = '\0';
+        sprintf(arg, "%s/%s%s", tar_name, hd.name, hd.linkname);
+      }
+      else
+      {
+        sprintf(arg, "%s/%s", tar_name, hd.linkname);
+      }
+    }
+    else
+    {
+      strcpy(arg, hd.linkname);
+    }
+    close(tar_fd);
+    return launch_redir(r, arg);
+  }
+  close(tar_fd);
+  return -2;
+
+}
+
 static int stdout_redir(char *s)
 {
   return 0;
@@ -280,12 +318,12 @@ static int stderr_redir(char *s)
 
 static int stdout_append(char *s)
 {
-  return redir_append(s, STDOUT_FILENO);
+  return redir_append(s, STDOUT_FILENO, STDOUT_APPEND);
 }
 
 static int stderr_append(char *s)
 {
-  return redir_append(s, STDERR_FILENO);
+  return redir_append(s, STDERR_FILENO, STDERR_APPEND);
 }
 
 static int stdin_redir(char *s)
