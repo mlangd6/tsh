@@ -272,7 +272,7 @@ static int append_tar_file(char *tar_name, char *in_tar, int read_fd)
     {
       case -1:
         perror("read on pipe");
-        break;
+        return -1;
       case 0:
         exit(EXIT_SUCCESS);
         break;
