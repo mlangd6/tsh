@@ -220,12 +220,27 @@ static int handle_inside_tar_redir(int fd, char *tar_name, char *in_tar)
 static int tar_redir_append(char *tar_name, char *in_tar, int fd)
 {
   // On vérifie que la redirection n'est pas vers un dossier
-  if (in_tar[0] == '\0' || in_tar[strlen(in_tar) - 1] == '/')
+  if (in_tar[0] == '\0')
   {
     errno = EISDIR;
     goto error;
   }
-
+  enum file_type type = type_of_file(tar_name, in_tar, false);
+  fprintf(stderr, "%s %d\n", in_tar, type);
+  switch(type)
+  {
+    case NONE:
+      if (errno = ENOENT)
+        tar_add_file(tar_name, NULL, in_tar);
+      else goto error;
+      break;
+    case DIR:
+      errno = EISDIR;
+      goto error;
+      break;
+    case REG:
+      break;
+  }
   // On vérifie si le fichier existe déjà et si oui si on peut écrire dedans
   if (tar_access(tar_name, in_tar, W_OK) != 1)
   {
