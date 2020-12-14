@@ -35,6 +35,7 @@ static int stdin_redir(char *s);
 static void add_reset_redir(int fd, pid_t pid);
 static int handle_inside_tar_redir(int fd, char *tar_name, char *in_tar);
 static int launch_redir_tar_link(char *tar_name, char *in_tar, redir_type r);
+static int append_tar_file(char *tar_name, char *in_tar, int read_fd);
 
 stack *reset_fds;
 
@@ -125,8 +126,6 @@ static int redir_append(char *s, int fd, redir_type r)
     close(new_fd);
     return 0;
   }
-
-
 }
 
 /* Returns the number of required blocks to add content, and set padding to then current padding of file */
@@ -156,55 +155,9 @@ static int handle_inside_tar_redir(int fd, char *tar_name, char *in_tar)
     // Le procesus fils écrit lit dans le tube et écrit directement dans le tar
     {
       close(pipefd[1]);
-      int tar_fd = open(tar_name, O_RDWR);
-      ssize_t read_size;
-      char buff[4096];
-      struct posix_header hd;
-      while(1) {
-        // tant que rien n'est lu dans le tube, le processus est en attente
-        // Ainsi, read_size == 0 si et seulement si il n'y pas plus d'écrivain,
-        // i.e si la redirection est fini
-        switch((read_size = read(pipefd[0], buff, 4096)))
-        {
-          case -1:
-            perror("read on pipe");
-            break;
-          case 0:
-            exit(EXIT_SUCCESS);
-            break;
-          default:
-          {
-            // On met à jour la taille du header par rapport à read_size
-            void update_size(struct posix_header *hd)
-            {
-              int size = get_file_size(hd);
-              long unsigned int new_size = size + read_size;
-              sprintf(hd -> size, "%011lo", new_size);
-            }
-            update_header(&hd, tar_fd, in_tar, update_size);
-
-            // Calcul du décalage nécessaire
-            int old_size = get_file_size(&hd) - read_size;
-            int padding;
-            int required_blocks = get_required_blocks(old_size, read_size, &padding);
-
-            // On crée un espace en blocs pour pouvoir écrire ce qui a été lu
-            off_t beg = lseek(tar_fd, old_size, SEEK_CUR);
-            off_t tar_size = lseek(tar_fd, 0, SEEK_END);
-            if (required_blocks > 0)
-            {
-              if (fmemmove(tar_fd, beg + padding, tar_size - (beg + padding), beg + padding + required_blocks*BLOCKSIZE)) {
-                close(tar_fd);
-                return -1;
-              }
-            }
-            // On revient à l'endroit où on veut écrire et on écrit
-            lseek(tar_fd, beg, SEEK_SET);
-            write(tar_fd, buff, read_size);
-            break;
-          }
-        }
-      }
+      int append_ret;
+      if (( append_ret = append_tar_file(tar_name, in_tar, pipefd[0])) < 0)
+        return append_ret;
     }
     default: // parent
       // Ajout du reset et on ferme les deux fd du tube (stdout ou stderr sera
@@ -303,6 +256,60 @@ static int launch_redir_tar_link(char *tar_name, char *in_tar, redir_type r)
   }
   close(tar_fd);
   return -2;
+}
+
+static int append_tar_file(char *tar_name, char *in_tar, int read_fd)
+{
+  int tar_fd = open(tar_name, O_RDWR);
+  ssize_t read_size;
+  char buff[4096];
+  struct posix_header hd;
+  while(1) {
+    // tant que rien n'est lu dans le tube, le processus est en attente
+    // Ainsi, read_size == 0 si et seulement si il n'y pas plus d'écrivain,
+    // i.e si la redirection est fini
+    switch((read_size = read(read_fd, buff, 4096)))
+    {
+      case -1:
+        perror("read on pipe");
+        break;
+      case 0:
+        exit(EXIT_SUCCESS);
+        break;
+      default:
+      {
+        // On met à jour la taille du header par rapport à read_size
+        void update_size(struct posix_header *hd)
+        {
+          int size = get_file_size(hd);
+          long unsigned int new_size = size + read_size;
+          sprintf(hd -> size, "%011lo", new_size);
+        }
+        update_header(&hd, tar_fd, in_tar, update_size);
+
+        // Calcul du décalage nécessaire
+        int old_size = get_file_size(&hd) - read_size;
+        int padding;
+        int required_blocks = get_required_blocks(old_size, read_size, &padding);
+
+        // On crée un espace en blocs pour pouvoir écrire ce qui a été lu
+        off_t beg = lseek(tar_fd, old_size, SEEK_CUR);
+        off_t tar_size = lseek(tar_fd, 0, SEEK_END);
+        if (required_blocks > 0)
+        {
+          if (fmemmove(tar_fd, beg + padding, tar_size - (beg + padding), beg + padding + required_blocks*BLOCKSIZE)) {
+            close(tar_fd);
+            return -1;
+          }
+        }
+        // On revient à l'endroit où on veut écrire et on écrit
+        lseek(tar_fd, beg, SEEK_SET);
+        write(tar_fd, buff, read_size);
+        break;
+      }
+    }
+  }
+  return 0;
 
 }
 
