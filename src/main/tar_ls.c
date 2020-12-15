@@ -16,7 +16,7 @@
 /**
  * Lists all files passing a predicate in a tar.
  */
-static array* tar_ls_if (int tar_fd, bool (*predicate)(const struct posix_header *))
+array* tar_ls_if (int tar_fd, bool (*predicate)(const struct posix_header *))
 {
   array *ret;
   ssize_t size_read;
@@ -29,24 +29,24 @@ static array* tar_ls_if (int tar_fd, bool (*predicate)(const struct posix_header
   while ((size_read = read(tar_fd, &tf.header, BLOCKSIZE)))
     {
       if (size_read != BLOCKSIZE)
-	{	  
+	{
 	  array_free(ret, false);
 	  return NULL;
 	}
 
       if (tf.header.name[0] == '\0')
 	break;
-      
+
       if (predicate (&tf.header)) // on ajoute au tableau si le prédicat est vrai
-	{	  
+	{
 	  tf.file_start = lseek(tar_fd, 0, SEEK_CUR) - BLOCKSIZE;
-	  
+
 	  array_insert_last (ret, &tf);
 	}
-      
+
       skip_file_content(tar_fd, &tf.header);
     }
-  
+
   return ret;
 }
 
@@ -57,7 +57,7 @@ static bool always_true (const struct posix_header *header)
 }
 
 
-/** 
+/**
  * Lists all files in a tar.
  *
  * The file descriptor `tar_fd` must be already opened with at least read mode.
@@ -71,12 +71,12 @@ array* tar_ls_all (int tar_fd)
 }
 
 
-/** 
+/**
  * Lists all files from a directory contained in a tar.
  *
  * The file descriptor `tar_fd` must be already opened with at least read mode and `dir_name` must be a null terminated string.
  * To list files at root just put an empty string for `dir_name` otherwise make sure `dir_name` ends with a `/`.
- * 
+ *
  * Note that, the returned array has no entry for the listed directory (i.e. `dir_name`).
  *
  * @param tar_fd a file descriptor referencing a tar
@@ -85,7 +85,7 @@ array* tar_ls_all (int tar_fd)
  * @return a pointer to an array of tar_file; `NULL` if there are errors
  */
 array* tar_ls_dir (int tar_fd, const char *dir_name, bool rec)
-{  
+{
   bool in_dir(const struct posix_header *header)
   {
     if (is_prefix(dir_name, header->name) != 1)
@@ -93,26 +93,26 @@ array* tar_ls_dir (int tar_fd, const char *dir_name, bool rec)
 
     if (rec)
       return true;
-    
+
     char *c = strchr(header->name + strlen(dir_name), '/');
     return !c || !c[1]; // pas de '/' ou '/' à la fin
   }
 
   if (*dir_name == '\0')
     return tar_ls_if(tar_fd, in_dir);
-    
+
   // on vérifie que dir_name est un dossier et qu'il existe bien
   if (!is_dir_name(dir_name) || ftar_access(tar_fd, dir_name, F_OK) == -1)
     return NULL;
-  
+
   return tar_ls_if(tar_fd, in_dir);
 }
 
 
 
 
-/** 
- * List all files contained in a tar. 
+/**
+ * List all files contained in a tar.
  *
  * @param tar_name the tar to list
  * @param nb_headers an address to store the size of the returned array
