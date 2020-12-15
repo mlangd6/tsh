@@ -17,15 +17,13 @@
 //return -1 if the file already exists else 0
 static int access_mkdir(char *tar_name, char *filename)
 {
-  if(tar_access(tar_name, filename, F_OK) > 0)
-  {
-    return -2;
-  }
   char tmp[strlen(filename)];
   strcpy(tmp, filename);
   tmp[strlen(tmp) - 1] = '\0';
-  char *search = malloc(100);
-  search = strrchr(tmp, '/');
+  if(tar_access(tar_name, filename, F_OK) > 0 || tar_access(tar_name, tmp, F_OK) > 0)
+    return -2;
+
+  char *search = strrchr(tmp, '/');
   if(search != NULL)
   {
     tmp[strlen(tmp) - strlen(search) + 1] = '\0';
@@ -44,21 +42,16 @@ static int access_mkdir(char *tar_name, char *filename)
 
 int mkdir(char *tar_name, char *filename, char *options)
 {
-  int length = strlen(filename);
-  if(filename[length - 1] != '/')
-  {
-    filename[length] = '/';
-    filename[length+1] = '\0';
-  }
+  if(filename[strlen(filename) - 1] != '/')
+    strcat(filename, "/");
+
   int i = access_mkdir(tar_name, filename);
   if(i == -2)
   {
     errno = EEXIST;
     tar_name[strlen(tar_name)] = '/';
-    char buf[strlen(tar_name)+34];
-    strcpy(buf, "Impossible to create directory \"");
-    strcat(buf, tar_name);
-    strcat(buf, "\"\0");
+    char buf[strlen(tar_name)+27];
+    sprintf(buf, "cannot create directory \'%s\'", tar_name);
     error_cmd(CMD_NAME, buf);
     return EXIT_FAILURE;
   }
