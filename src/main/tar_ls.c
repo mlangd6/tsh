@@ -133,16 +133,16 @@ struct posix_header *tar_ls(const char *tar_name, int *nb_headers)
   assert(list_header);
 
   for(int i=0; i < *nb_headers; i++)
-    {
-      size_read = read(tar_fd, list_header+i, BLOCKSIZE);
+  {
+    size_read = read(tar_fd, list_header+i, BLOCKSIZE);
 
-      if(size_read != BLOCKSIZE)
-	{
-	  free(list_header);
-	  return error_p(&tar_fd, 1, errno);
-	}
-      skip_file_content(tar_fd, list_header+i);
-    }
+    if(size_read != BLOCKSIZE)
+	  {
+	    free(list_header);
+	    return error_p(&tar_fd, 1, errno);
+	  }
+    skip_file_content(tar_fd, list_header+i);
+  }
   close(tar_fd);
   return list_header;
 }

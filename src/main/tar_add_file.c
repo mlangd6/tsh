@@ -38,13 +38,6 @@ static int seek_end_of_tar(int tar_fd) {
   return 0;
 }
 
-/* Set mtime of header to actual time */
-static void set_hd_time(struct posix_header *hd) {
-  time_t now;
-  time(&now);
-  sprintf(hd -> mtime, "%011o", (unsigned int) now);
-}
-
 static void init_type(struct posix_header *hd, struct stat *s) {
   if (S_ISREG(s -> st_mode)) {
     hd -> typeflag = REGTYPE;
@@ -111,6 +104,22 @@ static int get_u_and_g_name(struct posix_header *hd, struct stat *s){
   return 0;
 }
 
+static void adapt_len_char_for_size(struct posix_header *hd, int length, off_t si){
+  char tmp[length];
+  tmp[length - 1] = '\0';
+  char size[length];
+  size[length - 1] = '\0';
+  sprintf(tmp, "%011lo", si);
+  int len = strlen(tmp), i;
+  for(i = 0; i < 12-len-1; i++){
+    size[i] = '0';
+  }
+  for(int j = 0; j < len; j++){
+    size[i+j] = tmp[j];
+  }
+  strcpy(hd -> size, size);
+}
+
 
 static int init_header(struct posix_header *hd, const char *source, const char *filename) {
   struct stat s;
@@ -123,6 +132,8 @@ static int init_header(struct posix_header *hd, const char *source, const char *
   init_mode(hd, &s);
   sprintf(hd -> uid, "%07o", s.st_uid);
   sprintf(hd -> gid, "%07o" ,s.st_gid);
+  if(S_ISDIR(s.st_mode)) strcpy(hd -> size, "00000000000");
+  else adapt_len_char_for_size(hd, 12, s.st_size);
   init_type(hd, &s);
   char buf[100];
   memset(buf, '\0', 100);
@@ -151,7 +162,7 @@ static int init_header_empty_file(struct posix_header *hd, const char *filename,
   else sprintf(hd -> mode, "%07o", 0666 & ~getumask());
   sprintf(hd -> uid, "%07o", getuid());
   sprintf(hd -> gid, "%07o", getgid());
-  strcpy(hd -> size, "0");
+  strcpy(hd -> size, "00000000000");
   set_hd_time(hd);
   hd -> typeflag = (is_dir)? DIRTYPE : REGTYPE;
   strcpy(hd -> magic, TMAGIC);
@@ -455,5 +466,49 @@ int tar_add_file_rec(const char *tar_name, const char *filename, const char *ins
       free(copy3);
     }
   }
+  return 0;
+}
+
+/**
+ * Move header and content of file inside a tarball to the end of the tarball
+ * @param tar_name the name of the tarball
+ * @param filename the name of the file inside the tar
+ * @return 0 on success, -1 else
+ */
+int move_file_to_end_of_tar(char *tar_name, char *filename)
+{
+  int tar_fd = open(tar_name, O_RDWR);
+  if (tar_fd < 0)
+    return -1;
+
+  seek_end_of_tar(tar_fd);
+  off_t end_tar = lseek(tar_fd, 0, SEEK_CUR);
+
+  struct posix_header hd;
+  lseek(tar_fd, 0, SEEK_SET);
+  if (seek_header(tar_fd, filename, &hd) != 1)
+    return -1;
+
+  size_t move_size = BLOCKSIZE * (number_of_block(get_file_size(&hd)) + 1);
+  off_t whence = lseek(tar_fd, -BLOCKSIZE, SEEK_CUR);
+  if (whence + move_size == end_tar)
+  {
+    // Le fichier est déjà le dernier fichier du tar
+    return 0;
+  }
+  // On récupère le header et contenue du fichier
+  char *move_buff = malloc(move_size);
+  read(tar_fd, move_buff, move_size);
+
+  // On récupère le contenue de tout ce qu'il y a après ce fichier dans le tar (sans les blocs vides)
+  size_t after_size = end_tar - (whence + move_size);
+  char *after_buff = malloc(after_size);
+  read(tar_fd, after_buff, after_size);
+  lseek(tar_fd, whence, SEEK_SET);
+  // On échange les deux emplacement
+  write(tar_fd, after_buff, after_size);
+  write(tar_fd, move_buff, move_size);
+  free(after_buff);
+  free(move_buff);
   return 0;
 }
