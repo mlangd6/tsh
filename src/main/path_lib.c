@@ -18,8 +18,8 @@
 
 static char *end_of_path(char *path);
 static void remove_last_slashs(char *path);
-static enum file_type is_dir(int tar_fd, const char *filename);
-static enum file_type is_reg(int tar_fd, const char *filename);
+static enum file_type is_dir_type(int tar_fd, const char *filename);
+static enum file_type is_reg_type(int tar_fd, const char *filename);
 
 /* Return a malloc'd pointer of the last file in path, NULL if it end by . or ..
   the last file will also be detahced of path */
@@ -238,34 +238,34 @@ enum file_type type_of_file(const char *tar_name, const char *filename, bool dir
     return NONE;
   if (dir_priority)
   {
-    res = is_dir(tar_fd, filename);
+    res = is_dir_type(tar_fd, filename);
     if (res == DIR) return DIR;
     else if (res == NONE && errno == ENOENT)
     {
-      return is_reg(tar_fd, filename);
+      return is_reg_type(tar_fd, filename);
     }
     else return NONE;
   }
   else {
-    res = is_reg(tar_fd, filename);
+    res = is_reg_type(tar_fd, filename);
     if (res == REG) return REG;
     else if (res == NONE && errno == ENOENT)
     {
-      return is_dir(tar_fd, filename);
+      return is_dir_type(tar_fd, filename);
     }
     else return NONE;
   }
 }
 
 /* Return DIR if filename reference a directory, else NONE and errno is set accordingly */
-static enum file_type is_dir(int tar_fd, const char *filename)
+static enum file_type is_dir_type(int tar_fd, const char *filename)
 {
   char dir[PATH_MAX];
   sprintf(dir, "%s/", filename);
   return (ftar_access(tar_fd, dir, F_OK) > 0) ? DIR: NONE;
 }
 /* Return REG if filename reference a regular file, else NONE and errno is set accordingly */
-static enum file_type is_reg(int tar_fd, const char *filename)
+static enum file_type is_reg_type(int tar_fd, const char *filename)
 {
   return (ftar_access(tar_fd, filename, F_OK) == 1) ? REG : NONE;
 }

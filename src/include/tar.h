@@ -165,7 +165,7 @@ int tar_mv_file(const char *tar_name, const char *filename, int fd);
    F_OK tests for the existence of the file.
 
    RETURN :
-   On success, 1 is returned if FILE_NAME was exactly found in hte tar, or 2 is returned if FILE_NAME is finishing with a / (i.e. is a directory) and was found existing only through its subfiles.
+   On success, 1 is returned if FILE_NAME was exactly found in the tar, or 2 is returned if FILE_NAME is finishing with a / (i.e. is a directory) and was found existing only through its subfiles.
    On error, -1 is returned and errno is set appropriately.
 
    ERRORS :
@@ -210,5 +210,9 @@ void set_hd_time(struct posix_header *hd);
 int update_header(struct posix_header *hd, int tar_fd, char *filename, void (*update)(struct posix_header *hd));
 
 int move_file_to_end_of_tar(char *tar_name, char *filename);
+
+/* Check if filename is the name of a directory in the tar.
+   If true then return 1 else 0 */
+int is_dir(const char *tar_name, const char *filename);
 
 #endif

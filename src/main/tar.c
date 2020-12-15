@@ -7,9 +7,12 @@
 #include <unistd.h>
 #include <linux/limits.h>
 #include <time.h>
+#include <stdlib.h>
 
 #include "tar.h"
 #include "path_lib.h"
+#include "errors.h"
+#include "utils.h"
 
 /* Code for set_checksum(...) and check_checksum(...) are taken from :
    https://gaufre.informatique.univ-paris-diderot.fr/klimann/systL3_2020-2021/blob/master/TP/TP1/tar.h */
@@ -180,5 +183,19 @@ int update_header(struct posix_header *hd, int tar_fd, char *filename, void (*up
   set_checksum(hd);
   if (lseek(tar_fd, -BLOCKSIZE, SEEK_CUR) < 0 || write(tar_fd, hd, BLOCKSIZE) < 0)
     return -1;
+  return 0;
+}
+
+int is_dir(const char *tar_name, const char *filename)
+{
+  char *copy = append_slash(filename);
+  if(copy!=NULL){
+    if(tar_access(tar_name, copy, F_OK) > 0)
+    {
+      free(copy);
+      return 1;
+    }
+  }
+  free(copy);
   return 0;
 }
