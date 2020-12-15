@@ -185,6 +185,11 @@ static int tar_redir_append(char *tar_name, char *in_tar, int fd)
   switch(type)
   {
     case NONE:
+      if (is_dir_name(in_tar))
+      {
+        errno = EISDIR;
+        goto error;
+      }
       if (errno = ENOENT)
         tar_add_file(tar_name, NULL, in_tar);
       else goto error;
