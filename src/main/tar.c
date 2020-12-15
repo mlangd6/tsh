@@ -165,7 +165,7 @@ int nb_files_in_tar_c(char *tar_name){
 }
 
 
-int is_dir(const char *tar_name, const char *filename)
+int is_dir(char *tar_name, char *filename)
 {
   char *copy = append_slash(filename);
   if(tar_access(tar_name, copy, F_OK) > 0)

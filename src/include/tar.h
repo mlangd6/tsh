@@ -198,6 +198,6 @@ int add_tar_file_in_tar_rec(const char *tar_name_src, char *tar_name_dest, const
 
 /* Check if filename is the name of a directory in the tar.
    If true then return 1 else 0 */
-int is_dir(const char *tar_name, const char *filename);
+int is_dir(char *tar_name, char *filename);
 
 #endif
