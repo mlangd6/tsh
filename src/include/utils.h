@@ -28,4 +28,17 @@ int is_prefix(const char *prefix, const char *str);
    On error,  -1 is returned. */
 int fmemmove(int fd, off_t whence, size_t size, off_t where);
 
+
+/** 
+ * Writes a string to a file descriptor. 
+ */
+int write_string (int fd, const char *string);
+
+
+/** 
+ * Gets a malloc'd copy of a string. 
+ */
+char *copy_string (const char *str);
+
+
 #endif

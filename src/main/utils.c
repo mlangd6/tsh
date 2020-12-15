@@ -92,3 +92,19 @@ int is_prefix (const char *prefix, const char *str)
 
   return 0;
 }
+
+
+int write_string (int fd, const char *string)
+{
+  return write(fd, string, strlen(string) + 1);
+}
+
+
+char *copy_string (const char *str)
+{
+  char *cpy = malloc(strlen(str)+1);
+  assert(cpy);
+
+  strcpy(cpy, str);
+  return cpy;
+}
