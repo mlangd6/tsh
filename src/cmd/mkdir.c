@@ -6,6 +6,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <errno.h>
+#include <limits.h>
 
 #include "tar.h"
 #include "errors.h"
@@ -17,24 +18,20 @@
 //return -1 if the file already exists else 0
 static int access_mkdir(char *tar_name, char *filename)
 {
-  char tmp[strlen(filename)];
-  strcpy(tmp, filename);
-  tmp[strlen(tmp) - 1] = '\0';
-  if(tar_access(tar_name, filename, F_OK) > 0 || tar_access(tar_name, tmp, F_OK) > 0)
+  char copy_filename[PATH_MAX];
+  strcpy(copy_filename, filename);
+  copy_filename[strlen(copy_filename) - 1] = '\0';
+  if(tar_access(tar_name, filename, F_OK) > 0 || tar_access(tar_name, copy_filename, F_OK) > 0)
     return -2;
 
-  char *search = strrchr(tmp, '/');
-  if(search != NULL)
+  char *after_last_slash = strrchr(copy_filename, '/');
+  if(after_last_slash != NULL)
   {
-    tmp[strlen(tmp) - strlen(search) + 1] = '\0';
-    if(tar_access(tar_name, tmp, W_OK) < 0 || tar_access(tar_name, tmp, X_OK) < 0)
+    copy_filename[strlen(copy_filename) - strlen(after_last_slash) + 1] = '\0';
+    if(tar_access(tar_name, copy_filename, W_OK) < 0 || tar_access(tar_name, copy_filename, X_OK) < 0)
       return -1;
   }
-  else
-  {
-    if(access(tar_name, W_OK) < 0 || access(tar_name, X_OK) < 0)
-      return -1;
-  }
+
   return 0;
 }
 
@@ -45,25 +42,26 @@ int mkdir(char *tar_name, char *filename, char *options)
   if(filename[strlen(filename) - 1] != '/')
     strcat(filename, "/");
 
-  int i = access_mkdir(tar_name, filename);
-  if(i == -2)
+  int res_access = access_mkdir(tar_name, filename);
+  int len_tar_name = strlen(tar_name);
+  if(res_access == -2)
   {
     errno = EEXIST;
-    tar_name[strlen(tar_name)] = '/';
-    char buf[strlen(tar_name)+27];
+    tar_name[len_tar_name] = '/';
+    char buf[len_tar_name+27];
     sprintf(buf, "cannot create directory \'%s\'", tar_name);
     error_cmd(CMD_NAME, buf);
     return EXIT_FAILURE;
   }
-  if(i == -1)
+  if(res_access == -1)
   {
-    tar_name[strlen(tar_name)] = '/';
+    tar_name[len_tar_name] = '/';
     error_cmd(CMD_NAME, tar_name);
     return EXIT_FAILURE;
   }
   if(tar_add_file(tar_name, NULL, filename) != 0)
   {
-    tar_name[strlen(tar_name)] = '/';
+    tar_name[len_tar_name] = '/';
     error_cmd(CMD_NAME, tar_name);
     return EXIT_FAILURE;
   }
