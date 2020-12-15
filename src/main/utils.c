@@ -75,12 +75,12 @@ int is_dir_name(const char *filename)
 }
 
 
-int is_empty_string(char *filename)
+int is_empty_string(const char *filename)
 {
   return ((!*filename)?1:0);
 }
 
-char *append_slash(char *str)
+char *append_slash(const char *str)
 {
   if(is_empty_string(str))return NULL;
   int length = strlen(str);

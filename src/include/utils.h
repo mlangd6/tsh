@@ -31,7 +31,7 @@ int is_prefix(const char *prefix, const char *str);
 /*
   check if filename is equals to '\0'
 */
-int is_empty_string(char *filename);
+int is_empty_string(const char *filename);
 
 
 /* Copies SIZE bytes from file descriptor FD starting at WHENCE offset to WHERE offset.
@@ -44,6 +44,6 @@ int fmemmove(int fd, off_t whence, size_t size, off_t where);
 /**
   * Add a slash at the end of STR and return it.
   */
-char *append_slash(char *str);
+char *append_slash(const char *str);
 
 #endif

@@ -105,7 +105,7 @@ int tar_rm(const char *tar_name, const char *filename)
 
   int r;
 
-  if(is_dir_name(filename) || strcmp(filename, "\0")==0)
+  if(is_empty_string(filename) || is_dir_name(filename))
   {
     r = tar_rm_dir(tar_fd, filename);
   }

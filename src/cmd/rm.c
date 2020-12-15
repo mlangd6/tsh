@@ -8,11 +8,12 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <errno.h>
+#include <limits.h>
 
 #define CMD_NAME "rm"
 #define SUPPORT_OPT "r"
 
-static int rm_access_in_existing(char *tar_name, char *filename)
+static int rm_access_in_existing(const char *tar_name, const char *filename)
 {
   if(is_empty_string(filename)){
     if(access(tar_name, F_OK) < 0)
@@ -25,60 +26,55 @@ static int rm_access_in_existing(char *tar_name, char *filename)
 }
 
 //check if the access right are good to use rm
-static int rm_access_in_writing(char *tar_name, char *filename)
+static int rm_access_in_writing(const char *tar_name, const char *filename)
 {
-  int length = strlen(filename);
-  char copy[length+2];
-  strcpy(copy, filename);
-  if(length > 0 && copy[length-1] == '/')
-    copy[length - 1] = '\0';
-  char *search = strrchr(copy, '/');
+  int len_file = strlen(filename);
+  char copy_filename[len_file+2];
+  strcpy(copy_filename, filename);
+  if(len_file > 0 && copy_filename[len_file-1] == '/')
+    copy_filename[len_file - 1] = '\0';
+  char *last_slash_of_copy = strrchr(copy_filename, '/');
 
-  if(search != NULL)
+  if(last_slash_of_copy != NULL)
   {
-    int a = strlen(search);
-    copy[strlen(copy) - a + 1 ] = '\0';
-    if(filename[length-1] == '/' && tar_access(tar_name, copy, W_OK) < 0){
+    int a = strlen(last_slash_of_copy);
+    copy_filename[strlen(copy_filename) - a + 1 ] = '\0';
+    if(filename[len_file-1] == '/' && tar_access(tar_name, copy_filename, W_OK) < 0){
       return -1;
     }
     if(tar_access(tar_name, filename, W_OK) < 0){
       return -1;
     }
   }
-  else
-  {
-    if(access(tar_name, W_OK) < 0){
-      return -1;
-    }
-  }
+
   return 0;
 }
 
-static int is_pwd_prefix(char *tar_name, char *filename)
+static int is_pwd_prefix(const char *tar_name, const char *filename)
 {
-  char *ntn = malloc(4096);
-  strcpy(ntn, tar_name);
+  char *copy_tar_name = malloc(4096);
+  strcpy(copy_tar_name, tar_name);
 
-  char *ntf = malloc(100);
-  strcpy(ntf, filename);
+  char *copy_filename = malloc(100);
+  strcpy(copy_filename, filename);
 
-  char *nn = malloc(4096);
-  sprintf(nn, "%s/%s", ntn, ntf);
+  char *path = malloc(4096);
+  sprintf(path, "%s/%s", copy_tar_name, copy_filename);
 
-  char *env =append_slash(getenv("PWD"));
+  char *env = append_slash(getenv("PWD"));
 
-  if(is_prefix(nn, env) > 0)
+  if(is_prefix(path, env) > 0)
   {
-    free(ntn);
-    free(ntf);
-    free(nn);
+    free(copy_tar_name);
+    free(copy_filename);
+    free(path);
     free(env);
     return -1;
   }
 
-  free(ntn);
-  free(ntf);
-  free(nn);
+  free(copy_tar_name);
+  free(copy_filename);
+  free(path);
   free(env);
   return 0;
 }
@@ -143,9 +139,11 @@ static int rm_r(char *tar_name, char *filename)
 
 int rm(char *tar_name, char *filename, char *options)
 {
-  char new_filename[strlen(filename)+2];
+
+  char new_filename[PATH_MAX];
   strcpy(new_filename, filename);
   //Check if the file isn't prefix on the path of pwd
+
   if(is_pwd_prefix(tar_name, filename) == -1)
   {
     char msg[strlen(tar_name)+10];
@@ -155,6 +153,7 @@ int rm(char *tar_name, char *filename, char *options)
     error_cmd(CMD_NAME, msg);
     return EXIT_FAILURE;
   }
+
   //Check if the file is directory in the tar
   if(is_dir(tar_name, filename))
   {
@@ -175,6 +174,7 @@ int rm(char *tar_name, char *filename, char *options)
     if(prompt_remove(tar_name, new_filename) == -1)
       return EXIT_FAILURE;
   }
+
   return (strchr(options, 'r'))? rm_r(tar_name, new_filename) : rm_(tar_name, new_filename);
 }
 
