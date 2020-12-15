@@ -24,6 +24,7 @@ static int handle_reg_file (binary_command *cmd, arg_info *info, char *arg, char
 
 static void free_all (struct arg *tokens, int argc, arg_info *info, char *options);
 
+static int check_arg_existence (struct arg *token);
 
 static char** arg_info_to_argv (arg_info *info, char *arg, char *last)
 {
@@ -118,7 +119,7 @@ static int check_arg_existence (struct arg *token)
 
   if (token->type == TAR_FILE)
     {
-      ret = tar_access (token->tf.tar_name, token->tf.filename, F_OK);
+      ret = is_dir (token->tf.tar_name, token->tf.filename);
     }
   else
     {
