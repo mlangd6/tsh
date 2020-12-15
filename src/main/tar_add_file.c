@@ -104,6 +104,22 @@ static int get_u_and_g_name(struct posix_header *hd, struct stat *s){
   return 0;
 }
 
+static void adapt_len_char_for_size(struct posix_header *hd, int length, off_t si){
+  char tmp[length];
+  tmp[length - 1] = '\0';
+  char size[length];
+  size[length - 1] = '\0';
+  sprintf(tmp, "%011lo", si);
+  int len = strlen(tmp), i;
+  for(i = 0; i < 12-len-1; i++){
+    size[i] = '0';
+  }
+  for(int j = 0; j < len; j++){
+    size[i+j] = tmp[j];
+  }
+  strcpy(hd -> size, size);
+}
+
 
 static int init_header(struct posix_header *hd, const char *source, const char *filename) {
   struct stat s;
@@ -116,6 +132,8 @@ static int init_header(struct posix_header *hd, const char *source, const char *
   init_mode(hd, &s);
   sprintf(hd -> uid, "%07o", s.st_uid);
   sprintf(hd -> gid, "%07o" ,s.st_gid);
+  if(S_ISDIR(s.st_mode)) strcpy(hd -> size, "00000000000");
+  else adapt_len_char_for_size(hd, 12, s.st_size);
   init_type(hd, &s);
   char buf[100];
   memset(buf, '\0', 100);
@@ -144,7 +162,7 @@ static int init_header_empty_file(struct posix_header *hd, const char *filename,
   else sprintf(hd -> mode, "%07o", 0666 & ~getumask());
   sprintf(hd -> uid, "%07o", getuid());
   sprintf(hd -> gid, "%07o", getgid());
-  strcpy(hd -> size, "0");
+  strcpy(hd -> size, "00000000000");
   set_hd_time(hd);
   hd -> typeflag = (is_dir)? DIRTYPE : REGTYPE;
   strcpy(hd -> magic, TMAGIC);

@@ -13,7 +13,6 @@
 #include "errors.h"
 #include "parse_line.h"
 
-
 static int ret_value;
 
 static int cd(char **argv, int argc);
@@ -26,6 +25,7 @@ static int launch_tsh_func(char **argv, int argc);
 
 
 char tsh_dir[PATH_MAX];
+
 
 
 
@@ -44,17 +44,17 @@ static void init_tsh()
 static int launch_tsh_func(char **argv, int argc)
 {
   if (strcmp(argv[0], "cd") == 0)
-    {
-      return cd(argv, argc);
-    }
+  {
+    return cd(argv, argc);
+  }
   else if (strcmp(argv[0], "exit") == 0)
-    {
-      exit_tsh(argv, argc);
-    }
+  {
+    exit_tsh(argv, argc);
+  }
   else if (strcmp(argv[0], "pwd") == 0)
-    {
-      return pwd(argv, argc);
-    }
+  {
+    return pwd(argv, argc);
+  }
   return EXIT_FAILURE;
 }
 
@@ -72,9 +72,9 @@ static int exit_tsh(char **argv, int argc)
 {
   exit_redirections();
   for (int i = 1; i < argc; i++)
-    {
-      free(argv[i]);
-    }
+  {
+    free(argv[i]);
+  }
   free(argv);
   exit(ret_value);
 }
