@@ -13,7 +13,6 @@
 #include "errors.h"
 #include "parse_line.h"
 
-
 static int ret_value;
 
 static int cd(char **argv, int argc);
@@ -29,6 +28,7 @@ char tsh_dir[PATH_MAX];
 
 
 
+
 static void init_tsh()
 {
   char cwd[PATH_MAX];
@@ -38,22 +38,23 @@ static void init_tsh()
   strcpy(tsh_dir, home);
   strcat(tsh_dir, "/.tsh");
   ret_value = EXIT_SUCCESS;
+  init_redirections();
 }
 
 static int launch_tsh_func(char **argv, int argc)
 {
   if (strcmp(argv[0], "cd") == 0)
-    {
-      return cd(argv, argc);
-    }
+  {
+    return cd(argv, argc);
+  }
   else if (strcmp(argv[0], "exit") == 0)
-    {
-      exit_tsh(argv, argc);
-    }
+  {
+    exit_tsh(argv, argc);
+  }
   else if (strcmp(argv[0], "pwd") == 0)
-    {
-      return pwd(argv, argc);
-    }
+  {
+    return pwd(argv, argc);
+  }
   return EXIT_FAILURE;
 }
 
@@ -69,10 +70,11 @@ static int pwd(char **argv, int argc)
 
 static int exit_tsh(char **argv, int argc)
 {
+  exit_redirections();
   for (int i = 1; i < argc; i++)
-    {
-      free(argv[i]);
-    }
+  {
+    free(argv[i]);
+  }
   free(argv);
   exit(ret_value);
 }
@@ -230,8 +232,14 @@ int main (int argc, char *argv[])
     tokens = tokenize(buf, &nb_tokens);
     args = malloc((nb_tokens + 1) * sizeof(char *));
     nb_tokens = exec_tokens(tokens, nb_tokens, args);
-    if (nb_tokens <= 0) // TODO: Les redirections devront être annulés (si < 0)
+    free(tokens);
+    if (nb_tokens <= 0) // No tokens or an error occured
+    {
+      free(buf);
+      free(args);
+      reset_redirs(); // In case some redirections worked
       continue;
+    }
     is_special = special_command(args[0]);
     if (is_special == TSH_FUNC)
     {
@@ -271,14 +279,15 @@ int main (int argc, char *argv[])
 
         exit(EXIT_FAILURE);
 
-        default: // father
-        wait(&wstatus);
+        default: // parent
+        waitpid(cpid, &wstatus, 0);
         ret_value = WEXITSTATUS(wstatus);
       }
 
     }
     free(args);
     free(buf);
+    reset_redirs();
   }
 
   return 0;

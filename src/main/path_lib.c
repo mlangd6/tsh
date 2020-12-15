@@ -8,6 +8,9 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <unistd.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
 
 #include "path_lib.h"
 #include "tar.h"
@@ -15,6 +18,8 @@
 
 static char *end_of_path(char *path);
 static void remove_last_slashs(char *path);
+static enum file_type is_dir_type(int tar_fd, const char *filename);
+static enum file_type is_reg_type(int tar_fd, const char *filename);
 
 /* Return a malloc'd pointer of the last file in path, NULL if it end by . or ..
    the last file will also be detahced of path */
@@ -222,6 +227,7 @@ char *reduce_abs_path(const char *path, char *resolved)
 }
 
 
+
 char *make_absolute (const char *path)
 {
   char *abs;
@@ -270,4 +276,48 @@ int is_tar_path (char *path)
     tar_path = true;
 
   return tar_path;
+}
+
+enum file_type type_of_file(const char *tar_name, const char *filename, bool dir_priority)
+{
+  int tar_fd = open(tar_name, O_RDONLY);
+  if (is_dir_name(filename))
+    {
+      return ftar_access(tar_fd, filename, F_OK) > 0 ? DIR: NONE;
+    }
+  enum file_type res;
+  if (tar_fd < 0)
+    return NONE;
+  if (dir_priority)
+    {
+      res = is_dir_type(tar_fd, filename);
+      if (res == DIR) return DIR;
+      else if (res == NONE && errno == ENOENT)
+	{
+	  return is_reg_type(tar_fd, filename);
+	}
+      else return NONE;
+    }
+  else {
+    res = is_reg_type(tar_fd, filename);
+    if (res == REG) return REG;
+    else if (res == NONE && errno == ENOENT)
+      {
+	return is_dir_type(tar_fd, filename);
+      }
+    else return NONE;
+  }
+}
+
+/* Return DIR if filename reference a directory, else NONE and errno is set accordingly */
+static enum file_type is_dir_type(int tar_fd, const char *filename)
+{
+  char dir[PATH_MAX];
+  sprintf(dir, "%s/", filename);
+  return (ftar_access(tar_fd, dir, F_OK) > 0) ? DIR: NONE;
+}
+/* Return REG if filename reference a regular file, else NONE and errno is set accordingly */
+static enum file_type is_reg_type(int tar_fd, const char *filename)
+{
+  return (ftar_access(tar_fd, filename, F_OK) == 1) ? REG : NONE;
 }

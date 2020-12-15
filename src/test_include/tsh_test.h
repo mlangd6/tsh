@@ -2,6 +2,7 @@
 #define TSH_TEST_H
 
 #define TEST_DIR "/tmp/tsh_test"
+#define TAR_TEST "/tmp/tsh_test/test.tar"
 #define NB_TESTS 11
 
 #define WHITE "\e[m"
