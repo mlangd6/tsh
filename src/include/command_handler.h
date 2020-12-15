@@ -20,9 +20,18 @@ typedef struct arg_info {
   char **options; // Array containing all the options + unary_command name
 } arg_info ;
 
+typedef struct binary_command {
+  char *name; // Name of command
+  int (*tar_to_tar)(char *src_tar, char *src_file, char *dest_tar, char *dest_file, char *opt);
+  int (*extern_to_tar)(char *src_file, char *dest_tar, char *dest_file, char *opt);
+  int (*tar_to_extern)(char *src_tar, char *src_file, char *dest_file, char *opt);
+  char *support_opt; // Supported options for this unary_command
+} binary_command;
 
 /* Handle all the arguments of a unary_command wherever the options are and
    in whatever ordre the arguments (inside/outside tar) are */
 int handle_unary_command (unary_command cmd, int argc, char **argv);
+
+int handle_binary_command (binary_command cmd, int argc, char **argv);
 
 #endif

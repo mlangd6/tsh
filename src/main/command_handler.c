@@ -13,7 +13,7 @@
 #include "tar.h"
 
 
-enum arg_type {
+enum arg_type{
   CMD,
   TAR_FILE,
   REG_FILE,
@@ -26,7 +26,6 @@ struct arg {
   char *value;
   enum arg_type type;
 };
-
 
 static int write_string (int fd, const char *string);
 static char *copy_string (const char *str);
@@ -278,12 +277,12 @@ static char *check_options (int argc, char **argv, char *optstring)
   int i = 0;
   while ((c = getopt(argc, argv, optstring)) != -1)
     {
-      if (c == '?')
-	{
+      if (c == '?' && detected_opt)
+	{	  
 	  free (detected_opt);
-	  return NULL;
+	  detected_opt = NULL;
 	}
-      else if (strchr(detected_opt, c) == NULL)
+      else if (detected_opt && strchr(detected_opt, c) == NULL)
 	{
 	  detected_opt[i++] = c;
 	  detected_opt[i] = '\0';
@@ -422,7 +421,7 @@ static void free_all (struct arg *tokens, int argc, arg_info *info, char *option
   if (tokens)
     free_tokens (tokens, argc);
 
-  if (info->options)
+  if (info && info->options)
     free (info->options);
 }
 
@@ -439,9 +438,12 @@ int handle_unary_command (unary_command cmd, int argc, char **argv)
 
   ret = EXIT_SUCCESS;
   
+  tar_options = check_options (argc, argv, cmd.support_opt); // on récupère les options pour la commande tar
+
   tokens = tokenize_args(argc, argv);
 
   init_arg_info(&info, tokens, argc);
+
   
   // Pas de tar en jeu
   if (info.nb_tar_file == 0 && (!cmd.twd_arg || info.nb_reg_file > 0))
@@ -450,18 +452,16 @@ int handle_unary_command (unary_command cmd, int argc, char **argv)
       if (info.nb_reg_file > 0 || info.nb_error == 0)
 	{
 	  char **exec_argv = tokens_to_argv(tokens, argc);
+	  
 	  free (tokens);
-	  free (info.options);
+	  free_all (NULL, -1, &info, tar_options);
+
 	  return execvp(cmd.name, exec_argv);
 	}
     
       return EXIT_FAILURE;
     }
-  
-  tar_options = check_options (argc, argv, cmd.support_opt); // on récupère les options pour la commande tar
-
-
-  
+    
   // Pas d'arguments et PWD
   if (no_arg(&info) && cmd.twd_arg)
     {
@@ -477,7 +477,7 @@ int handle_unary_command (unary_command cmd, int argc, char **argv)
   
   int nb_valid_file = get_nb_valid_file (&info, tar_options);
   int rest = nb_valid_file;
-  for (int i = 1; i < argc; i++)
+  for (int i = optind; i < argc; i++)
     {      
       switch (tokens[i].type)
 	{
@@ -502,8 +502,128 @@ int handle_unary_command (unary_command cmd, int argc, char **argv)
 	  break;
 	}      
     }
+  
+  free_all (tokens, argc, &info, tar_options);
+  
+  return ret;
+}
+
+static int handle_binary_arg (binary_command *cmd, struct arg *token, struct arg *last_token, char *options, arg_info *info)
+{
+  int ret;
+  
+  if (token->type == REG_FILE && last_token->type == REG_FILE)
+    {
+      ret = EXIT_SUCCESS;
+    }
+  else if (token->type == REG_FILE && last_token->type == TAR_FILE)
+    {
+      char *dest_tar = copy_string (last_token->value);
+      char *in_tar = split_tar_abs_path (dest_tar);
+      ret = cmd->extern_to_tar (token->value, dest_tar, in_tar, options);
+      free (dest_tar);
+    }
+  else if (token->type == TAR_FILE && last_token->type == REG_FILE)
+    {
+      char *src_tar = copy_string (token->value);
+      char *in_tar = split_tar_abs_path (src_tar);
+      ret = cmd->tar_to_extern (src_tar, in_tar, last_token->value, options);
+      free (src_tar);
+    }
+  else // token->type == TAR_FILE && last_token->type == TAR_FILE
+    {
+      char *dest_tar = copy_string (last_token->value);
+      char *dest_file = split_tar_abs_path (dest_tar);
+      char *src_tar = copy_string (token->value);
+      char *src_file = split_tar_abs_path (src_tar);
+      ret = cmd->tar_to_tar (src_tar, src_file, dest_tar, dest_file, options);
+      free (dest_tar);
+      free (src_tar);
+    }
+
+  return ret;
+}
+
+int handle_binary_command (binary_command cmd, int argc, char **argv)
+{
+  int ret;
+  char *tar_options;
+  struct arg *tokens;
+  struct arg *last_token;
+  arg_info info;
 
   
+  opterr = 0; // Pour ne pas avoir les messages d'erreurs de getopt
+
+  ret = EXIT_SUCCESS;
+
+  tar_options = check_options (argc, argv, cmd.support_opt); // on récupère les options pour la commande tar
+  
+  tokens = tokenize_args(argc, argv);
+  
+  last_token = tokens + (argc - 1);
+
+  init_arg_info (&info, tokens, argc);
+
+  
+  // Pas de tar en jeu
+  if (info.nb_tar_file == 0)
+    {
+      // TODO : mettre dans une fonction
+      char **exec_argv = tokens_to_argv (tokens, argc);
+      
+      free (tokens);
+      free_all (NULL, -1, &info, tar_options);
+
+      return execvp (cmd.name, exec_argv);
+    }
+    
+
+  int total_files = argc - info.options_size;
+
+  if (total_files <= 1)
+    {
+      free_all (tokens, argc, &info, tar_options);
+    }
+  else if (total_files == 2)
+    {
+      if (!tar_options)
+	{
+	  free_all (tokens, argc, &info, tar_options);
+	  write_string (STDERR_FILENO, "Invalid option and can't recover from error.\n");
+	  return EXIT_FAILURE;	  
+	}
+      
+      return handle_binary_arg (&cmd, tokens + optind, last_token, tar_options, &info);
+    }
+
+  // TODO vérifier que le dernier fichier existe
+  
+  if (!tar_options)
+    invalid_options (cmd.name);
+  
+  for (int i = optind; i < argc; i++)
+    {      
+      switch (tokens[i].type)
+	{
+	case CMD:
+	case OPTION:
+	  break;
+
+	case ERROR:
+	  error_cmd (cmd.name, tokens[i].value);
+	  break;
+
+	case TAR_FILE:
+	  if (!tar_options)
+	    break;
+	  // Attention on peut encore continuer
+	case REG_FILE:	  
+	  ret = handle_binary_arg (&cmd, tokens + i, last_token, tar_options, &info);
+	  break;
+	}      
+    }
+
   free_all (tokens, argc, &info, tar_options);
   
   return ret;
