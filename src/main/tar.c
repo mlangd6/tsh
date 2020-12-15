@@ -6,9 +6,12 @@
 #include <sys/types.h>
 #include <unistd.h>
 #include <linux/limits.h>
+#include <stdlib.h>
 
 #include "tar.h"
 #include "path_lib.h"
+#include "errors.h"
+#include "utils.h"
 
 /* Code for set_checksum(...) and check_checksum(...) are taken from :
    https://gaufre.informatique.univ-paris-diderot.fr/klimann/systL3_2020-2021/blob/master/TP/TP1/tar.h */
@@ -159,4 +162,19 @@ int nb_files_in_tar_c(char *tar_name){
   int nb = nb_files_in_tar(tar_fd);
   close(tar_fd);
   return nb;
+}
+
+
+int is_dir(const char *tar_name, const char *filename)
+{
+  char *copy = append_slash(filename);
+  if(copy!=NULL){
+    if(tar_access(tar_name, copy, F_OK) > 0)
+    {
+      free(copy);
+      return 1;
+    }
+  }
+  free(copy);
+  return 0;
 }

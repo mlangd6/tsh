@@ -4,8 +4,12 @@
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <fcntl.h>
+#include <errno.h>
 
+#include "tar.h"
 #include "utils.h"
+#include "errors.h"
 
 #define BUFFER_SIZE 4096
 
@@ -64,7 +68,6 @@ int fmemmove(int fd, off_t whence, size_t size, off_t where)
 }
 
 
-/* Check if FILENAME ends with '/' */
 int is_dir_name(const char *filename)
 {
   int pos_last_char = strlen(filename)-1;
@@ -72,19 +75,29 @@ int is_dir_name(const char *filename)
 }
 
 
-/** 
- * Tests if a string starts with a specified prefix.
- *
- * Strings must be null-terminated.
- *
- * @param prefix the prefix
- * @param str the string to test
- * @return 1 if `prefix` is indeed a prefix of `str`; 2 if `str` and `prefix` are equal; 0 otherwise
- */
+int is_empty_string(const char *filename)
+{
+  return ((!*filename)?1:0);
+}
+
+char *append_slash(const char *str)
+{
+  if(is_empty_string(str))return NULL;
+  int length = strlen(str);
+  char *copy = malloc(length+2);
+  strcpy(copy, str);
+  if(copy[length - 1] != '/'){
+    copy[length] = '/';
+    copy[length + 1] = '\0';
+  }
+  return copy;
+}
+
+
 int is_prefix (const char *prefix, const char *str)
 {
   size_t prefix_len = strlen(prefix);
-  
+
   if (!strncmp(prefix, str, prefix_len))
     {
       return strlen(str) == prefix_len ? 2 : 1;
