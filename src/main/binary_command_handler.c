@@ -5,11 +5,14 @@
 #include <stdlib.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/stat.h>
+#include <sys/types.h>
 #include <sys/wait.h>
 #include <unistd.h>
 
 #include "command_handler.h"
 
+#include "tar.h"
 #include "errors.h"
 #include "utils.h"
 
@@ -109,6 +112,25 @@ static void free_all (struct arg *tokens, int argc, arg_info *info, char *option
     free (info->options);
 }
 
+static int check_arg_existence (struct arg *token)
+{
+  int ret;
+
+  if (token->type == TAR_FILE)
+    {
+      ret = tar_access (token->tf.tar_name, token->tf.filename, F_OK);
+    }
+  else
+    {
+      struct stat st;
+      if (stat (token->value, &st) < 0)
+	return -1;
+
+      ret = S_ISDIR (st.st_mode);
+    }
+
+  return ret;
+}
 
 int handle_binary_command (binary_command cmd, int argc, char **argv)
 {
@@ -149,13 +171,15 @@ int handle_binary_command (binary_command cmd, int argc, char **argv)
   if (total_files <= 1)
     {
       free_all (tokens, argc, &info, tar_options);
+      write_string (STDERR_FILENO, "/!\\ WARNING /!\\ At least 2 arguments are needed /!\\ WARNING /!\\\n");
+      return EXIT_FAILURE;
     }
   else if (total_files == 2)
     {
       if (!tar_options)
 	{
 	  free_all (tokens, argc, &info, tar_options);
-	  write_string (STDERR_FILENO, "CRITICAL FAILURE ! Invalid option and can't recover from error !\n");
+	  write_string (STDERR_FILENO, "CRITICAL FAILURE ! Invalid option and can't recover from error !");
 	  return EXIT_FAILURE;	  
 	}
       
@@ -164,13 +188,17 @@ int handle_binary_command (binary_command cmd, int argc, char **argv)
       return ret;
     }
 
-  // TODO vérifier que le dernier fichier existe
-  
+  if (check_arg_existence (last_token) < 0)
+    {
+      free_all (tokens, argc, &info, tar_options);
+      error_cmd (cmd.name, "Last argument doesn't exist\n");
+      return EXIT_FAILURE;
+    }
   
   if (!tar_options)
     invalid_options (cmd.name);
   
-  for (int i = optind; i < argc; i++)
+  for (int i = optind; i < argc - 1; i++)
     {      
       switch (tokens[i].type)
 	{
