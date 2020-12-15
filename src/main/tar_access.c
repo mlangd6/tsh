@@ -82,7 +82,7 @@ static int simple_tar_access(const char *filename, array *headers, struct passwd
   int index = -1;
   int is_dir = is_dir_name(filename);
   tar_file *tf = NULL;
-  
+
   for (int i = 0; i < array_size(headers); i++)
     {
       tf = array_get(headers, i);
@@ -99,7 +99,7 @@ static int simple_tar_access(const char *filename, array *headers, struct passwd
 
       free(tf);
     }
-  
+
   if (!found)
     {
       errno = ENOENT;
@@ -114,7 +114,7 @@ static int simple_tar_access(const char *filename, array *headers, struct passwd
   tf = array_get(headers, index);
   r = has_rights(tf->header, pwd, mode);
   free(tf);
-  
+
   return r == 0 ? 1 : -1;
 }
 
@@ -170,7 +170,7 @@ int ftar_access(int tar_fd, const char *file_name, int mode)
 
   struct passwd *pwd = getpwuid(getuid());
   int found;
-  
+
   if (pwd -> pw_uid == 0)
     found = simple_tar_access(file_name, headers, pwd, F_OK);
   else

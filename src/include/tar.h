@@ -165,7 +165,7 @@ int tar_mv_file(const char *tar_name, const char *filename, int fd);
    F_OK tests for the existence of the file.
 
    RETURN :
-   On success, 1 is returned if FILE_NAME was exactly found in hte tar, or 2 is returned if FILE_NAME is finishing with a / (i.e. is a directory) and was found existing only through its subfiles.
+   On success, 1 is returned if FILE_NAME was exactly found in the tar, or 2 is returned if FILE_NAME is finishing with a / (i.e. is a directory) and was found existing only through its subfiles.
    On error, -1 is returned and errno is set appropriately.
 
    ERRORS :
@@ -194,5 +194,10 @@ int add_tar_file_in_tar(const char *tar_name_src, char *tar_name_dest, const cha
    0 if FILENAME and his containing were added
   -1 if they couldn't */
 int add_tar_file_in_tar_rec(const char *tar_name_src, char *tar_name_dest, const char *source, const char *dest);
+
+
+/* Check if filename is the name of a directory in the tar.
+   If true then return 1 else 0 */
+int is_dir(const char *tar_name, const char *filename);
 
 #endif
