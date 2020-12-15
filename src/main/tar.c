@@ -6,6 +6,7 @@
 #include <sys/types.h>
 #include <unistd.h>
 #include <linux/limits.h>
+#include <time.h>
 #include <stdlib.h>
 
 #include "tar.h"
@@ -164,6 +165,26 @@ int nb_files_in_tar_c(char *tar_name){
   return nb;
 }
 
+void set_hd_time(struct posix_header *hd) {
+  time_t now;
+  time(&now);
+  sprintf(hd -> mtime, "%011o", (unsigned int) now);
+}
+
+int update_header(struct posix_header *hd, int tar_fd, char *filename, void (*update)(struct posix_header *hd))
+{
+
+  if (lseek(tar_fd, 0, SEEK_SET) != 0)
+    return -1;
+  if (seek_header(tar_fd, filename, hd) != 1)
+    return -1;
+  update(hd);
+  set_hd_time(hd);
+  set_checksum(hd);
+  if (lseek(tar_fd, -BLOCKSIZE, SEEK_CUR) < 0 || write(tar_fd, hd, BLOCKSIZE) < 0)
+    return -1;
+  return 0;
+}
 
 int is_dir(const char *tar_name, const char *filename)
 {

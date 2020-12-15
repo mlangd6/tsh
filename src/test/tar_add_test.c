@@ -19,6 +19,7 @@ static char *tar_add_file_test();
 static char *tar_append_file_test();
 static char *tar_add_file_no_source_test();
 static char *tar_add_file_link_test();
+static char *move_file_to_end_of_tar_test();
 
 static char *all_tests();
 
@@ -28,7 +29,8 @@ static char *(*tests[])(void) = {
   tar_add_file_no_source_test,
   tar_add_file_rec_test,
   add_tar_file_in_tar_test,
-  tar_append_file_test
+  tar_append_file_test,
+  move_file_to_end_of_tar_test
 };
 
 
@@ -211,5 +213,18 @@ static char *tar_append_file_test() {
   // Error msg will be made by cmp command if needed
   mu_assert("", system("cmp /tmp/tsh_test/titi_append /tmp/tsh_test/titi") == 0);
   mu_assert("", system("cmp /tmp/tsh_test/hello_append_test /tmp/tsh_test/dir1/subdir/subsubdir/hello") == 0);
+  return 0;
+}
+
+static char *move_file_to_end_of_tar_test()
+{
+  move_file_to_end_of_tar("/tmp/tsh_test/test.tar", "titi");
+  mu_assert("move_file_to_end_of_tar corrupted the tar", is_tar("/tmp/tsh_test/test.tar") == 1);
+  mu_assert("titi is not at the end of the tar after launching move_file_to_end_of_tar function", system("2> /dev/null tar tvf /tmp/tsh_test/test.tar | tail -n 1 | grep titi > /dev/null") == 0);
+  move_file_to_end_of_tar("/tmp/tsh_test/test.tar", "man_dir/man");
+  mu_assert("move_file_to_end_of_tar corrupted the tar", is_tar("/tmp/tsh_test/test.tar") == 1);
+  mu_assert("titi is still at the end of tar after launching move_file_to_end_of_tar on man_dir/man function", system("2> /dev/null tar tvf /tmp/tsh_test/test.tar | tail -n 1 | grep titi > /dev/null") != 0);
+  mu_assert("man_dir/man is not at the end of the tar after launching move_file_to_end_of_tar function", system("2> /dev/null tar tvf /tmp/tsh_test/test.tar | tail -n 1 | grep man_dir/man > /dev/null") == 0);
+
   return 0;
 }

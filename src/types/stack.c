@@ -5,13 +5,13 @@
 
 
 /* Create an empty stack */
-stack_t *stack_create ()
+stack *stack_create ()
 {
   return list_create();
 }
 
 /* free STACK and all its elements */
-void stack_free (stack_t *stack, bool full)
+void stack_free (stack *stack, bool full)
 {
   list_free(stack, full);
 }
@@ -19,7 +19,7 @@ void stack_free (stack_t *stack, bool full)
 
 
 /* Get the size of STACK */
-int stack_size (stack_t *stack)
+int stack_size (stack *stack)
 {
   return list_size (stack);
 }
@@ -27,7 +27,7 @@ int stack_size (stack_t *stack)
 
 
 /* Check if STACK is empty */
-int stack_is_empty (stack_t *stack)
+int stack_is_empty (stack *stack)
 {
   return list_is_empty (stack);
 }
@@ -35,7 +35,7 @@ int stack_is_empty (stack_t *stack)
 
 
 /* Push VAL onto the top of STACK */
-void stack_push (stack_t *stack, void *val)
+void stack_push (stack *stack, void *val)
 {
   list_insert_last (stack, val);
 }
@@ -43,13 +43,13 @@ void stack_push (stack_t *stack, void *val)
 
 
 /* Remove the value at the top STACK */
-void *stack_pop (stack_t *stack)
+void *stack_pop (stack *stack)
 {
   return list_remove_last (stack);
 }
 
 /* Get the element at the top of STACK */
-void *stack_peek (stack_t *stack)
+void *stack_peek (stack *stack)
 {
   return list_last (stack);
 }
