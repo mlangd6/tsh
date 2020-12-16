@@ -1,10 +1,8 @@
 #include <assert.h>
 #include <getopt.h>
-#include <linux/limits.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/wait.h>
 #include <unistd.h>
 
 #include "command_handler.h"
@@ -208,5 +206,3 @@ bool no_arg (arg_info *info)
 {
   return info->nb_tar_file == 0 && info->nb_reg_file == 0;
 }
-
-

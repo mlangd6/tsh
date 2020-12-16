@@ -1,4 +1,3 @@
-#include <stdlib.h>
 #include <assert.h>
 #include <getopt.h>
 #include <linux/limits.h>
@@ -19,10 +18,12 @@ static char **arg_info_to_argv (arg_info *info, char *arg);
 static void print_arg_before (unary_command *cmd, char *arg, int nb_valid_file);
 static void print_arg_after (unary_command *cmd, int *rest);
 
+static int handle_tokens (unary_command *cmd, struct arg *tokens, int argc, arg_info *info, char *options);
 static int handle_arg (unary_command *cmd, struct arg *token, arg_info *info, char *options);
 static int handle_reg_file (unary_command *cmd, arg_info *info, char *arg);
 static int handle_tar_file (unary_command *cmd, char *tar_name, char *filename, char *detected_options);
 static int handle_with_pwd (unary_command *cmd, int argc, char **argv, char *detected_options);
+static int handle_no_tar_file (unary_command *cmd, struct arg *tokens, int argc);
 
 static void free_all (struct arg *tokens, int argc, arg_info *info, char *options);
 
@@ -59,6 +60,48 @@ static void print_arg_after (unary_command *cmd, int *rest)
     write_string(STDOUT_FILENO, "\n");
 }
 
+static int handle_tokens (unary_command *cmd, struct arg *tokens, int argc, arg_info *info, char *options)
+{
+  int ret;
+  int nb_valid_file;
+  int rest;
+
+  
+  ret = EXIT_SUCCESS;
+  nb_valid_file = get_nb_valid_file (info, options);
+  rest = nb_valid_file;
+  
+  if (!options)
+    invalid_options (cmd->name);
+  
+  for (int i = optind; i < argc; i++)
+    {      
+      switch (tokens[i].type)
+	{
+	case CMD:
+	case OPTION:
+	  break;
+
+	case ERROR:
+	  error_cmd (cmd->name, tokens[i].value);
+	  break;
+
+	case TAR_FILE:
+	  if (!options)
+	    break;
+	  // Attention on peut encore continuer
+	case REG_FILE:
+	  print_arg_before (cmd, tokens[i].value, nb_valid_file);
+	  
+	  ret = handle_arg (cmd, tokens + i, info, options);
+
+	  print_arg_after (cmd, &rest);
+	  break;
+	}      
+    }
+
+  return ret;
+}
 
 static int handle_arg (unary_command *cmd, struct arg *token, arg_info *info, char *options)
 {
@@ -110,7 +153,7 @@ static int handle_tar_file (unary_command *cmd, char *tar_name, char *filename, 
 {
   if (!detected_options)
     return EXIT_FAILURE;
-  
+
   return cmd->in_tar_func (tar_name, filename, detected_options);
 }
 
@@ -145,6 +188,13 @@ static int handle_with_pwd (unary_command *cmd, int argc, char **argv, char *det
   return ret;
 }
 
+static int handle_no_tar_file (unary_command *cmd, struct arg *tokens, int argc)
+{
+  char **exec_argv = tokens_to_argv(tokens, argc);
+  
+  return execvp(cmd->name, exec_argv);
+}
+
 static void free_all (struct arg *tokens, int argc, arg_info *info, char *options)
 {
   if (options)
@@ -156,6 +206,7 @@ static void free_all (struct arg *tokens, int argc, arg_info *info, char *option
   if (info && info->options)
     free (info->options);
 }
+
 
 int handle_unary_command (unary_command cmd, int argc, char **argv)
 {
@@ -175,25 +226,8 @@ int handle_unary_command (unary_command cmd, int argc, char **argv)
 
   init_arg_info(&info, tokens, argc);
 
-  
-  // Pas de tar en jeu
-  if (info.nb_tar_file == 0 && (!cmd.twd_arg || info.nb_reg_file > 0))
-    {
-      // Pas d'erreur
-      if (info.nb_reg_file > 0 || info.nb_error == 0)
-	{
-	  char **exec_argv = tokens_to_argv(tokens, argc);
-	  
-	  free (tokens);
-	  free_all (NULL, -1, &info, tar_options);
 
-	  return execvp(cmd.name, exec_argv);
-	}
-    
-      return EXIT_FAILURE;
-    }
-    
-  // Pas d'arguments et PWD
+  // Pas d'argument et PWD
   if (no_arg(&info) && cmd.twd_arg)
     {
       ret = handle_with_pwd (&cmd, argc, argv, tar_options);
@@ -202,37 +236,13 @@ int handle_unary_command (unary_command cmd, int argc, char **argv)
 
       return ret;
     }
-
-  if (!tar_options)
-    invalid_options (cmd.name);
   
-  int nb_valid_file = get_nb_valid_file (&info, tar_options);
-  int rest = nb_valid_file;
-  for (int i = optind; i < argc; i++)
-    {      
-      switch (tokens[i].type)
-	{
-	case CMD:
-	case OPTION:
-	  break;
+  // Pas de tar en jeu
+  if (info.nb_tar_file == 0)
+    return handle_no_tar_file (&cmd, tokens, argc);
 
-	case ERROR:
-	  error_cmd (cmd.name, tokens[i].value);
-	  break;
-
-	case TAR_FILE:
-	  if (!tar_options)
-	    break;
-	  // Attention on peut encore continuer
-	case REG_FILE:
-	  print_arg_before (&cmd, tokens[i].value, nb_valid_file);
-	  
-	  handle_arg (&cmd, tokens + i, &info, tar_options);
-
-	  print_arg_after (&cmd, &rest);
-	  break;
-	}      
-    }
+  // Les autres cas
+  ret = handle_tokens (&cmd, tokens, argc, &info, tar_options);
   
   free_all (tokens, argc, &info, tar_options);
   
