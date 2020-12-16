@@ -3,7 +3,6 @@
 #include <linux/limits.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>
 #include <sys/types.h>
@@ -15,7 +14,7 @@
 #include "tar.h"
 #include "errors.h"
 #include "utils.h"
-
+#include "path_lib.h"
 
 static char** arg_info_to_argv (arg_info *info, char *arg, char *last);
   
@@ -119,18 +118,35 @@ static int check_arg_existence (struct arg *token)
 
   if (token->type == TAR_FILE)
     {
-      ret = is_dir (token->tf.tar_name, token->tf.filename);
+      ret = (DIR == type_of_file (token->tf.tar_name, token->tf.filename, true));
     }
   else
     {
       struct stat st;
       if (stat (token->value, &st) < 0)
-	return -1;
+	return 0;
 
       ret = S_ISDIR (st.st_mode);
     }
 
   return ret;
+}
+
+static void print_error (char *cmd_name, struct arg *token)
+{
+  switch (token->type)
+    {
+    case TAR_FILE:
+      tar_error_cmd (cmd_name, token->tf.tar_name, token->tf.filename);
+      break;
+
+    case REG_FILE:
+      error_cmd (cmd_name, token->value);
+      break;
+
+    default:
+      break;
+    }
 }
 
 int handle_binary_command (binary_command cmd, int argc, char **argv)
@@ -167,32 +183,22 @@ int handle_binary_command (binary_command cmd, int argc, char **argv)
     }
     
 
-  int total_files = argc - info.options_size;
-
-  if (total_files <= 1)
+  int nb_valid_file = get_nb_valid_file (&info, tar_options);
+  if (nb_valid_file <= 1)
     {
+      if (tar_options)
+	write_string (STDERR_FILENO, "At least 2 valid arguments are needed !\n");
+      else	
+	write_string (STDERR_FILENO, "Invalid option and can't recover from error !\n");
+      
       free_all (tokens, argc, &info, tar_options);
-      write_string (STDERR_FILENO, "/!\\ WARNING /!\\ At least 2 arguments are needed /!\\ WARNING /!\\\n");
       return EXIT_FAILURE;
     }
-  else if (total_files == 2)
-    {
-      if (!tar_options)
-	{
-	  free_all (tokens, argc, &info, tar_options);
-	  write_string (STDERR_FILENO, "CRITICAL FAILURE ! Invalid option and can't recover from error !");
-	  return EXIT_FAILURE;	  
-	}
-      
-      ret = handle_arg (&cmd, tokens + optind, last_token, tar_options, &info);
-      free_all (tokens, argc, &info, tar_options);
-      return ret;
-    }
 
-  if (check_arg_existence (last_token) < 0)
+  if (nb_valid_file > 2 && !check_arg_existence (last_token))
     {
       free_all (tokens, argc, &info, tar_options);
-      error_cmd (cmd.name, "Last argument doesn't exist\n");
+      print_error (cmd.name, last_token);
       return EXIT_FAILURE;
     }
   
