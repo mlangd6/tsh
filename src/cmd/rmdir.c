@@ -22,6 +22,7 @@ static int rmdir_err(int tar_fd, char *err, int new_errno, char *to_free, array 
 static int rm_tar(int tar_fd, char *tar_name);
 static int is_empty_tar_dir(int tar_fd, char *dir_cpy, char *err);
 static int rmdir_case_dir(int tar_fd, char *tar_name, char *filename, char *err);
+static int parent_dir_access(int tar_fd, char *dir, char *err);
 
 int rmdir_cmd(char *tar_name, char *filename, char *options)
 {
@@ -89,9 +90,28 @@ static int rmdir_case_dir(int tar_fd, char *tar_name, char *filename, char *err)
     return -1;
   }
   char *dir_cpy = append_slash(filename);
+  if (parent_dir_access(tar_fd, dir_cpy, err) != 0) return -1;
   if (is_empty_tar_dir(tar_fd, dir_cpy, err) != 0) return -1;
-  else if (tar_rm_dir(tar_fd, dir_cpy) != 0) return -1;
+  if (tar_rm_dir(tar_fd, dir_cpy) != 0) return -1;
   free(dir_cpy);
+  return 0;
+}
+
+static int parent_dir_access(int tar_fd, char *dir, char *err)
+{
+  char parent[PATH_MAX];
+  strcpy(parent, dir);
+
+  parent[strlen(parent) - 1] = '\0';
+  char *last_slash = strrchr(parent, '/');
+
+  if (!last_slash)
+    return 0;
+  last_slash[1] = '\0';
+  if (ftar_access(tar_fd, parent, W_OK | X_OK) < 0)
+  {
+    return rmdir_err(tar_fd, err, errno, dir, NULL);
+  }
   return 0;
 }
 
