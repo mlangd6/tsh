@@ -36,6 +36,7 @@ static void add_reset_redir(int fd, pid_t pid);
 static int handle_inside_tar_redir(int fd, char *tar_name, char *in_tar);
 static int launch_redir_tar_link(char *tar_name, char *in_tar, redir_type r);
 static int append_tar_file(char *tar_name, char *in_tar, int read_fd);
+static int handle_outside_tar_redir(int fd, char *filename, int open_flags);
 
 stack *reset_fds;
 
@@ -115,16 +116,7 @@ static int redir_append(char *s, int fd, redir_type r)
   }
   else
   {
-    add_reset_redir(fd, 0);
-    int new_fd = open(s, O_CREAT | O_APPEND | O_WRONLY, 0666);
-    if (new_fd < 0)
-    {
-      error_cmd("tsh", s);
-      return -1;
-    }
-    dup2(new_fd, fd);
-    close(new_fd);
-    return 0;
+    return handle_outside_tar_redir(fd, resolved, O_CREAT | O_APPEND | O_WRONLY);
   }
 }
 
@@ -340,5 +332,21 @@ static int stderr_append(char *s)
 
 static int stdin_redir(char *s)
 {
+  return 0;
+}
+
+static int handle_outside_tar_redir(int fd, char *filename, int open_flags)
+{
+  add_reset_redir(fd, 0);
+  int new_fd;
+  if (O_CREAT & open_flags) new_fd = open(filename, open_flags, 0666);
+  else new_fd = open(filename, open_flags);
+  if (fd < 0)
+  {
+    error_cmd("tsh", filename);
+    return -1;
+  }
+  dup2(new_fd, fd);
+  close(new_fd);
   return 0;
 }
