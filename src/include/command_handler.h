@@ -70,7 +70,7 @@ void invalid_options (char *cmd_name);
 
 struct arg *tokenize_args (int argc, char **argv);
 void free_tokens (struct arg *tokens, int tokens_size);
-char **tokens_to_argv (struct arg *tokens, int tokens_size);
+int execvp_tokens (struct arg *tokens, int tokens_size);
 
 void init_arg_info (arg_info *info, struct arg *tokens, int tokens_size);
 int get_nb_valid_file (arg_info *info, char *options);

@@ -123,10 +123,9 @@ void free_tokens (struct arg *tokens, int argc)
   free(tokens);
 }
 
-char **tokens_to_argv (struct arg *tokens, int tokens_size)
+int execvp_tokens (struct arg *tokens, int tokens_size)
 {
-  char **argv = malloc((tokens_size + 1)*sizeof(char*));
-  assert(argv);
+  char *argv[tokens_size + 1];// = malloc((tokens_size + 1)*sizeof(char*));
   int i;
   
   for (i=0; i < tokens_size; i++)
@@ -146,7 +145,7 @@ char **tokens_to_argv (struct arg *tokens, int tokens_size)
   
   argv[i] = NULL;
 
-  return argv;
+  return execvp(argv[0], argv);
 }
 
 

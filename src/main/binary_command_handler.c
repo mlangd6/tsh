@@ -16,14 +16,17 @@
 #include "utils.h"
 #include "path_lib.h"
 
+
 static char** arg_info_to_argv (arg_info *info, char *arg, char *last);
   
 static int handle_arg (binary_command *cmd, struct arg *token, struct arg *last_token, char *options, arg_info *info);
 static int handle_reg_file (binary_command *cmd, arg_info *info, char *arg, char *last);
+static int handle_tokens (binary_command *cmd, struct arg *tokens, int argc, arg_info *info, char *options);
 
 static void free_all (struct arg *tokens, int argc, arg_info *info, char *options);
 
 static int check_arg_existence (struct arg *token);
+
 
 static char** arg_info_to_argv (arg_info *info, char *arg, char *last)
 {
@@ -92,13 +95,44 @@ static int handle_arg (binary_command *cmd, struct arg *token, struct arg *last_
     }
   else // token->type == TAR_FILE && last_token->type == TAR_FILE
     {
-      ret = cmd->tar_to_tar (token->tf.tar_name, token->tf.filename,
-			     last_token->tf.tar_name, last_token->tf.filename, options);
+      ret = cmd->tar_to_tar (token->tf.tar_name, token->tf.filename, last_token->tf.tar_name, last_token->tf.filename, options);
     }
 
   return ret;
 }
 
+static int handle_tokens (binary_command *cmd, struct arg *tokens, int argc, arg_info *info, char *options)
+{
+  int ret = EXIT_SUCCESS;
+  struct arg *last_token = tokens + (argc - 1);
+  
+  if (!options)
+    invalid_options (cmd->name);
+  
+  for (int i = optind; i < argc - 1; i++)
+    {      
+      switch (tokens[i].type)
+	{
+	case CMD:
+	case OPTION:
+	  break;
+
+	case ERROR:
+	  error_cmd (cmd->name, tokens[i].value);
+	  break;
+
+	case TAR_FILE:
+	  if (!options)
+	    break;
+	  // Attention on peut encore continuer
+	case REG_FILE:	  
+	  ret = handle_arg (cmd, tokens + i, last_token, options, info);
+	  break;
+	}      
+    }  
+
+  return ret;
+}
 
 static void free_all (struct arg *tokens, int argc, arg_info *info, char *options)
 {
@@ -173,14 +207,7 @@ int handle_binary_command (binary_command cmd, int argc, char **argv)
   
   // Pas de tar en jeu
   if (info.nb_tar_file == 0)
-    {
-      char **exec_argv = tokens_to_argv (tokens, argc);
-      
-      free (tokens);
-      free_all (NULL, -1, &info, tar_options);
-
-      return execvp (cmd.name, exec_argv);
-    }
+    return execvp_tokens (tokens, argc);
     
 
   int nb_valid_file = get_nb_valid_file (&info, tar_options);
@@ -190,41 +217,17 @@ int handle_binary_command (binary_command cmd, int argc, char **argv)
 	write_string (STDERR_FILENO, "At least 2 valid arguments are needed !\n");
       else	
 	write_string (STDERR_FILENO, "Invalid option and can't recover from error !\n");
-      
-      free_all (tokens, argc, &info, tar_options);
-      return EXIT_FAILURE;
+            
+      ret = EXIT_FAILURE;
     }
-
-  if (nb_valid_file > 2 && !check_arg_existence (last_token))
+  else if (nb_valid_file > 2 && !check_arg_existence (last_token))
     {
-      free_all (tokens, argc, &info, tar_options);
       print_error (cmd.name, last_token);
-      return EXIT_FAILURE;
+      ret = EXIT_FAILURE;
     }
-  
-  if (!tar_options)
-    invalid_options (cmd.name);
-  
-  for (int i = optind; i < argc - 1; i++)
-    {      
-      switch (tokens[i].type)
-	{
-	case CMD:
-	case OPTION:
-	  break;
-
-	case ERROR:
-	  error_cmd (cmd.name, tokens[i].value);
-	  break;
-
-	case TAR_FILE:
-	  if (!tar_options)
-	    break;
-	  // Attention on peut encore continuer
-	case REG_FILE:	  
-	  ret = handle_arg (&cmd, tokens + i, last_token, tar_options, &info);
-	  break;
-	}      
+  else
+    {
+      ret = handle_tokens (&cmd, tokens, argc, &info, tar_options);
     }
 
   free_all (tokens, argc, &info, tar_options);

@@ -23,7 +23,6 @@ static int handle_arg (unary_command *cmd, struct arg *token, arg_info *info, ch
 static int handle_reg_file (unary_command *cmd, arg_info *info, char *arg);
 static int handle_tar_file (unary_command *cmd, char *tar_name, char *filename, char *detected_options);
 static int handle_with_pwd (unary_command *cmd, int argc, char **argv, char *detected_options);
-static int handle_no_tar_file (unary_command *cmd, struct arg *tokens, int argc);
 
 static void free_all (struct arg *tokens, int argc, arg_info *info, char *options);
 
@@ -188,13 +187,6 @@ static int handle_with_pwd (unary_command *cmd, int argc, char **argv, char *det
   return ret;
 }
 
-static int handle_no_tar_file (unary_command *cmd, struct arg *tokens, int argc)
-{
-  char **exec_argv = tokens_to_argv(tokens, argc);
-  
-  return execvp(cmd->name, exec_argv);
-}
-
 static void free_all (struct arg *tokens, int argc, arg_info *info, char *options)
 {
   if (options)
@@ -239,7 +231,7 @@ int handle_unary_command (unary_command cmd, int argc, char **argv)
   
   // Pas de tar en jeu
   if (info.nb_tar_file == 0)
-    return handle_no_tar_file (&cmd, tokens, argc);
+    return execvp_tokens (tokens, argc);
 
   // Les autres cas
   ret = handle_tokens (&cmd, tokens, argc, &info, tar_options);
