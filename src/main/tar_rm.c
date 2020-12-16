@@ -11,12 +11,13 @@
 #include "tar.h"
 #include "utils.h"
 
-/* Delete all files starting with DIRNAME i.e. delete directory DIRNAME in the tar referenced by TAR_FD.
-   Last character of DIRNAME is '/'
-   Returns :
-   0  if it succeed
-   -1 if a system call failed */
-static int tar_rm_dir(int tar_fd, const char *dirname)
+/** Delete all files starting with DIRNAME i.e. delete directory DIRNAME in the tar referenced by TAR_FD.
+ * Last character of DIRNAME is '/'
+ * @param tar_fd the file descriptor of the tarball
+ * @param dirname the directory you want to delete
+ * @return 0  on success, -1 if a system call failed
+ */
+int tar_rm_dir(int tar_fd, const char *dirname)
 {
   unsigned int file_size;
   struct posix_header file_header;

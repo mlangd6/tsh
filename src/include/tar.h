@@ -216,4 +216,7 @@ int move_file_to_end_of_tar(char *tar_name, char *filename);
    If true then return 1 else 0 */
 int is_dir(const char *tar_name, const char *filename);
 
+int tar_rm_dir(int tar_fd, const char *dirname);
+
+
 #endif
