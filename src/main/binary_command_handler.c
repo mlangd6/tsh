@@ -1,4 +1,5 @@
 #include <assert.h>
+#include <errno.h>
 #include <getopt.h>
 #include <linux/limits.h>
 #include <stdio.h>
@@ -153,11 +154,21 @@ static void free_all (struct arg *tokens, int argc, arg_info *info, char *option
 /** Checks if the value of `token` is an existing directory */
 static int check_arg_existence (struct arg *token)
 {
-  int ret;
-
   if (token->type == TAR_FILE)
     {
-      ret = is_dir (token->tf.tar_name, token->tf.filename);
+      switch (type_of_file (token->tf.tar_name, token->tf.filename, true))
+	{
+	case NONE:
+	  errno = ENOENT;
+	  return 0;
+
+	case REG:
+	  errno = ENOTDIR;
+	  return 0;
+
+	default:
+	  return 1;
+	}	
     }
   else
     {
@@ -165,10 +176,8 @@ static int check_arg_existence (struct arg *token)
       if (stat (token->value, &st) < 0)
 	return 0;
 
-      ret = S_ISDIR (st.st_mode);
+      return S_ISDIR (st.st_mode);
     }
-
-  return ret;
 }
 
 static void print_error (char *cmd_name, struct arg *token)
