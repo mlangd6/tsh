@@ -156,6 +156,9 @@ static int check_arg_existence (struct arg *token)
 {
   if (token->type == TAR_FILE)
     {
+      if (is_empty_string (token->tf.filename))
+	return 1;
+      
       switch (type_of_file (token->tf.tar_name, token->tf.filename, true))
 	{
 	case NONE:
@@ -175,8 +178,12 @@ static int check_arg_existence (struct arg *token)
       struct stat st;
       if (stat (token->value, &st) < 0)
 	return 0;
+      
+      if (S_ISDIR (st.st_mode))
+	return 1;
 
-      return S_ISDIR (st.st_mode);
+      errno = ENOTDIR;
+      return 0;
     }
 }
 
