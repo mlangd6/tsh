@@ -12,6 +12,7 @@
 #include "tar.h"
 #include "utils.h"
 
+
 static void init_arg_info_options (arg_info *info, struct arg *tokens, int tokens_size);
 
 
@@ -24,6 +25,9 @@ char *check_options (int argc, char **argv, char *optstring)
   *detected_opt = '\0';
   int i = 0;
 
+  /* On boucle sur les options.
+     On continue même s'il y a des options invalides car getopt
+     permute les options pour les placer au début. */
   while ((c = getopt(argc, argv, optstring)) != -1)
     {
       if (c == '?' && detected_opt)
@@ -125,7 +129,7 @@ void free_tokens (struct arg *tokens, int argc)
 
 int execvp_tokens (struct arg *tokens, int tokens_size)
 {
-  char *argv[tokens_size + 1];// = malloc((tokens_size + 1)*sizeof(char*));
+  char *argv[tokens_size + 1];
   int i;
   
   for (i=0; i < tokens_size; i++)
@@ -148,7 +152,7 @@ int execvp_tokens (struct arg *tokens, int tokens_size)
   return execvp(argv[0], argv);
 }
 
-
+/** Init the field `char** options` of a `struct arg_info` from given tokens. */
 static void init_arg_info_options (arg_info *info, struct arg *tokens, int tokens_size)
 {
   info->options = malloc(info->options_size * sizeof(char*));

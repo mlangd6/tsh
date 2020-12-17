@@ -26,7 +26,11 @@ static int handle_with_pwd (unary_command *cmd, int argc, char **argv, char *det
 
 static void free_all (struct arg *tokens, int argc, arg_info *info, char *options);
 
-
+/** 
+ * Gets a malloc'd array of string suitable for calling `execvp` from a `struct arg_info` and a string.
+ * 
+ * The returned array looks like : `[info.options[0], ... ,info.options[info.options_size - 1], arg, NULL]`
+ */
 static char** arg_info_to_argv (arg_info *info, char *arg)
 {
   char **exec_argv = malloc((info->options_size + 2)*sizeof(char*));
@@ -44,6 +48,7 @@ static char** arg_info_to_argv (arg_info *info, char *arg)
   return exec_argv;
 }
 
+/** Prints a string followed by a newline on `STDOUT_FILENO` */
 static void print_arg_before (unary_command *cmd, char *arg, int nb_valid_file)
 {
   if (cmd->print_multiple_arg && nb_valid_file > 1)
@@ -53,12 +58,14 @@ static void print_arg_before (unary_command *cmd, char *arg, int nb_valid_file)
     }
 }
 
+/** Prints `\n` on `STDOUT_FILENO` */
 static void print_arg_after (unary_command *cmd, int *rest)
 {
   if (--(*rest) > 0 && cmd->print_multiple_arg)
     write_string(STDOUT_FILENO, "\n");
 }
 
+/** Main routine : handles all tokens */
 static int handle_tokens (unary_command *cmd, struct arg *tokens, int argc, arg_info *info, char *options)
 {
   int ret;
@@ -156,6 +163,7 @@ static int handle_tar_file (unary_command *cmd, char *tar_name, char *filename, 
   return cmd->in_tar_func (tar_name, filename, detected_options);
 }
 
+/** Handles a unary command with `PWD` */
 static int handle_with_pwd (unary_command *cmd, int argc, char **argv, char *detected_options)
 {
   int ret;
@@ -187,6 +195,7 @@ static int handle_with_pwd (unary_command *cmd, int argc, char **argv, char *det
   return ret;
 }
 
+/** Free all passed arguments if not `NULL` */
 static void free_all (struct arg *tokens, int argc, arg_info *info, char *options)
 {
   if (options)

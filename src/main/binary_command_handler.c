@@ -27,7 +27,11 @@ static void free_all (struct arg *tokens, int argc, arg_info *info, char *option
 
 static int check_arg_existence (struct arg *token);
 
-
+/** 
+ * Gets a malloc'd array of string suitable for calling `execvp` from a `struct arg_info` and two strings.
+ * 
+ * The returned array looks like : `[info.options[0], ... ,info.options[info.options_size - 1], arg, last, NULL]`
+ */
 static char** arg_info_to_argv (arg_info *info, char *arg, char *last)
 {
   char **exec_argv = malloc((info->options_size + 3)*sizeof(char*));
@@ -146,13 +150,14 @@ static void free_all (struct arg *tokens, int argc, arg_info *info, char *option
     free (info->options);
 }
 
+/** Checks if the value of `token` is an existing directory */
 static int check_arg_existence (struct arg *token)
 {
   int ret;
 
   if (token->type == TAR_FILE)
     {
-      ret = (DIR == type_of_file (token->tf.tar_name, token->tf.filename, true));
+      ret = is_dir (token->tf.tar_name, token->tf.filename);
     }
   else
     {
