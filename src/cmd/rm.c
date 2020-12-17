@@ -181,12 +181,12 @@ int rm(char *tar_name, char *filename, char *options)
 
 int main(int argc, char *argv[])
 {
-  command cmd = {
+  unary_command cmd = {
     CMD_NAME,
     rm,
-    0,
-    0,
+    false,
+    false,
     SUPPORT_OPT
   };
-  return handle(cmd, argc, argv);
+  return handle_unary_command (cmd, argc, argv);
 }

@@ -10,7 +10,7 @@ enum file_type {
 };
 
 /* Replace '/' after the first tar found by '\0'
-    and returns the pointer of the next char */
+   and returns the pointer of the next char */
 char *split_tar_abs_path(char *path);
 
 /* Reduce an absolute path (i.e. a path starting with a / ) */
@@ -22,5 +22,15 @@ char *reduce_abs_path(const char *path, char *resolved_path);
  * @param dir_priority indicates what to prioritize when both types of files exists
  */
 enum file_type type_of_file(const char *tar_name, const char *filename, bool dir_priority);
+
+/**
+ * Gets the absolute version of a path. 
+ */
+char *make_absolute (const char *path);
+
+/** 
+ * Checks if an absolute path goes through a tar. 
+ */
+int is_tar_path (char *path);
 
 #endif

@@ -10,4 +10,7 @@ int error_pt(int[], int, int);
 
 /* Launch perror with name of command and problem */
 void error_cmd(const char *cmd_name, const char *msg);
+
+void tar_error_cmd (const char *cmd_name, const char *tar_name, const char *filename);
+
 #endif
