@@ -128,13 +128,13 @@ static int pwd_prefix_err(char *filename)
 }
 
 int main(int argc, char *argv[]) {
-  command cmd = {
+  unary_command cmd = {
     CMD_NAME,
     rmdir_cmd,
-    0,
-    0,
+    false,
+    false,
     ""
   };
 
-  return handle(cmd, argc, argv);
+  return handle_unary_command(cmd, argc, argv);
 }

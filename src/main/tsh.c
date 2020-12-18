@@ -2,7 +2,7 @@
 
 #include "tsh.h"
 
-const char *tar_cmds[NB_TAR_CMD] = {"cat", "ls", "rm", "mkdir", "rmdir"};
+const char *tar_cmds[NB_TAR_CMD] = {"cat", "ls", "rm", "mkdir", "rmdir", "mv", "cp"};
 const char *tsh_funcs[NB_TSH_FUNC] = {"cd", "exit", "pwd"};
 
 int special_command(char *s)

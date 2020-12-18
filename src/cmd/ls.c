@@ -3,20 +3,20 @@
 #include "path_lib.h"
 #include "command_handler.h"
 
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <sys/wait.h>
+#include <assert.h>
+#include <errno.h>
 #include <fcntl.h>
+#include <linux/limits.h>
+#include <pwd.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <unistd.h>
 #include <string.h>
-#include <assert.h>
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <sys/wait.h>
 #include <time.h>
-#include <pwd.h>
-#include <errno.h>
-#include <getopt.h>
-#include <linux/limits.h>
+#include <unistd.h>
 
 #define SUPPORT_OPT "l"
 #define CMD_NAME "ls"
@@ -357,12 +357,12 @@ int ls_(char *tar_name, char *name_in_tar) {
 }
 
 int main(int argc, char **argv) {
-  command cmd = {
+  unary_command cmd = {
     CMD_NAME,
     ls,
-    1,
-    1,
+    true,
+    true,
     SUPPORT_OPT
   };
-  return handle(cmd, argc, argv);
+  return handle_unary_command (cmd, argc, argv);
 }

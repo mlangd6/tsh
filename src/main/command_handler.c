@@ -1,221 +1,211 @@
-#include <linux/limits.h>
-#include <string.h>
+#include <assert.h>
 #include <getopt.h>
-#include <unistd.h>
-#include <stdlib.h>
-#include <sys/wait.h>
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+
+#include "command_handler.h"
 
 #include "errors.h"
 #include "path_lib.h"
 #include "tar.h"
-#include "command_handler.h"
-
-static void invalid_options(char *cmd_name);
-static char **parse_args(int *argc, char **argv, arg_info *info);
-static int handle_with_pwd(command *cmd, char **argv, int not_tar_opt, char *tar_opt);
-static int handle_one_it_tar(command *cmd, char *arg, char *path, char *in_tar,
-  char *tar_opt, int not_tar_opt, int nb_valid_arg, int *rest);
-static int handle_one_it_out(command *cmd, int nb_valid_arg, char **argv, int argc, int *rest);
-static void print_arg_before(command *cmd, int nb_valid_arg, char *argv);
-static void print_arg_after(command *cmd, int *rest);
-static int check_options(int argc, char **argv, command *cmd, char *tar_opt, int *tar_opt_c);
+#include "utils.h"
 
 
-int handle(command cmd, int argc, char **argv) {
-  arg_info info = {
-    0,
-    0,
-    0,
-    0,
-    calloc(argc+2, sizeof(char *))
-  };
-  info.options[info.opt_c++] = cmd.name;
-  argv = parse_args(&argc, argv, &info);
+static void init_arg_info_options (arg_info *info, struct arg *tokens, int tokens_size);
 
-  if (info.nb_in_tar == 0 && (!cmd.twd_arg || info.nb_out > 0)) // No tar involved
-  {
-    if (info.nb_out > 0 || !info.err_arg) // No error
-      execvp(cmd.name, argv);
-    else
-      return EXIT_FAILURE;
-  }
-  opterr = 0;
-  int ret = EXIT_SUCCESS;
-  int sup_opt_len = strlen(cmd.support_opt);
-  char *tar_opt = malloc(sup_opt_len + 1);
-  memset(tar_opt, '\0', sup_opt_len + 1);
-  int tar_opt_c = 0;
-  int not_tar_opt = check_options(argc, argv, &cmd, tar_opt, &tar_opt_c);
-  if (info.nb_in_tar == 0 && info.nb_out == 0) // No arguments (cmd.twd_arg == 1)
-  {
-    if (info.err_arg)
-      return EXIT_FAILURE;
-    return handle_with_pwd(&cmd, argv, not_tar_opt, tar_opt);
-  }
-  if (not_tar_opt)
-    invalid_options(cmd.name);
-  int rest = info.nb_out + ((not_tar_opt) ? 0: info.nb_in_tar);
-  int nb_valid_arg = rest;
-  char *in_tar;
-  char path[PATH_MAX];
-  for (size_t i = 1; i < argc; i++)
-  {
-    if (*argv[i] == '-')
-      continue;
-    strcpy(path, argv[i]);
-    in_tar = split_tar_abs_path(path);
-    if (in_tar != NULL) // Tar involved
-    {
-      if (handle_one_it_tar(&cmd, argv[i], path, in_tar, tar_opt, not_tar_opt, nb_valid_arg, &rest) == EXIT_FAILURE)
-        ret = EXIT_FAILURE;
-    }
-    else
-    {
-      info.options[info.opt_c] = argv[i];
-      if (handle_one_it_out(&cmd, nb_valid_arg, info.options, info.opt_c, &rest) == EXIT_FAILURE)
-        ret = EXIT_FAILURE;
-      info.options[info.opt_c] = NULL;
-    }
-    free(argv[i]);
-  }
-  free(info.options);
-  free(argv);
-  free(tar_opt);
-  return ret;
-}
 
-static char **parse_args(int *argc, char **argv, arg_info *info)
-{
-  char **new_argv = calloc(*argc+1, sizeof(char *));
-  new_argv[0] = argv[0];
-  int new_argc = 1;
-  char path[PATH_MAX];
-  for (size_t i = 1; i < *argc; i++)
-  {
-    memset(path, '\0', PATH_MAX);
-    if (*argv[i] == '-' && ++(info -> opt_c))
-    {
-      new_argv[new_argc++] = argv[i];
-      info -> options[info -> opt_c-1] = argv[i];
-    }
-    else
-    {
-      char *new_argv_tmp = malloc(PATH_MAX);
-      if (*argv[i] != '/') // Relative path
-        sprintf(new_argv_tmp, "%s/%s", getenv("PWD"), argv[i]);
-      else
-        strcpy(new_argv_tmp, argv[i]);
-      char *tmp = reduce_abs_path(new_argv_tmp, path);
-      if (!tmp)
-      {
-        info -> err_arg = 1;
-        error_cmd(argv[0], argv[i]);
-        free(new_argv_tmp);
-        continue;
-      }
-      strcpy(new_argv_tmp, path);
-      if (split_tar_abs_path(path) != NULL)
-        info -> nb_in_tar++;
-      else
-        info -> nb_out++;
-      new_argv[new_argc++] = new_argv_tmp;
-    }
-  }
-  new_argv[new_argc] = NULL;
-  info -> options[info -> opt_c] = NULL;
-  info -> options[info -> opt_c+1] = NULL;
-  *argc = new_argc;
-  return new_argv;
-}
-
-static void invalid_options(char *cmd_name)
-{
-  write(STDERR_FILENO, cmd_name, strlen(cmd_name));
-  write(STDERR_FILENO, ": invalid option -- '", 21);
-  write(STDERR_FILENO, &optopt, 1);
-  write(STDERR_FILENO, "' with tarball, skipping files inside tarball\n", 46);
-}
-
-static int handle_with_pwd(command *cmd, char **argv, int not_tar_opt, char *tar_opt)
-{
-  char *tmp = getenv("PWD");
-  char twd[PATH_MAX];
-  memcpy(twd, tmp, strlen(tmp) + 1);
-  char *in_tar = split_tar_abs_path(twd);
-  if (in_tar != NULL)
-  {
-    if (not_tar_opt)
-    {
-      invalid_options(cmd -> name);
-      return EXIT_FAILURE;
-    }
-    return cmd -> in_tar_func(twd, in_tar, tar_opt);
-  }
-  else execvp(cmd -> name, argv);
-  return EXIT_FAILURE;
-}
-
-static int handle_one_it_tar(command *cmd, char *arg, char *path, char *in_tar,
-  char *tar_opt, int not_tar_opt, int nb_valid_arg, int *rest)
-{
-  if (!not_tar_opt) {
-    print_arg_before(cmd, nb_valid_arg, arg);
-    int ret = cmd -> in_tar_func(path, in_tar, tar_opt);
-    print_arg_after(cmd, rest);
-    return ret;
-  }
-  return EXIT_FAILURE;
-}
-
-static void print_arg_after(command *cmd, int *rest)
-{
-  if (--(*rest) > 0 && cmd -> print_multiple_arg)
-    write(STDOUT_FILENO, "\n", 1);
-}
-
-static void print_arg_before(command *cmd, int nb_valid_arg, char *arg)
-{
-  if (cmd -> print_multiple_arg && nb_valid_arg > 1)
-  {
-    write(STDOUT_FILENO, arg, strlen(arg));
-    write(STDOUT_FILENO, ": \n", 3);
-  }
-}
-
-static int handle_one_it_out(command *cmd, int nb_valid_arg, char **argv, int argc, int *rest)
-{
-  print_arg_before(cmd, nb_valid_arg, argv[argc]);
-  int status, p = fork();
-  int ret = EXIT_SUCCESS;
-  switch(p)
-   {
-     case -1:
-       error_cmd(cmd -> name, "fork");
-       break;
-     case 0: // child
-       execvp(cmd -> name, argv);
-       break;
-     default: // parent
-       wait(&status);
-       if (WEXITSTATUS(status) != EXIT_SUCCESS)
-         ret = EXIT_FAILURE;
-   }
-   print_arg_after(cmd, rest);
-   return ret;
-}
-
-static int check_options(int argc, char **argv, command *cmd, char *tar_opt, int *tar_opt_c)
-{
+char *check_options (int argc, char **argv, char *optstring)
+{  
   int c;
-  while ((c = getopt(argc, argv, cmd -> support_opt)) != -1)
-  {
-    if (c == '?')
+  char *detected_opt = malloc(strlen(optstring) + 1);
+  assert(detected_opt);
+
+  *detected_opt = '\0';
+  int i = 0;
+
+  /* On boucle sur les options.
+     On continue même s'il y a des options invalides car getopt
+     permute les options pour les placer au début. */
+  while ((c = getopt(argc, argv, optstring)) != -1)
     {
-      return 1;
+      if (c == '?' && detected_opt)
+	{	  
+	  free (detected_opt);
+	  detected_opt = NULL;
+	}
+      else if (detected_opt && strchr(detected_opt, c) == NULL)
+	{
+	  detected_opt[i++] = c;
+	  detected_opt[i] = '\0';
+	}
     }
-    else if (strchr(tar_opt, c) == NULL)
-      tar_opt[(*tar_opt_c)++] = c;
-  }
-  return 0;
+  
+  return detected_opt;
+}
+
+void invalid_options (char *cmd_name)
+{
+  write_string (STDERR_FILENO, cmd_name);
+  write_string (STDERR_FILENO, ": invalid option -- '");
+  
+  write(STDERR_FILENO, &optopt, 1);
+
+  write_string (STDERR_FILENO, "' with tarball, skipping files inside tarball\n");
+}
+
+
+
+struct arg *tokenize_args (int argc, char **argv)
+{
+  struct arg *tokens = malloc(argc * sizeof(struct arg));
+  assert(tokens);
+
+  // Par définition, le premier argument est la commande
+  tokens[0].value = copy_string(argv[0]);
+  tokens[0].type = CMD;
+
+  for (int i = 1; i < argc; i++)
+    {
+      // OPTION
+      if (*argv[i] == '-')
+	{
+	  tokens[i].value = copy_string (argv[i]);
+	  tokens[i].type = OPTION;
+	}
+      // ERROR ou TAR_FILE ou REG_FILE
+      else
+	{
+	  char *abs, *reduce, *in_tar;
+
+	  abs = make_absolute(argv[i]);
+	  reduce = reduce_abs_path(abs, NULL);
+	  in_tar = split_tar_abs_path (reduce);
+	  
+	  free(abs);
+
+	  // ERROR
+	  if (!reduce)
+	    {
+	      tokens[i].value = copy_string(argv[i]);
+	      tokens[i].type = ERROR;	      
+	    }
+	  // TAR_FILE
+	  else if (in_tar) 
+	    {	      
+	      tokens[i].tf.tar_name = reduce;
+	      tokens[i].tf.filename = in_tar;
+	      tokens[i].type = TAR_FILE;
+	    }
+	  // REG_FILE
+	  else
+	    {
+	      tokens[i].value = reduce;
+	      tokens[i].type = REG_FILE;
+	    }
+	}
+    }
+
+  return tokens;
+}
+
+void free_tokens (struct arg *tokens, int argc)
+{
+  for (int i=0; i < argc; i++)
+    {
+      if (tokens[i].type == TAR_FILE)
+	{
+	  free( tokens[i].tf.tar_name);
+	}
+      else
+	{
+	  free (tokens[i].value);
+	}
+    }
+  
+  free(tokens);
+}
+
+int execvp_tokens (struct arg *tokens, int tokens_size)
+{
+  char *argv[tokens_size + 1];
+  int i;
+  
+  for (i=0; i < tokens_size; i++)
+    {
+      if (tokens[i].type == TAR_FILE)
+	{
+	  if (tokens[i].tf.filename[0])
+	    tokens[i].tf.filename[-1] = '/';
+
+	  argv[i] = tokens[i].tf.tar_name;
+	}
+      else
+	{
+	  argv[i] = tokens[i].value;
+	}
+    }
+  
+  argv[i] = NULL;
+
+  return execvp(argv[0], argv);
+}
+
+/** Init the field `char** options` of a `struct arg_info` from given tokens. */
+static void init_arg_info_options (arg_info *info, struct arg *tokens, int tokens_size)
+{
+  info->options = malloc(info->options_size * sizeof(char*));
+
+  info->options[0] = tokens[0].value;
+  
+  for (int i=1, j=1; i < tokens_size; i++)
+    {
+      if (tokens[i].type == OPTION)
+	info->options[j++] = tokens[i].value;
+    }
+}
+
+void init_arg_info (arg_info *info, struct arg *tokens, int tokens_size)
+{
+  info->nb_tar_file = 0;
+  info->nb_reg_file = 0;
+  info->nb_error = 0;
+  info->options_size = 0;
+  info->options = NULL;
+
+  for (int i=0; i < tokens_size; i++)
+    {
+      switch (tokens[i].type)
+	{
+	case CMD:
+	case OPTION:
+	  info->options_size++;
+	  break;
+
+	case TAR_FILE:
+	  info->nb_tar_file++;
+	  break;
+
+	case REG_FILE:
+	  info->nb_reg_file++;
+	  break;
+
+	case ERROR:
+	  info->nb_error++;
+	  break;
+	}
+    }
+  
+  init_arg_info_options(info, tokens, tokens_size);
+}
+
+int get_nb_valid_file (arg_info *info, char *options)
+{
+  return info->nb_reg_file + (options ? info->nb_tar_file : 0);
+}
+
+bool no_arg (arg_info *info)
+{
+  return info->nb_tar_file == 0 && info->nb_reg_file == 0;
 }

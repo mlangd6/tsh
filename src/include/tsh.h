@@ -5,7 +5,7 @@
 #define CMD_NOT_FOUND " : command not found\n"
 #define CMD_NOT_FOUND_SIZE 22
 
-#define NB_TAR_CMD 5
+#define NB_TAR_CMD 7
 #define NB_TSH_FUNC 3
 #define TAR_CMD 1
 #define TSH_FUNC 2
