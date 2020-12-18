@@ -226,13 +226,11 @@ char *reduce_abs_path(const char *path, char *resolved)
   return NULL;
 }
 
-
-
 char *make_absolute (const char *path)
 {
   char *abs;
   size_t path_len = strlen(path);
-  
+
   if (*path == '/')
     {
       abs = copy_string(path);
@@ -248,7 +246,6 @@ char *make_absolute (const char *path)
   return abs;
 }
 
-
 int is_tar_path (char *path)
 {
   if (path == NULL || *path != '/')
@@ -257,13 +254,13 @@ int is_tar_path (char *path)
 
   char *chr = path+1;
   bool tar_path = false;
-  
+
   while (*chr && !tar_path)
     {
       if(*chr == '/')
 	{
 	  *chr = '\0';
-      
+
 	  if (is_tar(path) == 1)
 	    tar_path = true;
 
@@ -278,9 +275,8 @@ int is_tar_path (char *path)
   return tar_path;
 }
 
-enum file_type type_of_file(const char *tar_name, const char *filename, bool dir_priority)
+enum file_type ftype_of_file(int tar_fd, const char *filename, bool dir_priority)
 {
-  int tar_fd = open(tar_name, O_RDONLY);
   if (is_dir_name(filename))
     {
       return ftar_access(tar_fd, filename, F_OK) > 0 ? DIR: NONE;
@@ -309,6 +305,15 @@ enum file_type type_of_file(const char *tar_name, const char *filename, bool dir
   }
 }
 
+enum file_type type_of_file(const char *tar_name, const char *filename, bool dir_priority)
+{
+  int tar_fd = open(tar_name, O_RDONLY);
+  if (tar_fd < 0) return NONE;
+  enum file_type res = ftype_of_file(tar_fd, filename, dir_priority);
+  close(tar_fd);
+  return res;
+  }
+
 /* Return DIR if filename reference a directory, else NONE and errno is set accordingly */
 static enum file_type is_dir_type(int tar_fd, const char *filename)
 {
@@ -320,4 +325,37 @@ static enum file_type is_dir_type(int tar_fd, const char *filename)
 static enum file_type is_reg_type(int tar_fd, const char *filename)
 {
   return (ftar_access(tar_fd, filename, F_OK) == 1) ? REG : NONE;
+}
+
+/** Return 0 if pwd is prefix of an inside tarball path
+ * @param tar_name the name of the tarball
+ * @param filename the name of the file inside the tarball
+ * @return -1 if true, else 0
+ */
+int is_pwd_prefix(const char *tar_name, const char *filename)
+{
+  char *copy_tar_name = malloc(4096);
+  strcpy(copy_tar_name, tar_name);
+
+  char *copy_filename = malloc(100);
+  strcpy(copy_filename, filename);
+
+  char *path = malloc(4096);
+  sprintf(path, "%s/%s", copy_tar_name, copy_filename);
+
+  char *env = append_slash(getenv("PWD"));
+  if(is_prefix(path, env) > 0)
+  {
+    free(copy_tar_name);
+    free(copy_filename);
+    free(path);
+    free(env);
+    return -1;
+  }
+
+  free(copy_tar_name);
+  free(copy_filename);
+  free(path);
+  free(env);
+  return 0;
 }
