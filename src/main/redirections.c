@@ -99,6 +99,12 @@ int launch_redir(redir_type r, char *arg)
 /* Function to handle both append redirections */
 static int redir_append(char *s, int fd, redir_type r)
 {
+  if (is_dir_name(s))
+  {
+    errno = EISDIR;
+    error_cmd("tsh", s);
+    return -1;
+  }
   char path[PATH_MAX];
   if (*s == '/')
     strcpy(path, s);
@@ -334,6 +340,12 @@ static int stderr_append(char *s)
 
 static int stdin_redir(char *s)
 {
+  if (is_dir_name(s))
+  {
+    errno = EISDIR;
+    error_cmd("tsh", s);
+    return -1;
+  }
   char path[PATH_MAX];
   if (*s == '/')
     strcpy(path, s);
@@ -425,6 +437,16 @@ static int handle_inside_tar_stdin_redir(char *tar_name, char *filename)
 
 static int handle_outside_tar_redir(int fd, char *filename, int open_flags)
 {
+  struct stat s;
+  if (stat(filename, &s) == 0)
+  {
+    if (S_ISDIR(s.st_mode))
+    {
+      errno = EISDIR;
+      error_cmd("tsh", filename);
+      return -1;
+    }
+  }
   add_reset_redir(fd, 0);
   int new_fd;
   if (O_CREAT & open_flags) new_fd = open(filename, open_flags, 0666);
