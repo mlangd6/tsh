@@ -38,6 +38,7 @@ static int launch_redir_tar_link(char *tar_name, char *in_tar, redir_type r);
 static int append_tar_file(char *tar_name, char *in_tar, int read_fd);
 static int handle_outside_tar_redir(int fd, char *filename, int open_flags);
 static int handle_inside_tar_stdin_redir(char *tar_name, char *filename);
+static int stdin_tar_redir(char *tar_name, char *filename);
 
 stack *reset_fds;
 
@@ -349,9 +350,40 @@ static int stdin_redir(char *s)
   {
     int link_res = launch_redir_tar_link(resolved, in_tar, STDIN_REDIR);
     if (link_res != -2) return link_res;
-    return handle_inside_tar_stdin_redir(resolved, in_tar);
+    return stdin_tar_redir(resolved, in_tar);
   }
   return handle_outside_tar_redir(STDIN_FILENO, resolved, O_RDONLY);
+}
+
+static int stdin_tar_redir(char *tar_name, char *filename)
+{
+  if (filename[0] == '\0')
+  {
+    errno = EISDIR;
+    goto error;
+  }
+  switch(type_of_file(tar_name, filename, false))
+  {
+    case NONE:
+      goto error;
+    case DIR:
+      errno = EISDIR;
+      goto error;
+    case REG:
+      break;
+  }
+  if (tar_access(tar_name, filename, R_OK) != 1)
+  {
+    goto error;
+  }
+  return handle_inside_tar_stdin_redir(tar_name, filename);
+  error:
+  {
+    char err[PATH_MAX];
+    sprintf(err, "%s/%s", tar_name, filename);
+    error_cmd("tsh", err);
+    return -1;
+  }
 }
 
 static int handle_inside_tar_stdin_redir(char *tar_name, char *filename)
