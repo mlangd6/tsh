@@ -36,12 +36,43 @@ int error_pt(int fds[], int length_fds, int new_errno)
   return -1;
 }
 
-void error_cmd(const char *cmd_name, const char *msg) {
+void error_cmd (const char *cmd_name, const char *msg)
+{
   int msg_len = strlen(msg);
   int cmd_len = strlen(cmd_name);
   char buf[cmd_len + 3 + msg_len];
   memcpy(buf, cmd_name, cmd_len);
   memcpy(buf + cmd_len, ": ", 2);
   memcpy(buf + cmd_len + 2, msg, msg_len+1);
+  perror(buf);
+}
+
+void tar_error_cmd (const char *cmd_name, const char *tar_name, const char *filename)
+{
+  size_t cmd_len = strlen(cmd_name);
+  size_t tar_name_len = strlen(tar_name);
+  size_t filename_len = strlen(filename);
+  size_t buf_len = cmd_len + tar_name_len + filename_len + 3; // 3 = ": " + '/'
+
+  char buf[buf_len];
+  char *dst = buf;
+  
+  strcpy(dst, cmd_name);
+  dst += cmd_len;
+  
+  strcpy(dst, ": ");
+  dst += 2;
+  
+  strcpy(dst, tar_name);
+  dst += tar_name_len;
+
+  if (dst[-1] != '/')
+    {
+      strcpy(dst, "/");
+      dst++;      
+    }
+
+  strcpy(dst, filename);
+  
   perror(buf);
 }

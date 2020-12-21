@@ -2,6 +2,7 @@
 #include "errors.h"
 #include "command_handler.h"
 #include "utils.h"
+#include "path_lib.h"
 
 #include <string.h>
 #include <stdlib.h>
@@ -47,35 +48,6 @@ static int rm_access_in_writing(const char *tar_name, const char *filename)
     }
   }
 
-  return 0;
-}
-
-static int is_pwd_prefix(const char *tar_name, const char *filename)
-{
-  char *copy_tar_name = malloc(4096);
-  strcpy(copy_tar_name, tar_name);
-
-  char *copy_filename = malloc(100);
-  strcpy(copy_filename, filename);
-
-  char *path = malloc(4096);
-  sprintf(path, "%s/%s", copy_tar_name, copy_filename);
-
-  char *env = append_slash(getenv("PWD"));
-
-  if(is_prefix(path, env) > 0)
-  {
-    free(copy_tar_name);
-    free(copy_filename);
-    free(path);
-    free(env);
-    return -1;
-  }
-
-  free(copy_tar_name);
-  free(copy_filename);
-  free(path);
-  free(env);
   return 0;
 }
 
@@ -181,12 +153,12 @@ int rm(char *tar_name, char *filename, char *options)
 
 int main(int argc, char *argv[])
 {
-  command cmd = {
+  unary_command cmd = {
     CMD_NAME,
     rm,
-    0,
-    0,
+    false,
+    false,
     SUPPORT_OPT
   };
-  return handle(cmd, argc, argv);
+  return handle_unary_command (cmd, argc, argv);
 }

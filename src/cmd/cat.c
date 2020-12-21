@@ -1,36 +1,36 @@
-#include <errno.h>
-#include <limits.h>
-#include <stdio.h>
+#include <stdbool.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/types.h>
-#include <sys/wait.h>
 #include <unistd.h>
 
-#include "tar.h"
-#include "errors.h"
 #include "command_handler.h"
+#include "errors.h"
+#include "tar.h"
 
 #define CMD_NAME "cat"
 
-int cat(char *tar_name, char *filename, char *options)
+int cat (char *tar_name, char *filename, char *options)
 {
   if (tar_cp_file(tar_name, filename, STDOUT_FILENO) != 0)
-  {
-    tar_name[strlen(tar_name)] = '/';
-    error_cmd(CMD_NAME, tar_name);
-    return EXIT_FAILURE;
-  }
+    {
+      tar_name[strlen(tar_name)] = '/';
+      error_cmd(CMD_NAME, tar_name);
+      return EXIT_FAILURE;
+    }
+  
   return EXIT_SUCCESS;
 }
 
-int main(int argc, char *argv[]) {
-  command cmd = {
-    CMD_NAME,
-    cat,
-    0,
-    0,
-    ""
-  };
-  return handle(cmd, argc, argv);
+int main (int argc, char *argv[])
+{
+  unary_command cmd =
+    {
+      CMD_NAME,
+      cat,
+      false,
+      false,
+      ""
+    };
+  
+  return handle_unary_command (cmd, argc, argv);
 }

@@ -16,7 +16,7 @@
 /**
  * Lists all files passing a predicate in a tar.
  */
-static array* tar_ls_if (int tar_fd, bool (*predicate)(const struct posix_header *))
+array* tar_ls_if (int tar_fd, bool (*predicate)(const struct posix_header *))
 {
   array *ret;
   ssize_t size_read;
