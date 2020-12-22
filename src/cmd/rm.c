@@ -76,16 +76,14 @@ static int rm_(char *tar_name, char *filename)
   if(is_dir_name(filename) || is_empty_string(filename))
   {
     errno = EISDIR;
-    tar_name[strlen(tar_name)] = '/';
-    error_cmd(CMD_NAME, tar_name);
+    tar_error_cmd (CMD_NAME, tar_name, filename);
     return EXIT_FAILURE;
   }
   else {
     if(tar_rm(tar_name, filename) == -1)
     {
       errno = EINTR;
-      tar_name[strlen(tar_name)] = '/';
-      error_cmd(CMD_NAME, tar_name);
+      tar_error_cmd (CMD_NAME, tar_name, filename);
       return EXIT_FAILURE;
     }
   }
@@ -98,13 +96,14 @@ static int rm_r(char *tar_name, char *filename)
   if(tar_rm(tar_name, filename) == -1)
   {
     errno = EINTR;
-    tar_name[strlen(tar_name)] = '/';
-    error_cmd(CMD_NAME, tar_name);
+    tar_error_cmd (CMD_NAME, tar_name, filename);
     return EXIT_FAILURE;
   }
+  
   if(is_empty_string(filename)){
     execlp("rm", "rm", tar_name, NULL);
   }
+  
   return EXIT_SUCCESS;
 }
 
@@ -137,8 +136,7 @@ int rm(char *tar_name, char *filename, char *options)
 
   if(rm_access_in_existing(tar_name, new_filename) == -1)
   {
-    tar_name[strlen(tar_name)] = '/';
-    error_cmd(CMD_NAME, tar_name);
+    tar_error_cmd (CMD_NAME, tar_name, filename);
     return EXIT_FAILURE;
   }
 
