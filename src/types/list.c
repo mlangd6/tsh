@@ -13,7 +13,7 @@ struct cell
 };
 
 
-struct list_t
+struct list
 {
   cell *first;
   cell *last;
@@ -36,9 +36,9 @@ static cell *create_cell(cell *p, cell *n, void *v)
 
 
 /* Create an empty list */
-list_t *list_create()
+list *list_create()
 {
-  list_t *l = malloc(sizeof(list_t));
+  list *l = malloc(sizeof(list));
 
   if (l)
     {
@@ -50,7 +50,7 @@ list_t *list_create()
 }
 
 /* free LIST and all its elements */
-void list_free(list_t *list, bool full)
+void list_free(list *list, bool full)
 {
   // NULL
   if (!list)
@@ -84,7 +84,7 @@ void list_free(list_t *list, bool full)
 
 
 /* Return the size of LIST */
-int list_size (list_t *list)
+int list_size (list *list)
 {
   if (!list)
     return -1;
@@ -97,7 +97,7 @@ int list_size (list_t *list)
 }
 
 /* Check if LIST is empty */
-int list_is_empty (list_t *list)
+int list_is_empty (list *list)
 {
   if (!list)
     return -1;
@@ -108,7 +108,7 @@ int list_is_empty (list_t *list)
 
 
 /* Insert VAL at the beginning of LIST */
-void list_insert_first(list_t *list, void *val)
+void list_insert_first(list *list, void *val)
 {
   if (!list)
     return;
@@ -126,7 +126,7 @@ void list_insert_first(list_t *list, void *val)
 }
 
 /* Insert VAL at the end of LIST */
-void list_insert_last(list_t *list, void *val)
+void list_insert_last(list *list, void *val)
 {
   if (!list)
     return;
@@ -146,7 +146,7 @@ void list_insert_last(list_t *list, void *val)
 
 
 /* Remove the first element of LIST */
-void *list_remove_first (list_t *list)
+void *list_remove_first (list *list)
 {
   if (list_is_empty(list)) 
     return NULL;
@@ -172,7 +172,7 @@ void *list_remove_first (list_t *list)
 }
 
 /* Remove the last element of LIST */
-void *list_remove_last (list_t *list)
+void *list_remove_last (list *list)
 {
   if (list_is_empty(list)) 
     return NULL;
@@ -199,7 +199,7 @@ void *list_remove_last (list_t *list)
 
 
 /* Return the first element of LIST */
-void *list_first (list_t *list)
+void *list_first (list *list)
 {
   if (!list || !list->first)
     return NULL;
@@ -209,7 +209,7 @@ void *list_first (list_t *list)
 
 
 /* Return the last element of LIST */
-void *list_last (list_t *list)
+void *list_last (list *list)
 {
   if (!list || !list->last)
     return NULL;
@@ -220,7 +220,7 @@ void *list_last (list_t *list)
 
 
 /* Apply F to all elements of LIST */
-void list_iter(list_t *list, void (*f)(void *))
+void list_iter(list *list, void (*f)(void *))
 {
   if(!list)
     return;

@@ -58,7 +58,7 @@ int launch_list_tests()
 
 static char* list_create_test()
 {
-  list_t *list = list_create();
+  list *list = list_create();
 
   mu_assert("List should be empty", 1 == list_is_empty(list));
   mu_assert("Invalid list size, should be 0", 0 == list_size(list));
@@ -71,7 +71,7 @@ static char* list_create_test()
 
 static char* list_size_test()
 {
-  list_t *list = list_create();
+  list *list = list_create();
 
   const int size = 15;
   for (int i=0; i < size; i++)
@@ -89,7 +89,7 @@ static char* list_size_test()
 
 static char* list_ins_rem_last_test()
 {
-  list_t *list = list_create();
+  list *list = list_create();
   const int size = 15;
   int *pi;
 
@@ -118,7 +118,7 @@ static char* list_ins_rem_last_test()
 
 static char* list_ins_rem_first_test()
 {
-  list_t *list = list_create();
+  list *list = list_create();
   const int size = 15;
   int *pi;
 

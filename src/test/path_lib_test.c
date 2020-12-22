@@ -15,6 +15,7 @@ static char *reduce_abs_path_tar_test();
 static char *reduce_abs_path_titi_test();
 static char *reduce_abs_path_dir_test();
 static char *reduce_abs_path_non_existing_file();
+static char *type_of_file_test();
 
 
 extern int tests_run;
@@ -25,7 +26,8 @@ static char *(*tests[])(void) = {
   reduce_abs_path_tar_test,
   reduce_abs_path_titi_test,
   reduce_abs_path_dir_test,
-  reduce_abs_path_non_existing_file
+  reduce_abs_path_non_existing_file,
+  type_of_file_test
 };
 
 
@@ -191,5 +193,25 @@ static char *reduce_abs_path_dir_test()
   mu_assert("reduce_abs_path shouldn't change path", !strcmp(reduce_abs_path("/tmp/tsh_test/test.tar/dir1/subdir", path), "/tmp/tsh_test/test.tar/dir1/subdir"));
 
 
+  return 0;
+}
+
+static char *type_of_file_test()
+{
+  char cmd[1024];
+  char *a = "a";
+  char *tar = "test.tar";
+  sprintf(cmd, "cd %s; touch %s; touch dir2; tar -rf %s %s dir2; rm %s; mkdir %s; tar -rf %s %s", TEST_DIR, a, tar, a, a, a, tar, a);
+  system(cmd);
+  mu_assert("type_of_file with dir_priority should return DIR with a", type_of_file(TAR_TEST, a, true) == DIR);
+  mu_assert("type_of_file without dir_priority should return REG with a", type_of_file(TAR_TEST, a, false) == REG);
+  mu_assert("type_of_file with dir_priority should return DIR with dir2", type_of_file(TAR_TEST, "dir2", true) == DIR);
+  mu_assert("type_of_file without dir_priority should return REG with dir2", type_of_file(TAR_TEST, "dir2", false) == REG);
+  mu_assert("type_of_file without dir_priority should return DIR with dir2/", type_of_file(TAR_TEST, "dir2/", true) == DIR);
+  mu_assert("type_of_file with dir_priority should return DIR with dir1", type_of_file(TAR_TEST, "dir1", true) == DIR);
+  mu_assert("type_of_file without dir_priority should return DIR with dir1", type_of_file(TAR_TEST, "dir1", false) == DIR);
+  mu_assert("type_of_file without dir_priority should return DIR with toto", type_of_file(TAR_TEST, "toto", false) == REG);
+  mu_assert("type_of_file with dir_priority should return DIR with toto", type_of_file(TAR_TEST, "toto", true) == REG);
+  mu_assert("type_of_file should always return NONE with toto/", type_of_file(TAR_TEST, "toto/", true) == NONE && type_of_file(TAR_TEST, "toto/", false) == NONE);
   return 0;
 }

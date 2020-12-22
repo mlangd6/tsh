@@ -4,17 +4,20 @@
 #include <sys/types.h>
 #include <unistd.h>
 #include <errno.h>
+#include <string.h>
+#include <stdlib.h>
 
 #include "errors.h"
 #include "tar.h"
 #include "utils.h"
 
-/* Delete all files starting with DIRNAME i.e. delete directory DIRNAME in the tar referenced by TAR_FD.
-   Last character of DIRNAME is '/'
-   Returns :
-   0  if it succeed
-   -1 if a system call failed */
-static int tar_rm_dir(int tar_fd, const char *dirname)
+/** Delete all files starting with DIRNAME i.e. delete directory DIRNAME in the tar referenced by TAR_FD.
+ * Last character of DIRNAME is '/'
+ * @param tar_fd the file descriptor of the tarball
+ * @param dirname the directory you want to delete
+ * @return 0  on success, -1 if a system call failed
+ */
+int tar_rm_dir(int tar_fd, const char *dirname)
 {
   unsigned int file_size;
   struct posix_header file_header;
@@ -103,7 +106,7 @@ int tar_rm(const char *tar_name, const char *filename)
 
   int r;
 
-  if(is_dir_name(filename))
+  if(is_empty_string(filename) || is_dir_name(filename))
   {
     r = tar_rm_dir(tar_fd, filename);
   }

@@ -71,7 +71,7 @@ struct posix_header
 #define TOWRITE  00002          /* write by other */
 #define TOEXEC   00001          /* execute/search by other */
 
-/** 
+/**
  * Represents a file with its header and data in a tar.
  *
  * Be extremely careful after any changes (mainly write) on #tar_fd as this structure may not stay coherent.
@@ -81,7 +81,7 @@ typedef struct
   int tar_fd;                 /**< a file descriptor referencing the tar owning this file */
   struct posix_header header; /**< the posix header for this file */
   off_t file_start;           /**< the beginning of the header of this file in #tar_fd */
-  
+
 } tar_file;
 
 
@@ -180,7 +180,7 @@ int tar_mv_file(const char *tar_name, const char *filename, int fd);
    F_OK tests for the existence of the file.
 
    RETURN :
-   On success, 1 is returned if FILE_NAME was exactly found in hte tar, or 2 is returned if FILE_NAME is finishing with a / (i.e. is a directory) and was found existing only through its subfiles.
+   On success, 1 is returned if FILE_NAME was exactly found in the tar, or 2 is returned if FILE_NAME is finishing with a / (i.e. is a directory) and was found existing only through its subfiles.
    On error, -1 is returned and errno is set appropriately.
 
    ERRORS :
@@ -209,5 +209,29 @@ int add_tar_file_in_tar(const char *tar_name_src, char *tar_name_dest, const cha
    0 if FILENAME and his containing were added
   -1 if they couldn't */
 int add_tar_file_in_tar_rec(const char *tar_name_src, char *tar_name_dest, const char *source, const char *dest);
+
+array* tar_ls_if (int tar_fd, bool (*predicate)(const struct posix_header *));
+/* Set mtime of header to actual time */
+void set_hd_time(struct posix_header *hd);
+
+/**
+ * Update header of file inside tarball
+ * @param tar_fd is the file descriptor of the tarball
+ * @param filename is the name of the file inside the tarball
+ * @param update is the fonction that updates the posix_header
+ * After the update of the header the checksum will be re calculated and
+ * the header mtime will me set to current time
+ * @return 0 on success, else -1
+ */
+int update_header(struct posix_header *hd, int tar_fd, char *filename, void (*update)(struct posix_header *hd));
+
+int move_file_to_end_of_tar(char *tar_name, char *filename);
+
+/* Check if filename is the name of a directory in the tar.
+   If true then return 1 else 0 */
+int is_dir(const char *tar_name, const char *filename);
+
+int tar_rm_dir(int tar_fd, const char *dirname);
+
 
 #endif

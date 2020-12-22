@@ -54,12 +54,12 @@ static int has_rights(struct posix_header hd, struct passwd *pwd, int mode)
 
   int type_u = type_of_user(hd, pwd, groups, nb_groups);
   int rights[] =
-    {
-      hd.mode[4] - '0',
-      hd.mode[5] - '0',
-      hd.mode[6] - '0'
-    };
-
+  {
+    hd.mode[4] - '0',
+    hd.mode[5] - '0',
+    hd.mode[6] - '0'
+  };
+  free(groups);
   if ( (mode & R_OK && !(R_OK & rights[type_u]))
        ||   (mode & W_OK && !(W_OK & rights[type_u]))
        ||   (mode & X_OK && !(X_OK & rights[type_u])) )
@@ -82,7 +82,7 @@ static int simple_tar_access(const char *filename, array *headers, struct passwd
   int index = -1;
   int is_dir = is_dir_name(filename);
   tar_file *tf = NULL;
-  
+
   for (int i = 0; i < array_size(headers); i++)
     {
       tf = array_get(headers, i);
@@ -99,7 +99,7 @@ static int simple_tar_access(const char *filename, array *headers, struct passwd
 
       free(tf);
     }
-  
+
   if (!found)
     {
       errno = ENOENT;
@@ -114,7 +114,7 @@ static int simple_tar_access(const char *filename, array *headers, struct passwd
   tf = array_get(headers, index);
   r = has_rights(tf->header, pwd, mode);
   free(tf);
-  
+
   return r == 0 ? 1 : -1;
 }
 
@@ -127,19 +127,21 @@ static int tar_access_all(const char *filename, array *headers, struct passwd *p
   char *it = cpy;
   char tmp;
   while ((it = strchr(it, '/')) != NULL && it[1] != '\0')
+  {
+    tmp = it[1];
+    it[1] = '\0';
+    if (simple_tar_access(cpy, headers, pwd, X_OK) == -1) // Test if parent dir is executable
     {
-      tmp = it[1];
-      it[1] = '\0';
-      if (simple_tar_access(cpy, headers, pwd, X_OK) == -1) // Test if parent dir is executable
-	{
-	  it[1] = tmp;
-	  free(cpy);
-	  return -1;
-	}
       it[1] = tmp;
-      it++;
+      free(cpy);
+      return -1;
     }
-  return simple_tar_access(cpy, headers, pwd, mode);
+    it[1] = tmp;
+    it++;
+  }
+  int res = simple_tar_access(cpy, headers, pwd, mode);
+  free(cpy);
+  return res;
 }
 
 /* Check user's permissions for file FILE_NAME in tar at path TAR_NAME */
@@ -170,7 +172,7 @@ int ftar_access(int tar_fd, const char *file_name, int mode)
 
   struct passwd *pwd = getpwuid(getuid());
   int found;
-  
+
   if (pwd -> pw_uid == 0)
     found = simple_tar_access(file_name, headers, pwd, F_OK);
   else

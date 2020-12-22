@@ -523,16 +523,13 @@ int ls (char *tar_name, char *filename, char *options)
   return 0;
 }
 
-
-int main (int argc, char **argv)
-{
-  command cmd = {
+int main(int argc, char **argv) {
+  unary_command cmd = {
     CMD_NAME,
     ls,
-    1,
-    1,
+    true,
+    true,
     SUPPORT_OPT
   };
-  
-  return handle(cmd, argc, argv);
+  return handle_unary_command (cmd, argc, argv);
 }

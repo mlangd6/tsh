@@ -92,6 +92,7 @@ static char *exec_tokens_test()
   token **tokens = tokenize(user_input, &nb_el);
   char **argv = malloc((nb_el + 1) * sizeof(char *));
   nb_el = exec_tokens(tokens, nb_el, argv);
+  reset_redirs();
   mu_assert("Exec tokens test: error on size of argv", nb_el == 2);
   char *tests[] = {"cat", "fic"};
   mu_assert("Exec tokens test: argv[0] != \"cat\"", !strcmp(argv[0], tests[0]));
