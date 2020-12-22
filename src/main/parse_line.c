@@ -6,7 +6,7 @@
 #include <ctype.h>
 
 #include "tsh.h"
-#include "parse_line.h"
+#include "tokens.h"
 
 static token *char_to_token(char *w);
 static void free_tokens(token **tokens, int start, int size);
@@ -55,6 +55,8 @@ static token *char_to_token(char *w)
   } else if (!strcmp(w, "<")) {
     res -> val.red = STDIN_REDIR;
     res -> type = REDIR;
+  } else if (!strcmp(w, "|")) {
+    res -> type = PIPE;
   } else {
     res -> val.arg = w;
     res -> type = ARG;

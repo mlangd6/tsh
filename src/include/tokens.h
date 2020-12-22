@@ -5,7 +5,8 @@
 
 typedef enum {
   ARG,
-  REDIR
+  REDIR,
+  PIPE
 } token_type;
 
 typedef union {
@@ -21,6 +22,7 @@ typedef struct {
 int count_words(const char *str);
 token **tokenize(char *user_input, int *nb_el);
 int exec_tokens(token **tokens, int nb_el, char **argv);
+int exec_line(char *line);
 
 
 
