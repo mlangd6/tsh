@@ -1,16 +1,9 @@
-#include <assert.h>
 #include <errno.h>
 #include <fcntl.h>
-#include <getopt.h>
-#include <linux/limits.h>
-#include <pwd.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/stat.h>
-#include <sys/types.h>
-#include <sys/wait.h>
 #include <time.h>
 #include <unistd.h>
 
@@ -30,7 +23,7 @@ struct tar_fileinfo
 {
   struct posix_header header;
 
-  int nb_links;
+  unsigned int nb_links;
 };
 
 
@@ -42,185 +35,44 @@ static int max_size_width;
 static int total_block;
 
 
-static char *get_corrected_name (const char *tar_name, const char *filename); 
-static char *get_last_component(char *path);
+/* utils */
+static char* get_corrected_name (const char *tar_name, const char *filename); 
+static char* get_last_component (char *path);
 
-static int print_string(const char *string);
-static int print_int(int n);
+static int nb_of_digits (unsigned int n);
+
+static int print_string (const char *string);
+static int print_unsigned_int (unsigned int n);
+
 
 static void init_ls ();
+static void add_header_to_files (array *files, struct posix_header *hd);
+
 static void update_files (array *files, int tar_fd);
 static int count_nb_link (array *all, struct tar_fileinfo *info);
+static bool is_in_dir(const char *dir_name, const char *filename);
 static void update_widths (struct tar_fileinfo *info);
 static void update_total_block (struct tar_fileinfo *info);
 
+/* printing */
+static void print_padding (int n);
+
+static void print_total_block ();
 static int print_files (array *files, bool long_format);
 static int print_fileinfo (struct tar_fileinfo *tfi, bool long_format, bool newline);
 
-static void print_padding (int n);
-
-static void add_header_to_files (array *files, struct posix_header *hd);
-
-static int print_filetype(char typeflag);
-static int print_filemode(char mode[8]);
-static int print_filename(char name[100]);
-static void print_nb_links(int nb_links);
-static void print_uname(char uname[32]);
-static void print_gname(char gname[32]);
-static void print_size(char size[12]);
-
-static int nb_of_digits (int n);
-
-static void print_size(char size[12])
-{
-  int file_size = 0;
-  sscanf(size, "%o", &file_size);
-  print_padding (max_size_width - nb_of_digits(file_size));
-  print_int(file_size);
-}
-
-static void print_uname(char uname[32])
-{
-  print_padding (max_owner_width - strlen(uname));  
-  print_string (uname);
-}
-
-static void print_gname(char gname[32])
-{
-  print_padding (max_group_width - strlen(gname));  
-  print_string (gname);
-}
-
-static void add_header_to_files (array *files, struct posix_header *hd)
-{
-  struct tar_fileinfo tfi = { *hd, 0 };
-  array_insert_last (files, &tfi);
-
-}
-
-static void print_nb_links(int nb_links)
-{
-  print_padding (max_nlink_width - nb_of_digits(nb_links));
-  print_int (nb_links);
-}
-
-static int print_int(int n)
-{
-  char buf[sizeof(int)+1];
-  sprintf(buf, "%d", n);
-  return print_string(buf);
-}
-
-static void print_padding (int n)
-{
-  for (int i=0; i < n; i++)
-    print_string (" ");
-}
-
-static void update_total_block (struct tar_fileinfo *info)
-{
-  unsigned int size = get_file_size (&info->header);
-
-  total_block += number_of_block(size);
-}
-
-static int nb_of_digits (int n)
-{
-  int nb = 1;
-  
-  if (n < 0)
-    n = -n;
-
-  while (n > 9)
-    {
-      n /= 10;
-      nb++;
-    }
-  
-  return nb;
-}
-
-static void update_widths (struct tar_fileinfo *info)
-{
-  int n;
-  
-  n = nb_of_digits (info->nb_links);
-  if (max_nlink_width < n)
-    max_nlink_width = n;
-
-  n = nb_of_digits (get_file_size(&info->header));
-  if (max_size_width < n)
-    max_size_width = n;
-
-  n = strlen (info->header.uname);
-  if (max_owner_width < n)
-    max_owner_width = n;
-
-  n = strlen (info->header.gname);
-  if (max_group_width < n)
-    max_group_width = n;  
-}
+static int print_filetype (char typeflag);
+static int print_filemode (char mode[8]);
+static void print_nb_links (unsigned int nb_links);
+static void print_uname (char uname[32]);
+static void print_gname (char gname[32]);
+static void print_size (char size[12]);
+static void print_mtime (char mtime[12]);
+static int print_filename (char name[100]);
 
 
-static bool is_in_dir(const char *dir_name, const char *filename)
-{
-  if (is_prefix(dir_name, filename) != 1)
-    return false;
-    
-  char *c = strchr(filename + strlen(dir_name), '/');
-  return !c || !c[1]; // pas de '/' ou 1er '/' à la fin
-}
 
-static int count_nb_link (array *all, struct tar_fileinfo *info)
-{
-  int nb;
-  tar_file *tf;
 
-  nb = 1;  
-  
-  for (int i = 0; i < array_size (all); i++)
-    {
-      tf = array_get (all, i);
-      
-      if (!strcmp(tf->header.linkname, info->header.name))
-	{
-	  nb++;
-	}
-      else if (info->header.typeflag == DIRTYPE && is_in_dir(info->header.name, tf->header.name))
-	{
-	  nb++;
-	}
-      
-      free (tf);
-    }
-  
-  return nb;
-}
-
-static void update_files (array *files, int tar_fd)
-{
-  array *all = tar_ls_all (tar_fd);
-
-  struct tar_fileinfo *tfi;
-  struct tar_fileinfo updated_tfi;
-  
-  for (int i=0; i < array_size (files); i++)
-    {
-      tfi = array_get (files, i);
-      
-      updated_tfi.header = tfi->header;
-      updated_tfi.nb_links = count_nb_link (all, &updated_tfi);
-
-      array_set (files, i, &updated_tfi);
-
-      update_widths (&updated_tfi);
-      update_total_block (&updated_tfi);
-      
-      free (tfi);
-    }
-
-  array_free (all, false);
-}
 
 static char *get_corrected_name (const char *tar_name, const char *filename)
 {  
@@ -249,6 +101,55 @@ static char *get_corrected_name (const char *tar_name, const char *filename)
   return NULL;
 }
 
+static char *get_last_component(char *path)
+{
+  char *ret = strrchr(path, '/');
+
+  // si on ne trouve pas de slash (i.e. un fichier à la racine)
+  if (!ret)
+    return path;
+
+  // on est dans le cas : dir/fic
+  if (ret[1] != '\0')
+    return ret + 1;
+    
+  // on va cherche le début du mot
+  ret--;
+  for (; ret != path && *ret != '/'; ret--)
+    ;
+
+  return *ret == '/' ? ret + 1 : ret;
+}
+
+
+static int nb_of_digits (unsigned int n)
+{
+  int nb = 1;
+
+  while (n > 9)
+    {
+      n /= 10;
+      nb++;
+    }
+  
+  return nb;
+}
+
+
+static int print_unsigned_int(unsigned int n)
+{
+  char buf[20];
+  snprintf(buf, sizeof(buf), "%u", n);
+  return print_string(buf);
+}
+
+static int print_string(const char *string)
+{
+  return write(STDOUT_FILENO, string, strlen(string)+1);
+}
+
+
+
 static void init_ls ()
 {
   max_nlink_width = 0;
@@ -260,11 +161,116 @@ static void init_ls ()
   total_block = 0;
 }
 
-static int print_string(const char *string)
+static void add_header_to_files (array *files, struct posix_header *hd)
 {
-  return write(STDOUT_FILENO, string, strlen(string)+1);
+  struct tar_fileinfo tfi = { *hd, 0 };
+  array_insert_last (files, &tfi);
 }
 
+
+
+static void update_files (array *files, int tar_fd)
+{
+  array *all = tar_ls_all (tar_fd);
+
+  struct tar_fileinfo *tfi;
+  struct tar_fileinfo updated_tfi;
+  
+  for (int i=0; i < array_size (files); i++)
+    {
+      tfi = array_get (files, i);
+      
+      updated_tfi.header = tfi->header;
+      updated_tfi.nb_links = count_nb_link (all, &updated_tfi);
+
+      free (array_set (files, i, &updated_tfi));
+
+      update_widths (&updated_tfi);
+      update_total_block (&updated_tfi);
+      
+      free (tfi);
+    }
+
+  array_free (all, false);
+}
+
+static int count_nb_link (array *all, struct tar_fileinfo *info)
+{
+  int nb;
+  tar_file *tf;
+
+  nb = 1;  
+  
+  for (int i = 0; i < array_size (all); i++)
+    {
+      tf = array_get (all, i);
+      
+      if (!strcmp(tf->header.linkname, info->header.name))
+	{
+	  nb++;
+	}
+      else if (info->header.typeflag == DIRTYPE && is_in_dir(info->header.name, tf->header.name))
+	{
+	  nb++;
+	}
+      
+      free (tf);
+    }
+  
+  return nb;
+}
+
+static bool is_in_dir(const char *dir_name, const char *filename)
+{
+  if (is_prefix(dir_name, filename) != 1)
+    return false;
+    
+  char *c = strchr(filename + strlen(dir_name), '/');
+  return !c || !c[1]; // pas de '/' ou 1er '/' à la fin
+}
+
+static void update_widths (struct tar_fileinfo *info)
+{
+  unsigned int n;
+  
+  n = nb_of_digits (info->nb_links);
+  if (max_nlink_width < n)
+    max_nlink_width = n;
+
+  n = nb_of_digits (get_file_size(&info->header));
+  if (max_size_width < n)
+    max_size_width = n;
+
+  n = strlen (info->header.uname);
+  if (max_owner_width < n)
+    max_owner_width = n;
+
+  n = strlen (info->header.gname);
+  if (max_group_width < n)
+    max_group_width = n;  
+}
+
+static void update_total_block (struct tar_fileinfo *info)
+{
+  unsigned int size = get_file_size (&info->header);
+
+  total_block += number_of_block(size);
+}
+
+
+
+static void print_padding (int n)
+{
+  for (int i=0; i < n; i++)
+    print_string (" ");
+}
+
+static void print_total_block ()
+{
+  print_string("total ");
+  print_unsigned_int (total_block);
+  print_string("\n");
+}
 
 static int print_files (array *files, bool long_format)
 {
@@ -273,7 +279,8 @@ static int print_files (array *files, bool long_format)
   
   struct tar_fileinfo *tfi;
   int i;
-  
+
+  print_total_block ();
   for (i=0; i < array_size(files) - 1; i++)
     {
       tfi = array_get(files, i);
@@ -322,8 +329,18 @@ static int print_fileinfo (struct tar_fileinfo *tfi, bool long_format, bool newl
       print_size (tfi->header.size);
 
       print_string (" ");
-      
+
+      print_mtime(tfi->header.mtime);
+
+      print_string (" ");
+	
       print_filename(tfi->header.name);
+
+      if (tfi->header.typeflag == SYMTYPE)
+	{
+	  print_string (" -> ");
+	  print_filename(tfi->header.linkname);
+	}
     }
   else
     {
@@ -336,31 +353,7 @@ static int print_fileinfo (struct tar_fileinfo *tfi, bool long_format, bool newl
   return 0;
 }
 
-static char *get_last_component(char *path)
-{
-  char *ret = strrchr(path, '/');
 
-  // si on ne trouve pas de slash (i.e. un fichier à la racine)
-  if (!ret)
-    return path;
-
-  // on est dans le cas : dir/fic
-  if (ret[1] != '\0')
-    return ret + 1;
-    
-  // on va cherche le début du mot
-  ret--;
-  for (; ret != path && *ret != '/'; ret--)
-    ;
-
-  return *ret == '/' ? ret + 1 : ret;
-}
-
-static int print_filename(char name[100])
-{
-  char *filename = get_last_component(name);
-  return print_string(filename);
-}
 
 static int print_filetype(const char typeflag)
 {
@@ -406,8 +399,54 @@ static int print_filemode(char mode[8])
   return print_string(str);
 }
 
+static void print_nb_links(unsigned int nb_links)
+{
+  print_padding (max_nlink_width - nb_of_digits(nb_links));
+  print_unsigned_int (nb_links);
+}
+
+static void print_uname(char uname[32])
+{
+  print_padding (max_owner_width - strlen(uname));  
+  print_string (uname);
+}
+
+static void print_gname(char gname[32])
+{
+  print_padding (max_group_width - strlen(gname));  
+  print_string (gname);
+}
+
+static void print_size(char size[12])
+{
+  unsigned int file_size = 0;
+  sscanf(size, "%o", &file_size);
+
+  print_padding (max_size_width - nb_of_digits(file_size));
+  print_unsigned_int (file_size);
+}
+
+static void print_mtime(char mtime[12])
+{
+  int t;
+  sscanf(mtime, "%o", &t);
+  time_t timestamp = t;
+  struct tm *realtime = gmtime(&timestamp);
+
+  char buffer[1000]; // un peu arbitraire...
+  strftime(buffer, 1000, "%d %b.  %H:%M", realtime);
+
+  print_string(buffer);
+}
+
+static int print_filename(char name[100])
+{
+  char *filename = get_last_component(name);
+  return print_string(filename);
+}
+
 /**
- * 
+ * `ls` command
  */
 int ls (char *tar_name, char *filename, char *options)
 {
@@ -483,6 +522,7 @@ int ls (char *tar_name, char *filename, char *options)
   
   return 0;
 }
+
 
 int main (int argc, char **argv)
 {
