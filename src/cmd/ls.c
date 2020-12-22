@@ -26,6 +26,13 @@ struct tar_fileinfo
   unsigned int nb_links;
 };
 
+static int tficmp (const void *lhs, const void *rhs)
+{
+  struct tar_fileinfo *ltfi = (struct tar_fileinfo*)lhs;
+  struct tar_fileinfo *rtfi = (struct tar_fileinfo*)rhs;
+
+  return strcmp (ltfi->header.name, rtfi->header.name);
+}
 
 static int max_nlink_width;
 static int max_owner_width;
@@ -44,7 +51,7 @@ static int nb_of_digits (unsigned int n);
 static int print_string (const char *string);
 static int print_unsigned_int (unsigned int n);
 
-
+/* files array */
 static void init_ls ();
 static void add_header_to_files (array *files, struct posix_header *hd);
 
@@ -435,8 +442,8 @@ static void print_mtime(char mtime[12])
   time_t timestamp = t;
   struct tm *realtime = gmtime(&timestamp);
 
-  char buffer[1000]; // un peu arbitraire...
-  strftime(buffer, 1000, "%d %b.  %H:%M", realtime);
+  char buffer[20]; // un peu arbitraire...
+  strftime(buffer, sizeof(buffer), "%d %b.  %H:%M", realtime);
 
   print_string(buffer);
 }
@@ -514,6 +521,7 @@ int ls (char *tar_name, char *filename, char *options)
   
   // On peut enfin afficher
   update_files (files, tar_fd);
+  array_sort (files, tficmp);
   print_files (files, long_format);
 
 
