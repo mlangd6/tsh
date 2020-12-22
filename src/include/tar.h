@@ -7,17 +7,21 @@
 
 #ifndef TAR_H
 #define TAR_H
-/* Code taken from https://www.gnu.org/software/tar/manual/html_node/Standard.html and on https://gaufre.informatique.univ-paris-diderot.fr/klimann/systL3_2020-2021/blob/master/TP/TP1/tar.h */
+
 
 #include <sys/types.h>
 
 #include "array.h"
 
-/* tar Header Block, from POSIX 1003.1-1990.  */
+/* Code taken from :
+ * https://www.gnu.org/software/tar/manual/html_node/Standard.html
+ * https://gaufre.informatique.univ-paris-diderot.fr/klimann/systL3_2020-2021/blob/master/TP/TP1/tar.h */
+
+/** tar Header Block size in bytes, from POSIX 1003.1-1990 */
 #define BLOCKSIZE 512
 #define BLOCKBITS 9
 
-/* POSIX header.  */
+/** POSIX header */
 struct posix_header
 {                              /* byte offset */
   char name[100];               /*   0 */
@@ -39,22 +43,22 @@ struct posix_header
   char junk[12];                /* 500 */
 };                              /* Total: 512 */
 
-#define TMAGIC   "ustar"        /* ustar and a null */
+#define TMAGIC   "ustar"        /**< ustar and a null */
 #define TMAGLEN  6
-#define TVERSION "00"           /* 00 and no null */
+#define TVERSION "00"           /**< 00 and no null */
 #define TVERSLEN 2
 
-#define REGTYPE  '0'            /* regular file */
-#define AREGTYPE '\0'           /* regular file */
-#define LNKTYPE  '1'            /* link */
-#define SYMTYPE  '2'            /* reserved */
-#define CHRTYPE  '3'            /* character special */
-#define BLKTYPE  '4'            /* block special */
-#define DIRTYPE  '5'            /* directory */
-#define FIFOTYPE '6'            /* FIFO special */
-#define CONTTYPE '7'            /* reserved */
+#define REGTYPE  '0'            /**< regular file */
+#define AREGTYPE '\0'           /**< regular file */
+#define LNKTYPE  '1'            /**< link */
+#define SYMTYPE  '2'            /**< reserved */
+#define CHRTYPE  '3'            /**< character special */
+#define BLKTYPE  '4'            /**< block special */
+#define DIRTYPE  '5'            /**< directory */
+#define FIFOTYPE '6'            /**< FIFO special */
+#define CONTTYPE '7'            /**< reserved */
 
-#define OLDGNU_MAGIC "ustar  "  /* 7 chars and a null */
+#define OLDGNU_MAGIC "ustar  "  /**< 7 chars and a null */
 
 /**
  * Represents a file with its header and data in a tar.
@@ -70,35 +74,50 @@ typedef struct
 } tar_file;
 
 
-/* Compute and write the checksum of a header, by adding all (unsigned) bytes in
-   it (while hd->chksum is initially all ' ').
-   Then hd->chksum is set to contain the octal encoding of this sum (on 6 bytes), followed by '\0' and ' ' */
-void set_checksum(struct posix_header *hd);
+/**
+ * Updates the checksum field of a header
+ *
+ * Compute and write the checksum of a header, by adding all (unsigned) bytes in
+ * it ( `while hd->chksum` is initially all ' ' ).
+ * Then `hd->chksum` is set to contain the octal encoding of this sum (on 6 bytes), followed by '\0' and ' '
+ * @param hd the header whose checksum field must be updated
+ */
+void set_checksum (struct posix_header *hd);
 
-/* Check that the checksum of a header is correct.
-   Return :
-   1 if header is correct
-   0 otherwise */
-int check_checksum(struct posix_header *hd);
+/**
+ * Checks the checksum field of a header
+ *
+ * @param hd the header whose checksum field must be checked
+ * @return 1 if the computed checksum is correct; 0 otherwise 
+ */
+int check_checksum (struct posix_header *hd);
 
-/* Check if the file at PATH is a valid tar.
-   Return :
-   1  if all headers are correct
-   0  if at least one header is invalid or can't read a full block
-   -1 otherwise */
-int is_tar(const char *path);
+/**
+ * Checks if a file is a valid tar
+ *
+ * @param path the file to check
+ * @return
+ * * 1 if all headers are correct
+ * * 0 if at least one header is invalid or can't read a full block
+ * * -1 otherwise
+ */
+int is_tar (const char *path);
 
-/* Seek FILENAME in the tar referenced by TAR_FD and set HEADER accordingly.
-   Return :
-   1  if FILENAME is in the tar and set HEADER for this file
-   0  if FILENAME is not in the tar
-   -1 if there is any kind of error
-
-   In any case, the file offset of TAR_FD is moved and memory area at HEADER is changed.
-   If FILENAME was found (i.e. return 1) then this function guarantees that :
-   - the file offset is moved to the end of the header *and*
-   - HEADER is correctly set for the wanted file */
-int seek_header(int tar_fd, const char *filename, struct posix_header *header);
+/**
+ * Seeks a header in a tar
+ *
+ * Seeks `filename` in the tar referenced by `tar_fd` and set `header` accordingly.
+ * @return
+ * * 1 if `filename` is in the tar and set `header` for this file
+ * * 0 if `filename` is not in the tar
+ * * -1 if there is any kind of error
+ *
+ * In any case, the file offset of `tar_fd` is moved and memory area at `header` is changed.
+ * If `filename` was found (i.e. returns 1) then this function guarantees that :
+ * * the file offset is moved to the end of the header **and**
+ * * `header` is correctly set for the wanted file 
+ */
+int seek_header (int tar_fd, const char *filename, struct posix_header *header);
 
 /* Convert FILESIZE into a number of blocks */
 unsigned int number_of_block(unsigned int filesize);
