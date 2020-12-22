@@ -280,7 +280,9 @@ static int print_files (array *files, bool long_format)
   struct tar_fileinfo *tfi;
   int i;
 
-  print_total_block ();
+  if (long_format)
+    print_total_block ();
+  
   for (i=0; i < array_size(files) - 1; i++)
     {
       tfi = array_get(files, i);
@@ -453,7 +455,7 @@ int ls (char *tar_name, char *filename, char *options)
   int tar_fd;
   bool long_format;
   char *corrected_name;
-  array *files;
+  array *files; // on ajoute dans ce tableau les fichiers à afficher
       
   // on vérifie que filename existe dans le tar
   corrected_name = get_corrected_name(tar_name, filename);
