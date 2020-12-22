@@ -74,7 +74,7 @@ static char *tar_add_file_link_test()
   write(fd, buff_1, TAR_ADD_TEST_SIZE_BUF);
   close(fd);
   system("ln -s /tmp/tsh_test/taitai /tmp/tsh_test/taitai_link");
-  tar_add_file("/tmp/tsh_test/test.tar", "/tmp/tsh_test/taitai_link", "taitai_link");
+  add_ext_to_tar("/tmp/tsh_test/test.tar", "/tmp/tsh_test/taitai_link", "taitai_link");
   struct stat s1b, s2b;
   lstat("/tmp/tsh_test/taitai_link", &s1b);
   system("rm /tmp/tsh_test/taitai_link");
@@ -95,8 +95,8 @@ static char *tar_add_file_link_test()
 
 static char *tar_add_file_no_source_test()
 {
-  tar_add_file("/tmp/tsh_test/test.tar", NULL, "toto_test");
-  tar_add_file("/tmp/tsh_test/test.tar", NULL, "dir1/dir_test/");
+  add_ext_to_tar("/tmp/tsh_test/test.tar", NULL, "toto_test");
+  add_ext_to_tar("/tmp/tsh_test/test.tar", NULL, "dir1/dir_test/");
   int nb;
   struct posix_header *a_tester = tar_ls("/tmp/tsh_test/test.tar", &nb);
   int test[] = {0, 0};
@@ -120,7 +120,7 @@ static char *tar_add_file_test() {
   close(fd);
   struct stat s1, s2;
   stat("/tmp/tsh_test/tar_test", &s1);
-  tar_add_file("/tmp/tsh_test/test.tar", "/tmp/tsh_test/tar_test", "tar_test");
+  add_ext_to_tar("/tmp/tsh_test/test.tar", "/tmp/tsh_test/tar_test", "tar_test");
   system("rm /tmp/tsh_test/tar_test");
   system("tar -C /tmp/tsh_test -xf /tmp/tsh_test/test.tar tar_test");
   stat("/tmp/tsh_test/tar_test", &s2);
@@ -141,7 +141,7 @@ static char *tar_add_file_test() {
 static char *tar_add_file_rec_test() {
   system("mkdir -p /tmp/tsh_test/rec/sub_rec1/../sub_rec2");
   system("touch /tmp/tsh_test/rec/rec_f /tmp/tsh_test/rec/sub_rec1/sub_rec_f");
-  tar_add_file_rec("/tmp/tsh_test/test.tar", "/tmp/tsh_test/rec", "dir1/rec_root/", 0);
+  add_ext_to_tar_rec("/tmp/tsh_test/test.tar", "/tmp/tsh_test/rec", "dir1/rec_root/", 0);
   int nb;
   struct posix_header *a_tester = tar_ls("/tmp/tsh_test/test.tar", &nb);
   int tmp[] = {0, 0, 0, 0, 0};
@@ -159,7 +159,7 @@ static char *tar_add_file_rec_test() {
 }
 
 static char *add_tar_file_in_tar_test() {
-  add_tar_file_in_tar_rec("/tmp/tsh_test/test.tar", "/tmp/tsh_test/bis_test.tar", "man_dir/", "man_dir_bis/man_dir/");
+  add_tar_to_tar_rec("/tmp/tsh_test/test.tar", "/tmp/tsh_test/bis_test.tar", "man_dir/", "man_dir_bis/man_dir/");
   int nb = 0;
   struct posix_header *a_tester = tar_ls("/tmp/tsh_test/bis_test.tar", &nb);
   int tmp[4] = {nb, nb, nb, nb};
@@ -174,7 +174,7 @@ static char *add_tar_file_in_tar_test() {
     mu_assert("tar_add_tar_file_test: error: 1, isn't add in the tar", tmp[i] < nb );
   }
 
-  add_tar_file_in_tar_rec("/tmp/tsh_test/bis_test.tar", "/tmp/tsh_test/test.tar", "man_dir_bis/", "man_dir/man_dir_bis/");
+  add_tar_to_tar_rec("/tmp/tsh_test/bis_test.tar", "/tmp/tsh_test/test.tar", "man_dir_bis/", "man_dir/man_dir_bis/");
   int nb2 = 0;
   struct posix_header *a_tester2 = tar_ls("/tmp/tsh_test/test.tar", &nb2);
   int tmp2[8] = {nb2, nb2, nb2, nb2, nb2, nb2, nb2, nb2};

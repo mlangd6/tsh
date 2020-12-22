@@ -59,7 +59,7 @@ int mkdir(char *tar_name, char *filename, char *options)
     error_cmd(CMD_NAME, tar_name);
     return EXIT_FAILURE;
   }
-  if(tar_add_file(tar_name, NULL, filename) != 0)
+  if(add_ext_to_tar(tar_name, NULL, filename) != 0)
   {
     tar_name[len_tar_name] = '/';
     error_cmd(CMD_NAME, tar_name);

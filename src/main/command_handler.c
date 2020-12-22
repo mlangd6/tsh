@@ -17,7 +17,7 @@ static void init_arg_info_options (arg_info *info, struct arg *tokens, int token
 
 
 char *check_options (int argc, char **argv, char *optstring)
-{  
+{
   int c;
   char *detected_opt = malloc(strlen(optstring) + 1);
   assert(detected_opt);
@@ -29,19 +29,19 @@ char *check_options (int argc, char **argv, char *optstring)
      On continue même s'il y a des options invalides car getopt
      permute les options pour les placer au début. */
   while ((c = getopt(argc, argv, optstring)) != -1)
-    {
-      if (c == '?' && detected_opt)
-	{	  
-	  free (detected_opt);
-	  detected_opt = NULL;
-	}
-      else if (detected_opt && strchr(detected_opt, c) == NULL)
-	{
-	  detected_opt[i++] = c;
-	  detected_opt[i] = '\0';
-	}
-    }
-  
+  {
+    if (c == '?' && detected_opt)
+	  {
+	    free (detected_opt);
+	    detected_opt = NULL;
+	  }
+    else if (detected_opt && strchr(detected_opt, c) == NULL)
+	  {
+	    detected_opt[i++] = c;
+	    detected_opt[i] = '\0';
+	  }
+  }
+
   return detected_opt;
 }
 
@@ -49,7 +49,7 @@ void invalid_options (char *cmd_name)
 {
   write_string (STDERR_FILENO, cmd_name);
   write_string (STDERR_FILENO, ": invalid option -- '");
-  
+
   write(STDERR_FILENO, &optopt, 1);
 
   write_string (STDERR_FILENO, "' with tarball, skipping files inside tarball\n");
@@ -82,18 +82,18 @@ struct arg *tokenize_args (int argc, char **argv)
 	  abs = make_absolute(argv[i]);
 	  reduce = reduce_abs_path(abs, NULL);
 	  in_tar = split_tar_abs_path (reduce);
-	  
+
 	  free(abs);
 
 	  // ERROR
 	  if (!reduce)
 	    {
 	      tokens[i].value = copy_string(argv[i]);
-	      tokens[i].type = ERROR;	      
+	      tokens[i].type = ERROR;
 	    }
 	  // TAR_FILE
-	  else if (in_tar) 
-	    {	      
+	  else if (in_tar)
+	    {
 	      tokens[i].tf.tar_name = reduce;
 	      tokens[i].tf.filename = in_tar;
 	      tokens[i].type = TAR_FILE;
@@ -123,7 +123,7 @@ void free_tokens (struct arg *tokens, int argc)
 	  free (tokens[i].value);
 	}
     }
-  
+
   free(tokens);
 }
 
@@ -131,7 +131,7 @@ int execvp_tokens (struct arg *tokens, int tokens_size)
 {
   char *argv[tokens_size + 1];
   int i;
-  
+
   for (i=0; i < tokens_size; i++)
     {
       if (tokens[i].type == TAR_FILE)
@@ -146,7 +146,7 @@ int execvp_tokens (struct arg *tokens, int tokens_size)
 	  argv[i] = tokens[i].value;
 	}
     }
-  
+
   argv[i] = NULL;
 
   return execvp(argv[0], argv);
@@ -158,7 +158,7 @@ static void init_arg_info_options (arg_info *info, struct arg *tokens, int token
   info->options = malloc(info->options_size * sizeof(char*));
 
   info->options[0] = tokens[0].value;
-  
+
   for (int i=1, j=1; i < tokens_size; i++)
     {
       if (tokens[i].type == OPTION)
@@ -196,7 +196,7 @@ void init_arg_info (arg_info *info, struct arg *tokens, int tokens_size)
 	  break;
 	}
     }
-  
+
   init_arg_info_options(info, tokens, tokens_size);
 }
 

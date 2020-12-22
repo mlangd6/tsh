@@ -114,19 +114,47 @@ unsigned int get_file_size(const struct posix_header *hd);
 int skip_file_content(int tar_fd, struct posix_header *hd);
 
 
+/* Add a file SOURCE from TAR_NAME_SRC to TAR_NAME_DEST with the name of file DEST
+   Return :
+   0 if FILENAME and his containing were added
+  -1 if they couldn't */
+int add_tar_to_tar(const char *tar_name_src, char *tar_name_dest, const char *source, const char *dest);
+
+/* Add a file SOURCE from TAR_NAME_SRC to TAR_NAME_DEST with the name of file DEST
+   If the file is a directory and have other files in him, they are also add in the
+   TAR_NAME_DEST in the directory add before
+   Return :
+   0 if FILENAME and his containing were added
+  -1 if they couldn't */
+int add_tar_to_tar_rec(const char *tar_name_src, char *tar_name_dest, const char *source, const char *dest);
+
 
 /* Add file at path FILENAME to tar at path TAR_NAME
    Return :
    0  if FILENAME was added
    -1 if it couldn't */
-int tar_add_file(const char *tar_name, const char *source, const char *filename);
+int add_ext_to_tar(const char *tar_name, const char *source, const char *filename);
 
 /* Add a directory filename to tar at path inside_tar_name with all that he contains
    IT is here just for the first iteration
    Return :
    0 if FILENAME and his containing were added
   -1 if they couldn't */
-int tar_add_file_rec(const char *tar_name, const char *filename, const char *inside_tar_name, int it);
+int add_ext_to_tar_rec(const char *tar_name, const char *filename, const char *inside_tar_name, int it);
+
+/* Append file name FILENAME in tarball TAR_NAME with the content of SRC_FD
+   Return :
+   0 if everything worked
+   -1 if a system call failed */
+int tar_append_file(const char *tar_name, const char *filename, int src_fd);
+
+/**
+ * Move header and content of file inside a tarball to the end of the tarball
+ * @param tar_name the name of the tarball
+ * @param filename the name of the file inside the tar
+ * @return 0 on success, -1 else
+ */
+int move_file_to_end_of_tar(char *tar_name, char *filename);
 
 /* Return the number of files in the tar referenced by TAR_FD */
 int nb_files_in_tar(int tar_fd);
@@ -175,26 +203,6 @@ int tar_access(const char *tar_name, const char *file_name, int mode);
 
 int ftar_access(int tar_fd, const char *file_name, int mode);
 
-/* Append file name FILENAME in tarball TAR_NAME with the content of SRC_FD
-   Return :
-   0 if everything worked
-   -1 if a system call failed */
-int tar_append_file(const char *tar_name, const char *filename, int src_fd);
-
-/* Add a file SOURCE from TAR_NAME_SRC to TAR_NAME_DEST with the name of file DEST
-   Return :
-   0 if FILENAME and his containing were added
-  -1 if they couldn't */
-int add_tar_file_in_tar(const char *tar_name_src, char *tar_name_dest, const char *source, const char *dest);
-
-/* Add a file SOURCE from TAR_NAME_SRC to TAR_NAME_DEST with the name of file DEST
-   If the file is a directory and have other files in him, they are also add in the
-   TAR_NAME_DEST in the directory add before
-   Return :
-   0 if FILENAME and his containing were added
-  -1 if they couldn't */
-int add_tar_file_in_tar_rec(const char *tar_name_src, char *tar_name_dest, const char *source, const char *dest);
-
 array* tar_ls_if (int tar_fd, bool (*predicate)(const struct posix_header *));
 /* Set mtime of header to actual time */
 void set_hd_time(struct posix_header *hd);
@@ -210,7 +218,6 @@ void set_hd_time(struct posix_header *hd);
  */
 int update_header(struct posix_header *hd, int tar_fd, char *filename, void (*update)(struct posix_header *hd));
 
-int move_file_to_end_of_tar(char *tar_name, char *filename);
 
 /* Check if filename is the name of a directory in the tar.
    If true then return 1 else 0 */
