@@ -7,6 +7,8 @@
 
 #include "tsh.h"
 #include "tokens.h"
+#include "list.h"
+#include "array.h"
 
 static token *char_to_token(char *w);
 static void free_tokens(token **tokens, int start, int size);
@@ -65,18 +67,42 @@ static token *char_to_token(char *w)
 }
 
 
-token **tokenize(char *user_input, int *nb_el)
+list *tokenize(char *user_input)
 {
   const char delim[] = " ";
-  *nb_el = count_words(user_input);
-  token **res = malloc((*nb_el+1) * sizeof(token *)); // (res[nb_tokens] = NULL)
-  res[0] = char_to_token(strtok(user_input, delim));
-  for (int i = 1; i < *nb_el; i++)
+  list *res = list_create();
+  array *cur_arr = array_create(16);
+  token *cur_tok = char_to_token(strtok(user_input, delim));
+  array_insert_last(cur_arr, cur_tok);
+  list_insert_last(res, cur_arr);
+  char *iter;
+  while((iter = strtok(NULL, delim)))
   {
-    res[i] = char_to_token(strtok(NULL, delim));
+    if (cur_tok -> type == PIPE)
+    {
+      cur_arr = array_create(16);
+      list_insert_last(res, cur_arr);
+    }
+    cur_tok = char_to_token(iter);
+    array_insert_last(cur_arr, cur_tok);
   }
-  res[*nb_el] = NULL;
+  // Pourt garder une cohérence on ajoute un pipe à la fin, chaque cellule finit donc par un pipe
+  cur_tok = malloc(sizeof(token));
+  cur_tok -> type = PIPE;
+  array_insert_last(cur_arr, cur_tok);
   return res;
+}
+
+char **array_to_argv(array *arr)
+{
+  int size = array_size(arr);
+  char **argv = malloc(size * sizeof(char *));
+  for (int i = 0; i < size-1; i++)
+  {
+
+  }
+  argv[size-1] = NULL;
+  return argv;
 }
 
 int exec_tokens(token **tokens, int nb_el, char **argv)

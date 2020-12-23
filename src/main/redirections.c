@@ -32,7 +32,6 @@ static int stderr_redir(char *s);
 static int stdout_append(char *s);
 static int stderr_append(char *s);
 static int stdin_redir(char *s);
-static void add_reset_redir(int fd, pid_t pid);
 static int handle_inside_tar_redir(int fd, char *tar_name, char *in_tar);
 static int launch_redir_tar_link(char *tar_name, char *in_tar, redir_type r);
 static int append_tar_file(char *tar_name, char *in_tar, int read_fd);
@@ -48,7 +47,7 @@ static int (*redirs[])(char *) = {
 };
 
 /* Add a reset struct to the stack of the reseter of redirections */
-static void add_reset_redir(int fd, pid_t pid)
+void add_reset_redir(int fd, pid_t pid)
 {
   struct reset_redir *reset = malloc(sizeof(struct reset_redir));
   reset -> reset_fd = dup(fd);
