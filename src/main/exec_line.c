@@ -6,16 +6,20 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <linux/limits.h>
+#include <stdbool.h>
 
 
 #include "tokens.h"
 #include "tsh.h"
+#include "list.h"
+#include "array.h"
 
+static int exec_red_array(array *cmd);
 
 int exec_line(char *line)
 {
   int wstatus, is_special;
-  token **tokens;
+  list *tokens;
   char **args;
   int nb_tokens;
   int ret_value;
@@ -23,8 +27,8 @@ int exec_line(char *line)
 
   if (!count_words(line))
     return 0;
-    
-  tokens = tokenize(line, &nb_tokens);
+
+  tokens = tokenize(line);
   args = malloc((nb_tokens + 1) * sizeof(char *));
   nb_tokens = exec_tokens(tokens, nb_tokens, args);
   free(tokens);
@@ -83,4 +87,49 @@ int exec_line(char *line)
   free(line);
   reset_redirs();
   return ret_value;
+}
+
+int exec_cmd_array(array *cmd)
+{
+  return 0;
+}
+
+static int exec_red_array(array *cmd)
+{
+  token *prev, *cur;
+  bool prev_is_redir = false;
+  int size = array_size(cmd);
+  for (int i = 0; i < size - 1; i++) // Dernier élément est de type PIPE
+  {
+    cur = array_get(cmd, i);
+
+    if (cur -> type == REDIR)
+    {
+      if (prev_is_redir)
+      {
+        write(STDERR_FILENO, "tsh: syntax error: unexpected token after redirection\n", 54);
+        // TODO: free
+        return -1;
+      }
+      prev = cur;
+      prev_is_redir = true;
+    } else {
+      if (prev_is_redir)
+      {
+        if (launch_redir(prev -> val.red, cur -> val.arg) != 0)
+        {
+          // TODO: free
+          return -1;
+        }
+        // TODO: free peut être
+      }
+      prev_is_redir = false;
+    }
+  }
+  if (prev_is_redir)
+  {
+    write(STDERR_FILENO, "tsh: syntax error: unexpected token after redirection\n", 54);
+    return -1;
+  }
+  return 0;
 }
