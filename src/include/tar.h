@@ -21,27 +21,41 @@
 #define BLOCKSIZE 512
 #define BLOCKBITS 9
 
-/** POSIX header */
+
+/** 
+ * POSIX header
+ * 
+ * All characters in header blocks are represented by using 8-bit characters in the local variant of ASCII.
+ * Each field within the structure is contiguous; that is, there is no padding used within the structure.
+ * Each character on the archive medium is stored contiguously.
+ * 
+ * Bytes representing the contents of files (after the header block of each file) are not translated in any way and are not constrained to represent characters in any character set.
+ * The tar format does not distinguish text files from binary files, and no translation of file contents is performed.
+ * 
+ * The `name`, `linkname`, `magic`, `uname`, and `gname` are null-terminated character strings.
+ * All other fields are zero-filled octal numbers in ASCII.
+ * Each numeric field of width w contains w minus 1 digits, and a null. (In the extended GNU format, the numeric fields can take other forms.) 
+ */
 struct posix_header
-{                              /* byte offset */
-  char name[100];               /*   0 */
-  char mode[8];                 /* 100 */
-  char uid[8];                  /* 108 */
-  char gid[8];                  /* 116 */
-  char size[12];                /* 124 */
-  char mtime[12];               /* 136 */
-  char chksum[8];               /* 148 */
-  char typeflag;                /* 156 */
-  char linkname[100];           /* 157 */
-  char magic[6];                /* 257 */
-  char version[2];              /* 263 */
-  char uname[32];               /* 265 */
-  char gname[32];               /* 297 */
-  char devmajor[8];             /* 329 */
-  char devminor[8];             /* 337 */
-  char prefix[155];             /* 345 */
-  char junk[12];                /* 500 */
-};                              /* Total: 512 */
+{                              
+  char name[100];     /**< file name of the file, with directory names (if any) preceding the file name, separated by slashes. */
+  char mode[8];       /**< nine bits specifying file permissions and three bits to specify the Set UID, Set GID, and Save Text (sticky) modes. */         
+  char uid[8];        /**< numeric user ID of the file owners */
+  char gid[8];        /**< numeric group ID of the file owners */
+  char size[12];      /**< size of the file in bytes */
+  char mtime[12];     /**< data modification time of the file at the time it was archived. It represents the integer number of seconds since January 1, 1970, 00:00 UTC. */    
+  char chksum[8];     /**< simple sum of all bytes in the header block */     
+  char typeflag;      /**< type of file archived */
+  char linkname[100]; /**< the file targeted, if the file is a link */
+  char magic[6];               
+  char version[2];             
+  char uname[32];     /**< user name of the file owners */
+  char gname[32];     /**< group name of the file owners */         
+  char devmajor[8];            
+  char devminor[8];            
+  char prefix[155];            
+  char junk[12];               
+};                             
 
 #define TMAGIC   "ustar"        /**< ustar and a null */
 #define TMAGLEN  6
@@ -107,6 +121,11 @@ int is_tar (const char *path);
  * Seeks a header in a tar
  *
  * Seeks `filename` in the tar referenced by `tar_fd` and set `header` accordingly.
+ * Seeking occurs at the current offset.
+ * 
+ * @param tar_fd the file descriptor of the tar to look in
+ * @param filename the file name to seek in the tar
+ * @param header the address to store the result
  * @return
  * * 1 if `filename` is in the tar and set `header` for this file
  * * 0 if `filename` is not in the tar
@@ -119,10 +138,18 @@ int is_tar (const char *path);
  */
 int seek_header (int tar_fd, const char *filename, struct posix_header *header);
 
-/* Convert FILESIZE into a number of blocks */
+/**
+ * Converts a positive integer to a number of blocks
+ * @param filesize the integer to be converted
+ * @return `filesize` converted in blocks
+ */
 unsigned int number_of_block(unsigned int filesize);
 
-/* Return the file size from a given header */
+/**
+ * Gets the file size in base 10 from a posix header
+ * @param hd a pointer to a posix header from which the size must be read
+ * @return the file size read
+ */
 unsigned int get_file_size(const struct posix_header *hd);
 
 /* Increment the file offset of TAR_FD by file size given in HD.
