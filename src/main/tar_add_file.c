@@ -236,14 +236,12 @@ int add_tar_to_tar_rec(const char *tar_name_src, char *tar_name_dest, const char
   for(int i = 0; i < s; i++){
     char copy[PATH_MAX];
     int j = 0;
-
     while(header[i].name[j] == source[j] && j < strlen(source))
     {
       copy[j] = source[j];
       j++;
     }
     copy[j] = '\0';
-
     //if the copy and source are equals
     if(strcmp(copy, source) == 0 && (header[i].name[j] == '\0' || header[i].name[j-1] == '/')){
       char copy2[PATH_MAX];
@@ -257,7 +255,7 @@ int add_tar_to_tar_rec(const char *tar_name_src, char *tar_name_dest, const char
       copy2[strlen(dest)+l] = '\0';
 
       //Add Source or a file of source in tar_name_dest as copy2
-      add_tar_to_tar(tar_name_src, tar_name_dest, header[i].name, copy2);
+      if(add_tar_to_tar(tar_name_src, tar_name_dest, header[i].name, copy2)<0)printf("Bad\n");
     }
   }
   free(header);
@@ -280,21 +278,20 @@ int add_tar_to_tar(const char *tar_name_src, char *tar_name_dest, const char *so
   memset(&hd, '\0', BLOCKSIZE);
   if(modif_header(&hd, tar_name_src, source, dest, tar_src_fd, header, s) < 0)
     return error_pt(&tar_src_fd, 1, errno);
-
   //check if it don't already exists
   if(exists_in_tar(dest, header_2, s_2))
     return error_pt(NULL, 0, errno);
-
   //Check if we want add in the same tar
   if(strcmp(tar_name_src, tar_name_dest) != 0)
   {
     //open of TAR_NAME_DEST
     int tar_dest_fd;
     tar_dest_fd = open(tar_name_dest, O_RDWR);
-    if ( tar_dest_fd < 0)
+    if ( tar_dest_fd < 0){
+      perror(tar_name_dest);
       return error_pt(&tar_src_fd, 1, errno);
+    }
     int fds[2] = {tar_dest_fd, tar_src_fd};
-
     //writing the header and his containing
     if(read_and_write(tar_src_fd, tar_dest_fd, hd) < 0)
       return error_pt(fds, 2, errno);
