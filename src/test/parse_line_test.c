@@ -14,11 +14,11 @@
 
 extern int tests_run;
 
-// static char *tokenize_test();
+static char *tokenize_test();
 
 static char *(*tests[])(void) =
 {
-  // tokenize_test,
+  tokenize_test
 };
 
 static char *all_tests()
@@ -46,39 +46,51 @@ int launch_parse_line_tests()
   return (results == 0);
 }
 
+static char *tokenize_test()
+{
+  char *line = malloc(PATH_MAX);
+  strcpy(line, "< in 2>> err_app       cat | cat | cmd fic >> app 2> err");
+  list *tokens = tokenize(line);
+  mu_assert("tokenize test: 2 pipes should result with a list of size 3", list_size(tokens) == 3);
+  token excpexcted[] =
+  {
+    {.val.red = STDIN_REDIR, REDIR},
+    {.val.arg = "in", ARG},
+    {.val.red = STDERR_APPEND, REDIR},
+    {.val.arg = "err_app", ARG},
+    {.val.arg = "cat", ARG},
+    {.type = PIPE},
+    {.val.arg = "cat", ARG},
+    {.type = PIPE},
+    {.val.arg = "cmd", ARG},
+    {.val.arg = "fic", ARG},
+    {.val.red = STDOUT_APPEND, REDIR},
+    {.val.arg = "app", ARG},
+    {.val.red = STDERR_REDIR, REDIR},
+    {.val.arg = "err", ARG},
+    {.type = PIPE}
+  };
+  token *tok_it;
+  array *arr_it = list_remove_first(tokens);
+  for (int i = 0; i < 15; i++)
+  {
+    if (array_size(arr_it) == 0)
+    {
+      arr_it = list_remove_first(tokens);
+    }
+    tok_it = array_remove_first(arr_it);
+    mu_assert("tokenize test: error on returned tokens type", excpexcted[i].type == tok_it -> type);
+    switch(tok_it -> type)
+    {
+      case ARG:
+        mu_assert("Tokenize test: error on return vector elements value (arg)", !strcmp(excpexcted[i].val.arg, tok_it -> val.arg));
+        break;
+      case REDIR:
+        mu_assert("Tokenize test: error on return vector elements value (redir)", excpexcted[i].val.red == tok_it -> val.red);
 
-// static char *tokenize_test()
-// {
-  // int nb_el;
-  // char *user_input = malloc(PATH_MAX);
-  // strcpy(user_input, "< in >   out    cat   2>> err_append");
-  // token **tokens = tokenize(user_input, &nb_el);
-  // mu_assert("Tokenize test: number of elements is wrong", nb_el == 7);
-  // mu_assert("Tokenize test: return value doesn't end by NULL", tokens[nb_el] == NULL);
-  // token tests[] =
-  // {
-    // {.val.red = STDIN_REDIR, REDIR},
-    // {.val.arg = "in", ARG},
-    // {.val.arg = STDOUT_REDIR, REDIR},
-    // {.val.arg = "out", ARG},
-    // {.val.arg = "cat", ARG},
-    // {.val.red = STDERR_APPEND, REDIR},
-    // {.val.arg = "err_append", ARG}
-  // };
-  // for (int i = 0; i < nb_el; i++)
-  // {
-    // mu_assert("Tokenize test: error on return vector elements type", tests[i].type == tokens[i] -> type);
-    // if (tests[i].type == ARG)
-    // {
-      // mu_assert("Tokenize test: error on return vector elements value (arg)", !strcmp(tests[i].val.arg, tokens[i] -> val.arg));
-    // }
-    // else
-    // {
-      // mu_assert("Tokenize test: error on return vector elements value (redir)", tests[i].val.red == tokens[i] -> val.red);
-    // }
-    // free(tokens[i]);
-  // }
-  // free(user_input);
-  // free(tokens);
-  // return 0;
-// }
+      default:
+        break;
+    }
+  }
+  return 0;
+}
