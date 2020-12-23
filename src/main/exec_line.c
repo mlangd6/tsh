@@ -29,6 +29,22 @@ int exec_line(char *line)
   }
   else
   {
+    array *cmd_arr = list_remove_first(tokens);
+    int argc = array_size(cmd_arr) - 1;
+    list_free(tokens, false); // List empty
+    exec_red_array(cmd_arr);
+    remove_all_redir(cmd_arr);
+    token *first_tok = array_get(cmd_arr, 0);
+    int is_special = special_command(first_tok -> val.arg);
+    if (is_special == TSH_FUNC)
+    {
+      char **argv = cmd_array_to_argv(cmd_arr);
+      array_free(cmd_arr, true);
+      int ret = launch_tsh_func(argv, argc);
+      free(argv);
+      free(line);
+      return ret;
+    }
     int cpid, wstatus;
     switch ((cpid = fork()))
     {
@@ -39,8 +55,8 @@ int exec_line(char *line)
       }
       case 0: // Child
       {
-        array *cmd = list_remove_first(tokens);
-        exit(exec_cmd_array(cmd));
+        printf("CHILD\n");
+        exec_cmd_array(cmd_arr);
       }
       default: // Parent
       {
@@ -127,6 +143,30 @@ int exec_line(char *line)
 
 int exec_cmd_array(array *cmd)
 {
+  char **argv = cmd_array_to_argv(cmd);
+  int is_special = special_command(argv[0]);
+  if (is_special == TAR_CMD)
+  {
+    char cmd_exec[PATH_MAX];
+    char tsh_dir[PATH_MAX];
+    sprintf(cmd_exec, "%s/bin/%s", get_tsh_dir(tsh_dir), argv[0]);
+    return execv(cmd_exec, argv);
+  }
+  else
+  {
+    return execvp(argv[0], argv);
+  }
+
+  if (errno == ENOENT)
+  {
+    int size = strlen(argv[0]) + CMD_NOT_FOUND_SIZE;
+    char error_msg[size];
+    strcpy(error_msg, argv[0]);
+    strcat(error_msg, CMD_NOT_FOUND);
+    write(STDOUT_FILENO, error_msg, size);
+  }
+
+  exit(EXIT_FAILURE);
   return 0;
 }
 

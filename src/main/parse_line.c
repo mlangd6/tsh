@@ -143,6 +143,20 @@ int exec_tokens(token **tokens, int nb_el, char **argv)
   return j;
 }
 
+char **cmd_array_to_argv(array *cmd_arr)
+{
+  int size = array_size(cmd_arr);
+  char **argv = malloc(sizeof(char *) * size);
+  token *it;
+  for (int i = 0; i < size-1; i++)
+  {
+    it = array_get(cmd_arr, i);
+    argv[i] = it -> val.arg;
+  }
+  argv[size-1] = NULL;
+  return argv;
+}
+
 static void free_tokens(token **tokens, int start, int size)
 {
   for (int i = start; i < size; i++)

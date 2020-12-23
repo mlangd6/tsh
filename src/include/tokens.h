@@ -26,7 +26,7 @@ list *tokenize(char *user_input);
 int exec_tokens(token **tokens, int nb_el, char **argv);
 int exec_line(char *line);
 int exec_cmd_array(array *cmd);
-
+char **cmd_array_to_argv(array *cmd_arr);
 
 
 #endif
