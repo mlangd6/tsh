@@ -71,7 +71,7 @@ static char *tar_cp_test() {
 
 static char *tar_extract_dir_man_dir_test()
 {
-  int r = tar_extract_dir("/tmp/tsh_test/test.tar", "man_dir/", "/tmp/tsh_test");
+  int r = tar_extract("/tmp/tsh_test/test.tar", "man_dir/", "/tmp/tsh_test");
   mu_assert("Error during the extraction", r == 0);
 
   system("man man > /tmp/tsh_test/man_dir/man_diff;"		\

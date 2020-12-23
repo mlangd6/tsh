@@ -144,7 +144,7 @@ array* tar_ls_all (int tar_fd);
 
 int tar_cp_file(const char *tar_name, const char *filename, int fd);
 
-int tar_extract_dir(const char *tar_name, const char *dir_name, const char *dest_name);
+int tar_extract (const char *tar_name, const char *filename, const char *dest);
 
 /* Open the tarball at path TAR_NAME and delete FILENAME if possible
    Return
