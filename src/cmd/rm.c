@@ -117,11 +117,7 @@ int rm(char *tar_name, char *filename, char *options)
 
   if(is_pwd_prefix(tar_name, filename) == -1)
   {
-    char msg[strlen(tar_name)+10];
-    tar_name[strlen(tar_name)] = '/';
-    strcpy(msg, tar_name);
-    strcat(msg, ": Impossible to remove, is prefix of pwd");
-    error_cmd(CMD_NAME, msg);
+    error (0, "%s: %s/%s: Impossible to remove, is prefix of pwd\n", CMD_NAME, tar_name, filename);    
     return EXIT_FAILURE;
   }
 

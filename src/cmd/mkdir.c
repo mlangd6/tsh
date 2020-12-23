@@ -42,15 +42,10 @@ int mkdir(char *tar_name, char *filename, char *options)
     strcat(filename, "/");
 
   int res_access = access_mkdir(tar_name, filename);
-  int len_tar_name = strlen(tar_name);
 
   if (res_access == -2)
     {
-      errno = EEXIST;
-      tar_name[len_tar_name] = '/';
-      char buf[len_tar_name+27];
-      sprintf(buf, "cannot create directory \'%s\'", tar_name);
-      error_cmd(CMD_NAME, buf);
+      error (EEXIST, "%s: cannot create directory \'%s/%s\'", CMD_NAME, tar_name, filename);
       return EXIT_FAILURE;
     }
 

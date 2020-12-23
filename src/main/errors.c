@@ -1,3 +1,4 @@
+#include <assert.h>
 #include <errno.h>
 #include <stdarg.h>
 #include <stdio.h>
@@ -6,6 +7,11 @@
 #include <unistd.h>
 
 #include "errors.h"
+
+static int print_error_string (const char *str)
+{
+  return write (STDERR_FILENO, str, strlen(str));
+}
 
 static void close_fds (int fds[], int length_fds)
 {
@@ -81,4 +87,37 @@ void tar_error_cmd (const char *cmd_name, const char *tar_name, const char *file
   strcpy(dst, filename);
   
   perror(buf);
+}
+
+void error (int errnum, const char *msg, ...)
+{
+  if (!msg)
+    return;
+  
+  va_list args;
+  size_t required_size;
+  char *buffer;
+  
+  va_start(args, msg);
+  required_size = vsnprintf(NULL, 0, msg, args);
+  va_end(args);
+
+
+  buffer = malloc (required_size + 1);
+  assert (buffer);
+  
+  va_start(args, msg);
+  vsprintf (buffer, msg, args);
+  va_end(args);  
+  
+  write (STDERR_FILENO, buffer, required_size + 1);
+
+  if (errnum > 0)
+    {
+      print_error_string (": ");
+      print_error_string (strerror(errnum));
+      print_error_string ("\n");
+    }
+
+  free (buffer);  
 }

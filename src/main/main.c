@@ -88,8 +88,7 @@ static int cd(char **argv, int argc)
 
     if (home == NULL)
     {
-      char *error = "tsh: cd: HOME not set\n";
-      write(STDERR_FILENO, error, strlen(error) + 1);
+      error (0, "tsh: cd: HOME not set\n");
       return EXIT_FAILURE;
     }
 
@@ -108,8 +107,7 @@ static int cd(char **argv, int argc)
     {
       if (argv[1][1] != '\0') // Not supported option
       {
-        char *err = "tsh: cd: - est la seul option supporté\n";
-        write(STDERR_FILENO, err, strlen(err) + 1);
+	error (0, "tsh: cd: - est la seule option supportée\n");
         return EXIT_FAILURE;
       }
       else // Supported option
@@ -117,8 +115,7 @@ static int cd(char **argv, int argc)
         char *oldpwd = getenv("OLDPWD");
         if (oldpwd == NULL)
         {
-          char *err = "tsh: cd: \" OLDPWD \" non défini\n";
-          write(STDERR_FILENO, err, strlen(err) + 1);
+	  error (0, "tsh: cd: \" OLDPWD \" non défini\n");
           return EXIT_FAILURE;
         }
         else
@@ -204,8 +201,7 @@ static int cd(char **argv, int argc)
   }
   else
   {
-    char *err = "tsh: cd: trop d'arguments\n";
-    write(STDERR_FILENO, err, strlen(err));
+    error (0, "tsh: cd: trop d'arguments\n");
     return EXIT_FAILURE;
   }
 }
@@ -270,11 +266,7 @@ int main (int argc, char *argv[])
 
         if (errno == ENOENT)
         {
-          int size = strlen(args[0]) + CMD_NOT_FOUND_SIZE;
-          char error_msg[size];
-          strcpy(error_msg, args[0]);
-          strcat(error_msg, CMD_NOT_FOUND);
-          write(STDOUT_FILENO, error_msg, size);
+	  error (0, "%s : command not found\n", args[0]);          
         }
 
         exit(EXIT_FAILURE);
