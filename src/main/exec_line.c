@@ -55,7 +55,6 @@ int exec_line(char *line)
       }
       case 0: // Child
       {
-        printf("CHILD\n");
         exec_cmd_array(cmd_arr);
       }
       default: // Parent
