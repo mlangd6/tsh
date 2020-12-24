@@ -39,8 +39,10 @@ int exec_pipe(list *tokens)
           add_reset_redir(STDOUT_FILENO, 0);
           dup2(pipes_fd[i][1], STDOUT_FILENO);
         }
-        
+        exec_red_array(cmd_it);
+        remove_all_redir(cmd_it);
         exec_cmd_array(cmd_it);
+        
         break;
       default: // Parent
         if (i != 0) close(pipes_fd[i-1][0]);
