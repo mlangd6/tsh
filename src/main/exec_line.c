@@ -53,6 +53,17 @@ int exec_line(char *line)
       case 0: // Child
       {
         exec_cmd_array(cmd_arr);
+        char *cmd_name = ((token *) array_get(cmd_arr, 0)) -> val.arg;
+        if (errno == ENOENT)
+        {
+          char err[8192];
+          sprintf(err, "%s: command not found\n", cmd_name);
+          write(STDERR_FILENO, err, strlen(err) + 1);
+        }
+        else {
+          perror(cmd_name);
+        }
+        exit(EXIT_FAILURE);
       }
       default: // Parent
       {

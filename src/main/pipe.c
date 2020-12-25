@@ -1,6 +1,9 @@
 #include <unistd.h>
 #include <stdlib.h>
 #include <sys/wait.h>
+#include <stdio.h>
+#include <errno.h>
+#include <string.h>
 
 #include "pipe.h"
 #include "redirection.h"
@@ -42,7 +45,17 @@ int exec_pipe(list *tokens)
         exec_red_array(cmd_it);
         remove_all_redir(cmd_it);
         exec_cmd_array(cmd_it);
-        
+        char *cmd_name = ((token *) array_get(cmd_it, 0)) -> val.arg;
+        if (errno == ENOENT)
+        {
+          char err[1024];
+          sprintf(err, "%s: command not found\n", cmd_name);
+          write(STDERR_FILENO, err, strlen(err) + 1);
+        }
+        else {
+          perror(cmd_name);
+        }
+        exit(EXIT_FAILURE);
         break;
       default: // Parent
         if (i != 0) close(pipes_fd[i-1][0]);
