@@ -33,6 +33,11 @@ int main (int argc, char *argv[])
   char *buf;
   while ((buf = readline(PROMPT)))
   {
+    if (count_words(buf) == 0)
+    {
+      free(buf);
+      continue;
+    }
     add_history(buf);
     set_ret_value(exec_line(buf));
   }
