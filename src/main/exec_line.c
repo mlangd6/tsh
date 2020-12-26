@@ -16,19 +16,15 @@
 #include "pipe.h"
 #include "errors.h"
 
-static void free_tokens_array(void *arr)
-{
-  array *val = arr;
-  array_free(val, false);
-}
+
 
 int exec_line(char *line)
 {
   list *tokens = tokenize(line);
   if (!parse_tokens(tokens))
   {
+    free_tokens_list(tokens);
     free(line);
-    list_free_full(tokens, free_tokens_array);
     return -1;
   }
   int nb_cmd = list_size(tokens);
@@ -41,8 +37,13 @@ int exec_line(char *line)
     array *cmd_arr = list_remove_first(tokens);
     int argc = array_size(cmd_arr) - 1;
     list_free(tokens, false); // List empty
-    exec_red_array(cmd_arr);
-    remove_all_redir(cmd_arr);
+    if (exec_red_array(cmd_arr) != 0)
+    {
+      array_free(cmd_arr, false);
+      reset_redirs();
+      return -1;
+    }
+    remove_all_redir_tokens(cmd_arr);
     if (array_size(cmd_arr) <= 1)
     {
       reset_redirs();
@@ -71,8 +72,13 @@ int exec_line(char *line)
       }
       case 0: // Child
       {
-        exec_red_array(cmd_arr);
-        remove_all_redir(cmd_arr);
+        if (exec_red_array(cmd_arr) != 0)
+        {
+          array_free(cmd_arr, false);
+          reset_redirs();
+          return EXIT_FAILURE;
+        }
+        remove_all_redir_tokens(cmd_arr);
         exec_cmd_array(cmd_arr);
         token *first = array_get(cmd_arr, 0);
         char *cmd_name = first -> val.arg;
@@ -131,7 +137,7 @@ int exec_cmd_array(array *cmd)
 
 int exec_red_array(array *cmd)
 {
-  token *prev, *cur;
+  token *prev = NULL, *cur;
   bool prev_is_redir = false;
   int size = array_size(cmd);
   for (int i = 0; i < size - 1; i++) // Dernier élément est de type PIPE
@@ -142,10 +148,8 @@ int exec_red_array(array *cmd)
     {
       if (prev_is_redir)
       {
-        write(STDERR_FILENO, "tsh: syntax error: unexpected token after redirection\n", 54);
         return -1;
       }
-      prev = cur;
       prev_is_redir = true;
     } else {
       if (prev_is_redir)
@@ -157,17 +161,14 @@ int exec_red_array(array *cmd)
       }
       prev_is_redir = false;
     }
-    free(cur);
+    if (prev != NULL) free(prev);
+    prev = cur;
   }
-  if (prev_is_redir)
-  {
-    write(STDERR_FILENO, "tsh: syntax error: unexpected token after redirection\n", 54);
-    return -1;
-  }
+  free(cur);
   return 0;
 }
 
-void remove_all_redir(array *cmd)
+void remove_all_redir_tokens(array *cmd)
 {
   int size = array_size(cmd);
   token *tok;

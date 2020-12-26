@@ -28,9 +28,9 @@ list *tokenize(char *user_input);
 int exec_line(char *line);
 int exec_cmd_array(array *cmd);
 char **cmd_array_to_argv(array *cmd_arr);
-void remove_all_redir(array *cmd);
+void remove_all_redir_tokens(array *cmd);
 int exec_red_array(array *cmd);
 bool parse_tokens(list *cmds);
-
+void free_tokens_list(list *tokens);
 
 #endif

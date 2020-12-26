@@ -104,6 +104,7 @@ static int redir_append(char *s, int fd, redir_type r)
   if (! reduce_abs_path(path, resolved))
   {
     error_cmd("tsh", path);
+    return -1;
   }
   char *in_tar;
   if ((in_tar = split_tar_abs_path(resolved)))

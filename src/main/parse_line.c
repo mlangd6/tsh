@@ -158,6 +158,15 @@ static bool well_formatted(void *a)
     free(cur);
   }
   return true;
+}
 
+static void free_tokens_array(void *arr)
+{
+  array *val = arr;
+  array_free(val, false);
+}
 
+void free_tokens_list(list *tokens)
+{
+  list_free_full(tokens, free_tokens_array);
 }
