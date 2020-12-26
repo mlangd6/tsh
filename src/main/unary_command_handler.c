@@ -247,10 +247,10 @@ int handle_unary_command (unary_command cmd, int argc, char **argv)
 
       return ret;
     }
-  
+    
   // Pas de tar en jeu
   if (info.nb_tar_file == 0)
-    return execvp_tokens (tokens, argc);
+    return execvp_tokens (cmd.name, tokens, argc);
 
   // Les autres cas
   ret = handle_tokens (&cmd, tokens, argc, &info, tar_options);
