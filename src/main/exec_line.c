@@ -43,6 +43,11 @@ int exec_line(char *line)
     list_free(tokens, false); // List empty
     exec_red_array(cmd_arr);
     remove_all_redir(cmd_arr);
+    if (array_size(cmd_arr) <= 1)
+    {
+      reset_redirs();
+      return EXIT_SUCCESS;
+    }
     token *first_tok = array_get(cmd_arr, 0);
     char *cmd_name = first_tok -> val.arg;
     int is_special = special_command(cmd_name);
@@ -152,6 +157,7 @@ int exec_red_array(array *cmd)
       }
       prev_is_redir = false;
     }
+    free(cur);
   }
   if (prev_is_redir)
   {
