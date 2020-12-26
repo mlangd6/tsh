@@ -244,3 +244,34 @@ bool list_for_all(list *list, bool (*predicate)(void *))
   }
   return true;
 }
+
+void list_free_full(list *list, void (*free_func)(void *))
+{
+  // NULL
+  if (!list)
+    return;
+
+  // liste vide
+  if (!list->first)
+  {
+    free (list);
+    return;
+  }
+
+
+  cell *current, *next;
+
+  current = list->first;
+  while (current)
+  {
+    next = current->next;
+
+    free_func(current->val);
+
+    free (current);
+    current = next;
+  }
+
+  free(list);
+
+}

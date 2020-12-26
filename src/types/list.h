@@ -64,5 +64,11 @@ void list_iter (list *list, void (*f)(void *));
  */
 bool list_for_all(list *list, bool (*predicate)(void *));
 
+/**
+ * Free all the list
+ * @param list the list to be free'd
+ * @param free_func the function to launch that free the elements of the list
+ */
+void list_free_full(list *list, void (*free_func)(void *));
 
 #endif
