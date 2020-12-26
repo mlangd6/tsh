@@ -1,6 +1,6 @@
 /* list.c - Doubly linked list structures and functions definitions */
 #include <stdlib.h>
-#include <stdbool.h> 
+#include <stdbool.h>
 
 #include "list.h"
 
@@ -30,7 +30,7 @@ static cell *create_cell(cell *p, cell *n, void *v)
       c->next = n;
       c->val  = v;
     }
-  
+
   return c;
 }
 
@@ -70,10 +70,10 @@ void list_free(list *list, bool full)
   while (current)
     {
       next = current->next;
-      
+
       if (full)
 	free(current->val);
-      
+
       free (current);
       current = next;
     }
@@ -88,7 +88,7 @@ int list_size (list *list)
 {
   if (!list)
     return -1;
-  
+
   int i = 0;
   for (cell *c = list->first; c; c = c->next)
     i++;
@@ -101,7 +101,7 @@ int list_is_empty (list *list)
 {
   if (!list)
     return -1;
-  
+
   return list->first == NULL;
 }
 
@@ -142,18 +142,18 @@ void list_insert_last(list *list, void *val)
       list->last = list->last->next;
     }
 }
-  
+
 
 
 /* Remove the first element of LIST */
 void *list_remove_first (list *list)
 {
-  if (list_is_empty(list)) 
+  if (list_is_empty(list))
     return NULL;
 
   void *ret = list->first->val;
   cell *next = list->first->next;
-  
+
   if (next)
     {
       free(list->first);
@@ -166,7 +166,7 @@ void *list_remove_first (list *list)
       list->first = NULL;
       list->last  = NULL;
     }
- 
+
 
   return ret;
 }
@@ -174,12 +174,12 @@ void *list_remove_first (list *list)
 /* Remove the last element of LIST */
 void *list_remove_last (list *list)
 {
-  if (list_is_empty(list)) 
+  if (list_is_empty(list))
     return NULL;
 
   void *ret = list->last->val;
   cell *prev = list->last->prev;
-  
+
   if (prev)
     {
       free(list->last);
@@ -224,9 +224,23 @@ void list_iter(list *list, void (*f)(void *))
 {
   if(!list)
     return;
-  
+
   for(cell *c = list->first; c; c = c->next)
     {
       f(c->val);
     }
+}
+
+bool list_for_all(list *list, bool (*predicate)(void *))
+{
+  if (!list)
+    return false;
+  for (cell *c = list -> first; c; c = c -> next)
+  {
+    if (!predicate(c -> val))
+    {
+      return false;
+    }
+  }
+  return true;
 }
