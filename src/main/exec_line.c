@@ -16,9 +16,21 @@
 #include "pipe.h"
 #include "errors.h"
 
+static void free_tokens_array(void *arr)
+{
+  array *val = arr;
+  array_free(val, false);
+}
+
 int exec_line(char *line)
 {
   list *tokens = tokenize(line);
+  if (!parse_tokens(tokens))
+  {
+    free(line);
+    list_free_full(tokens, free_tokens_array);
+    return -1;
+  }
   int nb_cmd = list_size(tokens);
   if (nb_cmd > 1)
   {
@@ -32,11 +44,13 @@ int exec_line(char *line)
     exec_red_array(cmd_arr);
     remove_all_redir(cmd_arr);
     token *first_tok = array_get(cmd_arr, 0);
-    int is_special = special_command(first_tok -> val.arg);
+    char *cmd_name = first_tok -> val.arg;
+    int is_special = special_command(cmd_name);
+    free(first_tok);
     if (is_special == TSH_FUNC)
     {
       char **argv = cmd_array_to_argv(cmd_arr);
-      array_free(cmd_arr, true);
+      array_free(cmd_arr, false);
       int ret = launch_tsh_func(argv, argc);
       free(argv);
       free(line);
@@ -52,8 +66,12 @@ int exec_line(char *line)
       }
       case 0: // Child
       {
+        exec_red_array(cmd_arr);
+        remove_all_redir(cmd_arr);
         exec_cmd_array(cmd_arr);
-        char *cmd_name = ((token *) array_get(cmd_arr, 0)) -> val.arg;
+        token *first = array_get(cmd_arr, 0);
+        char *cmd_name = first -> val.arg;
+        free(first);
         if (errno == ENOENT)
         {
           char err[8192];
@@ -79,6 +97,7 @@ int exec_line(char *line)
 int exec_cmd_array(array *cmd)
 {
   char **argv = cmd_array_to_argv(cmd);
+  array_free(cmd, false);
   int is_special = special_command(argv[0]);
   if (is_special == TAR_CMD)
   {
@@ -153,7 +172,6 @@ void remove_all_redir(array *cmd)
     {
       prev_is_redir = true;
       tok = array_remove(cmd, i--);
-      free(tok);
       size--;
     }
     else if (prev_is_redir)
@@ -162,5 +180,6 @@ void remove_all_redir(array *cmd)
       prev_is_redir = false;
       size--;
     }
+    free(tok);
   }
 }

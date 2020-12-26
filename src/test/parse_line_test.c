@@ -11,14 +11,19 @@
 #include "minunit.h"
 #include "tsh_test.h"
 
+#define NB_LINES 8
 
 extern int tests_run;
 
 static char *tokenize_test();
+static char *parse_tokens_success_test();
+static char *parse_tokens_err_test();
 
 static char *(*tests[])(void) =
 {
-  tokenize_test
+  tokenize_test,
+  parse_tokens_success_test,
+  parse_tokens_err_test,
 };
 
 static char *all_tests()
@@ -91,6 +96,65 @@ static char *tokenize_test()
       default:
         break;
     }
+  }
+  return 0;
+}
+
+static char *parse_tokens_success_test()
+{
+  char lines[NB_LINES][512] =
+  {
+    "cmd",
+    "cmd | cmd | cmd",
+    "cmd | cmd | cmd < fic | cmd",
+    "cmd < fic | cmd > fic > fic | cmd ",
+    "> fic",
+    "cmd < fic >> fic | cmd 2>> fic",
+    "cmd > fic",
+    "cmd > fic | cmd > fic"
+  };
+  list *tokens[NB_LINES];
+  for (int i = 0; i < NB_LINES; i++)
+  {
+    tokens[i] = tokenize(lines[i]);
+    mu_assert("Parse tokens should return true in parse_tokens_success_test", parse_tokens(tokens[i]));
+    list_free(tokens[i], true);
+  }
+  return 0;
+}
+
+static char *parse_tokens_err_test()
+{
+  char lines[NB_LINES][512] =
+  {
+    "| cat fic",
+    "<",
+    "     |",
+    "cat fic |",
+    "cat fic | cat |    ",
+    "cat fic | >",
+    "< | cat",
+    "< > "
+  };
+  list *tokens[NB_LINES];
+  for (int i = 0; i < NB_LINES; i++)
+  {
+    tokens[i] = tokenize(lines[i]);
+  }
+
+  int null_fd = open("/dev/null", O_WRONLY);
+  add_reset_redir(STDERR_FILENO, 0);
+  dup2(null_fd, STDERR_FILENO);
+  bool all_false[8];
+  for (int i = 0; i < NB_LINES; i++)
+  {
+    all_false[i] = parse_tokens(tokens[i]);
+    list_free(tokens[i], true);
+  }
+  reset_redirs();
+  for (int i = 0; i < NB_LINES; i++)
+  {
+    mu_assert("Parse tokens: should return false in parse_tokens_err_test", !all_false[i]);
   }
   return 0;
 }

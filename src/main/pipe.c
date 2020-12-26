@@ -12,8 +12,6 @@
 #include "list.h"
 #include "array.h"
 
-static void close_pipes(int pipes_fd[][2], int size);
-
 int exec_pipe(list *tokens)
 {
   array *cmd_it;
@@ -45,7 +43,9 @@ int exec_pipe(list *tokens)
         exec_red_array(cmd_it);
         remove_all_redir(cmd_it);
         exec_cmd_array(cmd_it);
-        char *cmd_name = ((token *) array_get(cmd_it, 0)) -> val.arg;
+        token *first = array_get(cmd_it, 0);
+        char *cmd_name = first -> val.arg;
+        free(first);
         if (errno == ENOENT)
         {
           char err[1024];
@@ -69,15 +69,4 @@ int exec_pipe(list *tokens)
     waitpid(cpids[i], NULL, 0);
   }
   return 0;
-}
-
-// 1 lecteur ouvert
-
-static void close_pipes(int pipes_fd[][2], int size)
-{
-  for (int i = 0; i < size; i++)
-  {
-    close(pipes_fd[i][0]);
-    close(pipes_fd[i][1]);
-  }
 }
