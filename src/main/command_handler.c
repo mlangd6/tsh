@@ -127,12 +127,14 @@ void free_tokens (struct arg *tokens, int argc)
   free(tokens);
 }
 
-int execvp_tokens (struct arg *tokens, int tokens_size)
+int execvp_tokens (char *cmd_name, struct arg *tokens, int tokens_size)
 {
   char *argv[tokens_size + 1];
   int i;
+
+  argv[0] = cmd_name;
   
-  for (i=0; i < tokens_size; i++)
+  for (i=1; i < tokens_size; i++)
     {
       if (tokens[i].type == TAR_FILE)
 	{
@@ -148,7 +150,7 @@ int execvp_tokens (struct arg *tokens, int tokens_size)
     }
   
   argv[i] = NULL;
-
+  
   return execvp(argv[0], argv);
 }
 
