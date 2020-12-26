@@ -437,10 +437,10 @@ static void print_size(char size[12])
 
 static void print_mtime(char mtime[12])
 {
-  int t;
+  unsigned int t;
   sscanf(mtime, "%o", &t);
   time_t timestamp = t;
-  struct tm *realtime = gmtime(&timestamp);
+  struct tm *realtime = localtime(&timestamp);
 
   char buffer[20]; // un peu arbitraire...
   strftime(buffer, sizeof(buffer), "%d %b.  %H:%M", realtime);
