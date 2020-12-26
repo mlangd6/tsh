@@ -18,7 +18,6 @@ int exec_pipe(list *tokens)
   int size = list_size(tokens);
   int cpids[size];
   int pipes_fd[size-1][2];
-
   for (int i = 0; i < size; i++)
   {
     cmd_it = list_remove_first(tokens);
@@ -29,6 +28,7 @@ int exec_pipe(list *tokens)
         error_cmd("tsh", "fork");
         break;
       case 0: // Child
+        free_tokens_list(tokens);
         if (i != 0)
         {
           add_reset_redir(STDIN_FILENO, 0);
@@ -43,7 +43,6 @@ int exec_pipe(list *tokens)
         if (exec_red_array(cmd_it) != 0)
         {
           array_free(cmd_it, false);
-          free_tokens_list(tokens);
           exit(EXIT_FAILURE);
         }
         remove_all_redir_tokens(cmd_it);
@@ -70,10 +69,12 @@ int exec_pipe(list *tokens)
       default: // Parent
         if (i != 0) close(pipes_fd[i-1][0]);
         if (i != size -1) close(pipes_fd[i][1]);
+        array_free(cmd_it, false);
         break;
 
     }
   }
+  list_free(tokens, false); // List is empty
   for (int i = 0; i < size; i++)
   {
     waitpid(cpids[i], NULL, 0);

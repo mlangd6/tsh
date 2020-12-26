@@ -30,7 +30,9 @@ int exec_line(char *line)
   int nb_cmd = list_size(tokens);
   if (nb_cmd > 1)
   {
-    return exec_pipe(tokens);
+    int ret = exec_pipe(tokens);
+    free(line);
+    return ret;
   }
   else
   {
@@ -46,6 +48,7 @@ int exec_line(char *line)
     remove_all_redir_tokens(cmd_arr);
     if (array_size(cmd_arr) <= 1)
     {
+      array_free(cmd_arr, false);
       reset_redirs();
       return EXIT_SUCCESS;
     }
@@ -83,6 +86,7 @@ int exec_line(char *line)
         token *first = array_get(cmd_arr, 0);
         char *cmd_name = first -> val.arg;
         free(first);
+        array_free(cmd_arr, false);
         if (errno == ENOENT)
         {
           char err[8192];
@@ -96,6 +100,8 @@ int exec_line(char *line)
       }
       default: // Parent
       {
+        free(line);
+        array_free(cmd_arr, false);
         waitpid(cpid, &wstatus, 0);
         reset_redirs();
         return WEXITSTATUS(wstatus);
@@ -156,6 +162,8 @@ int exec_red_array(array *cmd)
       {
         if (launch_redir(prev -> val.red, cur -> val.arg) != 0)
         {
+          free(cur);
+          free(prev);
           return -1;
         }
       }
@@ -178,12 +186,13 @@ void remove_all_redir_tokens(array *cmd)
     if ((tok = array_get(cmd, i)) -> type == REDIR)
     {
       prev_is_redir = true;
+      free(tok);
       tok = array_remove(cmd, i--);
       size--;
     }
     else if (prev_is_redir)
     {
-      array_remove(cmd, i--);
+      free(array_remove(cmd, i--));
       prev_is_redir = false;
       size--;
     }
