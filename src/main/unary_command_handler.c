@@ -15,7 +15,7 @@
 
 static char **arg_info_to_argv (arg_info *info, char *arg);
 
-static void print_arg_before (unary_command *cmd, char *arg, int nb_valid_file);
+static void print_arg_before (unary_command *cmd, struct arg *token, int nb_valid_file);
 static void print_arg_after (unary_command *cmd, int *rest);
 
 static int handle_tokens (unary_command *cmd, struct arg *tokens, int argc, arg_info *info, char *options);
@@ -49,11 +49,21 @@ static char** arg_info_to_argv (arg_info *info, char *arg)
 }
 
 /** Prints a string followed by a newline on `STDOUT_FILENO` */
-static void print_arg_before (unary_command *cmd, char *arg, int nb_valid_file)
+static void print_arg_before (unary_command *cmd, struct arg *token, int nb_valid_file)
 {
   if (cmd->print_multiple_arg && nb_valid_file > 1)
-    {  
-      write_string (STDOUT_FILENO, arg);
+    {
+      if (token->type == TAR_FILE)
+	{
+	  write_string (STDOUT_FILENO, token->tf.tar_name);
+	  write_string (STDOUT_FILENO, "/");
+	  write_string (STDOUT_FILENO, token->tf.filename);
+	}
+      else
+	{
+	  write_string (STDOUT_FILENO, token->value);
+	}
+      
       write_string (STDOUT_FILENO, ": \n");
     }
 }
@@ -97,7 +107,7 @@ static int handle_tokens (unary_command *cmd, struct arg *tokens, int argc, arg_
 	    break;
 	  // Attention on peut encore continuer
 	case REG_FILE:
-	  print_arg_before (cmd, tokens[i].value, nb_valid_file);
+	  print_arg_before (cmd, tokens + i, nb_valid_file);
 	  
 	  ret = handle_arg (cmd, tokens + i, info, options);
 
