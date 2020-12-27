@@ -164,15 +164,28 @@ static int has_rights_dest_ext(char *dest_file)
   return 0;
 }
 
+static void append_slash_filename(char *filename)
+{
+  char *tmp = append_slash(filename);
+  filename[0] = '\0';
+  strcpy(filename, tmp);
+  free(tmp);
+}
+
+static void end_of_path_filename(char *path, char *the_end_of_path)
+{
+  char *end_ofpath = end_of_path(path);
+  strcpy(the_end_of_path, end_ofpath);
+  free(end_ofpath);
+}
+
 static int when_is_dir_dest(char *src_tar, char *src_file, char *dest_tar, char *dest_file)
 {
   char buf[100];
   if(nb_of_words(src_file) > 1){
     char src_file_copy[100];
     strcpy(src_file_copy, src_file);
-    char *tmp = end_of_path(src_file_copy);
-    strcpy(buf, tmp);
-    free(tmp);
+    end_of_path_filename(src_file_copy, buf);
   }
   else
   {
@@ -180,16 +193,14 @@ static int when_is_dir_dest(char *src_tar, char *src_file, char *dest_tar, char 
   }
   char buf2[PATH_MAX];
   if(!is_empty_string(dest_file)){
-    char *dest_file_copy = append_slash(dest_file);
-    dest_file[0] = '\0';
-    strcpy(dest_file, dest_file_copy);
-    free(dest_file_copy);
+    append_slash_filename(dest_file);
     sprintf(buf2, "%s%s", dest_file, buf);
   }
   else
     sprintf(buf2, "%s", buf);
   if(has_rights_dest(dest_tar, dest_file) < 0)
     return -1;
+  printf("%s/%s\n%s/%s\n\n", src_tar, src_file, dest_file, buf2);
   if(exist(dest_tar, buf2, 0) > 0)
   {
     if(tar_rm(dest_tar, buf2) < 0)
@@ -256,21 +267,14 @@ static int cp_r_ttt(char *src_tar, char *src_file, char *dest_tar, char *dest_fi
     strcpy(dest_tar_copy, dest_tar);
     char str[100];
     strcpy(str, src_file);
-    if(nb_of_words(src_file) > 1){
-      char *tmp = end_of_path(str);
-      strcpy(dest_file, tmp);
-      free(tmp);
-    }
-    else{
+    if(nb_of_words(src_file) > 1)
+      end_of_path_filename(str, dest_file);
+    else
       strcpy(dest_file, src_file);
-    }
-    char *tmp = append_slash(dest_file);
-    char *tmp2 = append_slash(src_file);
-    dest_file[0] = '\0';
-    strcpy(dest_file, tmp);
-    strcpy(src_file, tmp2);
-    free(tmp);
-    free(tmp2);
+
+    append_slash_filename(dest_file);
+    append_slash_filename(src_file);
+
     return add_tar_to_tar_rec(src_tar, dest_tar_copy, src_file, dest_file);
   }
 
@@ -285,29 +289,18 @@ static int cp_r_ttt(char *src_tar, char *src_file, char *dest_tar, char *dest_fi
       sprintf(buf2, "%s/%s", dest_tar, dest_file);
       return isfile_err_cp(buf, buf2);
     }
-    char *temporary = append_slash(dest_file);
-    dest_file[0] = '\0';
-    strcpy(dest_file, temporary);
-    free(temporary);
+    append_slash_filename(dest_file);
     new = 1;
   }
   else
   {
-
-    char *temporary = append_slash(dest_file);
-    dest_file[0] = '\0';
-    strcpy(dest_file, temporary);
-    free(temporary);
+    append_slash_filename(dest_file);
     if(has_rights_dest(dest_tar, dest_file) < 0)
       return -1;
   }
   if(is_dir(src_tar, src_file))
-  {
-    char *tempora = append_slash(src_file);
-    src_file[0] = '\0';
-    strcpy(src_file, tempora);
-    free(tempora);
-  }
+    append_slash_filename(src_file);
+
   if(exist(src_tar, src_file, 1) < 0){
     char buf[PATH_MAX];
     sprintf(buf, "%s/%s", src_tar, src_file);
@@ -322,7 +315,6 @@ static int cp_r_ttt(char *src_tar, char *src_file, char *dest_tar, char *dest_fi
       char err[33];
       sprintf(err, "%s: Problems at the add of file\n", CMD_NAME);
       write(STDERR_FILENO, err, strlen(err));
-      //free(buf);
       return -1;
     }
   }
@@ -332,14 +324,11 @@ static int cp_r_ttt(char *src_tar, char *src_file, char *dest_tar, char *dest_fi
     if(nb_of_words(src_file) > 1){
       char src_file_copy[100];
       strcpy(src_file_copy, src_file);
-      char *tmp = end_of_path(src_file_copy);
-      strcpy(buf, tmp);
-      free(tmp);
+      end_of_path_filename(src_file_copy, buf);
     }
     else
-    {
       strcpy(buf, src_file);
-    }
+
     char buf2[PATH_MAX];
 
     if(!is_empty_string(dest_file))
@@ -401,18 +390,14 @@ static int cp_ett_without_r(char *src_file, char *dest_tar, char *dest_file)
 {
   if(is_dir_ext(src_file))
     return isdir_err_cp(src_file);
-  if(exist_ext(src_file, 0) < 0)
+  if(exist_ext(src_file, 1) == 0)
     return dont_exist(src_file);
   if(has_rights_src_ext(src_file) < 0)
     return -1;
 
-  if(is_dir(dest_tar, dest_file) && !is_empty_string(dest_file)){
-    char *tmp = append_slash(dest_file);
-    dest_file[0] = '\0';
-    strcpy(dest_file, tmp);
-    free(tmp);
-  }
-  if(exist(dest_tar, dest_file, 1)==0){
+  if(is_dir(dest_tar, dest_file) && !is_empty_string(dest_file))
+    append_slash_filename(dest_file);
+  if(exist(dest_tar, dest_file, 1) == 0){
     if(has_rights_dest(dest_tar, dest_file) < 0)
       return -1;
   }
@@ -431,7 +416,7 @@ static int cp_ett_without_r(char *src_file, char *dest_tar, char *dest_file)
     }
     else
       sprintf(buf2, "%s", buf);
-    if(exist(dest_tar, buf2, 0) > 0){
+    if(exist(dest_tar, buf2, 1) == 0){
       if(tar_rm(dest_tar, buf2) < 0)
       {
         write(STDERR_FILENO, "cp: Problems on removing the file of the same name\n", 51);
@@ -451,7 +436,8 @@ static int cp_ett_without_r(char *src_file, char *dest_tar, char *dest_file)
   }
   else
   {
-    if(exist(dest_tar, dest_file, 0) < 0)
+
+    if(exist(dest_tar, dest_file, 1) == 0)
     {
       if(tar_rm(dest_tar, dest_file) < 0)
       {
@@ -472,8 +458,6 @@ static int cp_ett_without_r(char *src_file, char *dest_tar, char *dest_file)
 
 static int cp_r_ett(char *src_file, char *dest_tar, char *dest_file)
 {
-  //TODO : FAIRE MARCHER POUR les FICHIERS
-  //On pourrait dire que si c'est un fichier cp -r <=> cp
   if(!is_dir_ext(src_file))return cp_ett_without_r(src_file, dest_tar, dest_file);
   if(is_empty_string(dest_file))
   {
@@ -481,56 +465,39 @@ static int cp_r_ett(char *src_file, char *dest_tar, char *dest_file)
     strcpy(dest_tar_copy, dest_tar);
     char str[100];
     strcpy(str, src_file);
-    if(nb_of_words(src_file) > 1){
-      char *tmp = end_of_path(str);
-      strcpy(dest_file, tmp);
-      free(tmp);
-    }
-    else{
+    if(nb_of_words(src_file) > 1)
+      end_of_path_filename(str, dest_file);
+    else
       strcpy(dest_file, src_file);
-    }
-    char *tmp = append_slash(dest_file);
-    char *tmp2 = append_slash(src_file);
-    dest_file[0] = '\0';
-    strcpy(dest_file, tmp);
-    strcpy(src_file, tmp2);
-    free(tmp);
-    free(tmp2);
+
+    append_slash_filename(dest_file);
+    append_slash_filename(src_file);
+
     return add_ext_to_tar_rec(dest_tar_copy, src_file, dest_file, 0);
   }
 
   int new = 0;
   if(!is_dir(dest_tar, dest_file))
   {
-    if(exist(dest_tar, dest_file, 1) > 0)
+    if(exist(dest_tar, dest_file, 1) == 0)
     {
       char buf2[PATH_MAX];
       sprintf(buf2, "%s/%s", dest_tar, dest_file);
       return isfile_err_cp(src_file, buf2);
     }
-    char *temporary = append_slash(dest_file);
-    dest_file[0] = '\0';
-    strcpy(dest_file, temporary);
-    free(temporary);
+    append_slash_filename(dest_file);
     new = 1;
   }
   else
   {
-    char *temporary = append_slash(dest_file);
-    dest_file[0] = '\0';
-    strcpy(dest_file, temporary);
-    free(temporary);
+    append_slash_filename(dest_file);
     if(has_rights_dest(dest_tar, dest_file) < 0)
       return -1;
   }
   if(is_dir_ext(src_file))
-  {
-    char *tempora = append_slash(src_file);
-    src_file[0] = '\0';
-    strcpy(src_file, tempora);
-    free(tempora);
-  }
-  if(exist_ext(src_file, 0) < 0){
+    append_slash_filename(src_file);
+
+  if(exist_ext(src_file, 0) == 0){
     return dont_exist(src_file);
   }
   if(has_rights_src_ext(src_file) < 0){
@@ -551,9 +518,7 @@ static int cp_r_ett(char *src_file, char *dest_tar, char *dest_file)
     if(nb_of_words(src_file) > 1){
       char src_file_copy[100];
       strcpy(src_file_copy, src_file);
-      char *tmp = end_of_path(src_file_copy);
-      strcpy(buf, tmp);
-      free(tmp);
+      end_of_path_filename(src_file_copy, buf);
     }
     else
     {
@@ -569,7 +534,7 @@ static int cp_r_ett(char *src_file, char *dest_tar, char *dest_file)
     }
     else
       sprintf(buf2, "%s", buf);
-    if(exist(dest_tar, buf2, 0) > 0)
+    if(exist(dest_tar, buf2, 1) == 0)
     {
       free(buf);
       return -1;
@@ -769,28 +734,18 @@ static int cp_r_tte(char *src_tar, char *src_file, char *dest_file)
       sprintf(buf2, "%s/%s", src_tar, src_file);
       return isfile_err_cp(buf2, dest_file);
     }
-    char *temporary = append_slash(dest_file);
-    dest_file[0] = '\0';
-    strcpy(dest_file, temporary);
-    free(temporary);
+    append_slash_filename(dest_file);
     new = 1;
   }
   else
   {
-    char *temporary = append_slash(dest_file);
-    dest_file[0] = '\0';
-    strcpy(dest_file, temporary);
-    free(temporary);
+    append_slash_filename(dest_file);
     if(has_rights_dest_ext(dest_file) < 0)
       return -1;
   }
   if(is_dir(src_tar, src_file))
-  {
-    char *tempora = append_slash(src_file);
-    src_file[0] = '\0';
-    strcpy(src_file, tempora);
-    free(tempora);
-  }
+    append_slash_filename(src_file);
+
   if(exist(src_tar, src_file, 0) == 0){
     char buf2[PATH_MAX];
     sprintf(buf2, "%s/%s", src_tar, src_file);
@@ -818,10 +773,8 @@ static int cp_r_tte(char *src_tar, char *src_file, char *dest_file)
       char err[33];
       sprintf(err, "%s: Problems at the add of file\n", CMD_NAME);
       write(STDERR_FILENO, err, strlen(err));
-      //free(buf);
       return -1;
     }
-    //free(buf);
   }
   return 0;
 }
