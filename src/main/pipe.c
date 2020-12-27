@@ -52,19 +52,6 @@ int exec_pipe(list *tokens)
           exit(EXIT_SUCCESS);
         }
         exec_cmd_array(cmd_it);
-        token *first = array_get(cmd_it, 0);
-        char *cmd_name = first -> val.arg;
-        free(first);
-        if (errno == ENOENT)
-        {
-          char err[1024];
-          sprintf(err, "%s: command not found\n", cmd_name);
-          write(STDERR_FILENO, err, strlen(err) + 1);
-        }
-        else {
-          perror(cmd_name);
-        }
-        exit(EXIT_FAILURE);
         break;
       default: // Parent
         if (i != 0) close(pipes_fd[i-1][0]);

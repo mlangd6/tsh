@@ -8,7 +8,7 @@
 #include <unistd.h>
 #include <errno.h>
 #include <stdbool.h>
-#include <wait.h>
+#include <sys/wait.h>
 
 #include "redirection.h"
 #include "tsh.h"

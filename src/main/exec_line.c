@@ -83,20 +83,6 @@ int exec_line(char *line)
         }
         remove_all_redir_tokens(cmd_arr);
         exec_cmd_array(cmd_arr);
-        token *first = array_get(cmd_arr, 0);
-        char *cmd_name = first -> val.arg;
-        free(first);
-        array_free(cmd_arr, false);
-        if (errno == ENOENT)
-        {
-          char err[8192];
-          sprintf(err, "%s: command not found\n", cmd_name);
-          write(STDERR_FILENO, err, strlen(err) + 1);
-        }
-        else {
-          perror(cmd_name);
-        }
-        exit(EXIT_FAILURE);
       }
       default: // Parent
       {
@@ -121,11 +107,11 @@ int exec_cmd_array(array *cmd)
     char cmd_exec[PATH_MAX];
     char tsh_dir[PATH_MAX];
     sprintf(cmd_exec, "%s/bin/%s", get_tsh_dir(tsh_dir), argv[0]);
-    return execv(cmd_exec, argv);
+    execv(cmd_exec, argv);
   }
   else
   {
-    return execvp(argv[0], argv);
+    execvp(argv[0], argv);
   }
 
   if (errno == ENOENT)
@@ -134,7 +120,7 @@ int exec_cmd_array(array *cmd)
     char error_msg[size];
     strcpy(error_msg, argv[0]);
     strcat(error_msg, CMD_NOT_FOUND);
-    write(STDOUT_FILENO, error_msg, size);
+    write(STDERR_FILENO, error_msg, size);
   }
 
   exit(EXIT_FAILURE);
