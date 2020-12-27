@@ -17,6 +17,7 @@ static char* array_size_test();
 static char* array_insert_test();
 static char* array_remove_test();
 static char* array_sort_test();
+static char *array_free_test();
 
 extern int tests_run;
 
@@ -26,7 +27,8 @@ static char *(*tests[])(void) =
     array_size_test,
     array_insert_test,
     array_remove_test,
-    array_sort_test
+    array_sort_test,
+    array_free_test
   };
 
 
@@ -193,5 +195,29 @@ static char* array_sort_test()
 
   array_free(arr, false);
 
+  return 0;
+}
+
+
+static char *array_free_test()
+{
+  array *arr = array_create(sizeof(int*));
+  mu_assert("Array should be empty after creation", 0 == array_size(arr));
+
+  const int size = 2020;
+  int *pi = NULL;
+  
+  for (int i=0; i < size; i++)
+    {
+      pi = malloc(sizeof(int));
+      *pi = i;
+      array_insert_last(arr, &pi);
+    }
+
+  mu_assert("Invalid array size, should be 2020", size == array_size(arr));
+
+
+  array_free(arr, true);
+  
   return 0;
 }

@@ -228,7 +228,7 @@ int handle_binary_command (binary_command cmd, int argc, char **argv)
 
   // Pas de tar en jeu
   if (info.nb_tar_file == 0)
-    return execvp_tokens (tokens, argc);
+    return execvp_tokens (cmd.name, tokens, argc);
 
 
   int nb_valid_file = get_nb_valid_file (&info, tar_options);
