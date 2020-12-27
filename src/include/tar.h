@@ -232,5 +232,6 @@ int is_dir(const char *tar_name, const char *filename);
 
 int tar_rm_dir(int tar_fd, const char *dirname);
 
+int rm(char *tar_name, char *filename, char *options);
 
 #endif

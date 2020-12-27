@@ -118,7 +118,6 @@ static int has_rights_dest(char *dest_tar, char *dest_file)
   if(is_empty_string(dest_file))return 0;
   if(tar_access(dest_tar, dest_file, X_OK) < 0)
   {
-    printf("1-bad\n");
     char buf[PATH_MAX+100];
     sprintf(buf, "%s: impossible to acceed to \'%s/%s\': Permission denied\n", CMD_NAME, dest_tar, dest_file);
     write(STDERR_FILENO, buf, strlen(buf));
@@ -126,7 +125,6 @@ static int has_rights_dest(char *dest_tar, char *dest_file)
   }
   if(tar_access(dest_tar, dest_file, W_OK) < 0)
   {
-    printf("2-bad\n");
     char buf[PATH_MAX+100];
     sprintf(buf, "%s: impossible to create the standard file \'%s/%s\': Permission denied\n", CMD_NAME, dest_tar, dest_file);
     write(STDERR_FILENO, buf, strlen(buf));
@@ -192,7 +190,6 @@ static int when_is_dir_dest(char *src_tar, char *src_file, char *dest_tar, char 
     sprintf(buf2, "%s", buf);
   if(has_rights_dest(dest_tar, dest_file) < 0)
     return -1;
-  printf("%s %s\n", dest_tar, buf2);
   if(exist(dest_tar, buf2, 0) > 0)
   {
     if(tar_rm(dest_tar, buf2) < 0)
@@ -479,14 +476,11 @@ static int cp_r_ett(char *src_file, char *dest_tar, char *dest_file)
   //On pourrait dire que si c'est un fichier cp -r <=> cp
   if(!is_dir_ext(src_file))return cp_ett_without_r(src_file, dest_tar, dest_file);
   if(is_empty_string(dest_file))
-  {//TODO
-    printf("%s -> %s %s\n", src_file, dest_tar, dest_file);
+  {
     char dest_tar_copy[PATH_MAX];
     strcpy(dest_tar_copy, dest_tar);
-    printf("dest :\n1 - %s\n2 - %s\n", dest_tar, dest_tar_copy);
     char str[100];
     strcpy(str, src_file);
-    printf("src :\n1 - %s\n2 - %s\n", src_file, str);
     if(nb_of_words(src_file) > 1){
       char *tmp = end_of_path(str);
       strcpy(dest_file, tmp);
@@ -495,7 +489,6 @@ static int cp_r_ett(char *src_file, char *dest_tar, char *dest_file)
     else{
       strcpy(dest_file, src_file);
     }
-    printf("dest_file : %s\n", dest_file);
     char *tmp = append_slash(dest_file);
     char *tmp2 = append_slash(src_file);
     dest_file[0] = '\0';
@@ -503,7 +496,6 @@ static int cp_r_ett(char *src_file, char *dest_tar, char *dest_file)
     strcpy(src_file, tmp2);
     free(tmp);
     free(tmp2);
-    printf("%s -> %s %s\n%s\n", src_file, dest_tar_copy, dest_file, dest_tar);
     return add_ext_to_tar_rec(dest_tar_copy, src_file, dest_file, 0);
   }
 
