@@ -4,13 +4,16 @@
 #include <string.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <fcntl.h>
 #include <unistd.h>
 #include <stdlib.h>
+#include <sys/wait.h>
 
 #include "copy.h"
 #include "tar.h"
 #include "path_lib.h"
 #include "utils.h"
+#include "errors.h"
 
 
 static int isfile_err_cp(const char *filename, const char *dest)
@@ -33,7 +36,7 @@ static int is_dir_ext(const char *filename)
 {
   struct stat s;
   if (lstat(filename, &s) < 0)
-    return -1;
+    return 0;
 
   return (S_ISDIR(s.st_mode));
 }
@@ -113,7 +116,7 @@ static int has_rights_src(char *src_tar, char *src_file)
 static int has_rights_dest(char *dest_tar, char *dest_file)
 {
   if(is_empty_string(dest_file))return 0;
-  if((tar_access(dest_tar, dest_file, X_OK) < 0))
+  if(tar_access(dest_tar, dest_file, X_OK) < 0)
   {
     printf("1-bad\n");
     char buf[PATH_MAX+100];
@@ -138,6 +141,25 @@ static int has_rights_src_ext(char *src_file)
   {
     char buf[PATH_MAX+100];
     sprintf(buf, "%s: impossible to open \'%s\' in reading: Permission denied\n", CMD_NAME, src_file);
+    write(STDERR_FILENO, buf, strlen(buf));
+    return -1;
+  }
+  return 0;
+}
+
+static int has_rights_dest_ext(char *dest_file)
+{
+  if(access(dest_file, X_OK) < 0)
+  {
+    char buf[PATH_MAX+100];
+    sprintf(buf, "%s: impossible to acceed to \'%s\': Permission denied\n", CMD_NAME, dest_file);
+    write(STDERR_FILENO, buf, strlen(buf));
+    return -1;
+  }
+  if(access(dest_file, W_OK) < 0)
+  {
+    char buf[PATH_MAX+100];
+    sprintf(buf, "%s: impossible to create the standard file \'%s\': Permission denied\n", CMD_NAME, dest_file);
     write(STDERR_FILENO, buf, strlen(buf));
     return -1;
   }
@@ -179,13 +201,11 @@ static int when_is_dir_dest(char *src_tar, char *src_file, char *dest_tar, char 
       return -1;
     }
   }
-  system("tar tvf test.tar");
   if(add_tar_to_tar(src_tar, dest_tar, src_file, buf2) < 0)
   {
     write(STDERR_FILENO, "cp: Problems at the add of file\n", 33);
     return -1;
   }
-  system("tar tvf test.tar");
   return 0;
 }
 
@@ -206,7 +226,6 @@ static int cp_ttt_without_r(char *src_tar, char *src_file, char *dest_tar, char 
     return -1;
   if(is_dir(dest_tar, dest_file))
   {
-    printf("%s/%s -> %s/%s\n", src_tar, src_file, dest_tar, dest_file);
     return (when_is_dir_dest(src_tar, src_file, dest_tar, dest_file) < 0)?-1:0;
   }
   else
@@ -234,10 +253,8 @@ static int cp_r_ttt(char *src_tar, char *src_file, char *dest_tar, char *dest_fi
 {
   if(!is_dir(src_tar, src_file))
     return cp_ttt_without_r(src_tar, src_file, dest_tar, dest_file);
-  //TODO : FAIRE MARCHER POUR les FICHIERS
-  //On pourrait dire que si c'est un fichier cp -r <=> cp
   if(is_empty_string(dest_file))
-  {//TODO
+  {
     char dest_tar_copy[PATH_MAX];
     strcpy(dest_tar_copy, dest_tar);
     char str[100];
@@ -401,7 +418,7 @@ static int cp_ett_without_r(char *src_file, char *dest_tar, char *dest_file)
   if(exist(dest_tar, dest_file, 1)==0){
     if(has_rights_dest(dest_tar, dest_file) < 0)
       return -1;
-    }
+  }
   if(is_dir(dest_tar, dest_file))
   {
     char src_file_copy[100];
@@ -593,9 +610,160 @@ int cp_ext_to_tar (char *src_file, char *dest_tar, char *dest_file, char *opt)
   return 0;
 }
 
+static int rm_touch(char *filename, int rm)//1 = rm et 0 = touch
+{
+  int a = 0;
+  if(rm == 1)
+  {
+    switch(fork())
+    {
+      case -1:
+        a = -1;
+        exit(2);
+        break;
+      case 0:
+        if(execlp("rm", "rm", filename, NULL) < 0)a = -2;
+        break;
+      default:
+        wait(NULL);
+    }
+  }
+  else
+  {
+    switch(fork())
+    {
+      case -1:
+        a = -1;
+        exit(2);
+        break;
+      case 0:
+        if(execlp("touch", "touch", filename, NULL) < 0)a = -2;
+        break;
+      default:
+        wait(NULL);
+    }
+  }
+  return a;
+}
+
+static int error_rm_touch(int a)
+{
+  if(a == -1)
+  {
+    write(STDERR_FILENO, "Error fork()\n", 13);
+    return -1;
+  }
+  if(a == -2)
+  {
+    write(STDERR_FILENO, "Error execlp()\n", 15);
+    return -1;
+  }
+  return -1;
+}
+
+static int cp_tte_without_r(char *src_tar, char *src_file, char *dest_file)
+{
+  if(is_dir(src_tar, src_file)){
+    char buf[PATH_MAX];
+    sprintf(buf, "%s/%s", src_tar, src_file);
+    return isdir_err_cp(buf);
+  }
+  if(exist(src_tar, src_file, 1) == -1){
+    char buf[PATH_MAX];
+    sprintf(buf, "%s/%s", src_tar, src_file);
+    return dont_exist(buf);
+  }
+  if(has_rights_src(src_tar, src_file) < 0)
+    return -1;
+
+
+  if(exist_ext(dest_file, 1)==0){
+    if(has_rights_dest_ext(dest_file) < 0)
+      return -1;
+  }
+  if(is_dir_ext(dest_file) != 0)
+  {
+    char src_file_copy[PATH_MAX];
+    if(is_empty_string(src_file))
+      strcpy(src_file_copy, src_tar);
+    else
+      sprintf(src_file_copy, "%s/%s", src_tar, src_file);
+    char *buf = end_of_path(src_file_copy);
+
+    char buf2[PATH_MAX];
+
+    if(dest_file[strlen(dest_file) - 1] == '/')
+      dest_file[strlen(dest_file) - 1] = '\0';
+    sprintf(buf2, "%s/%s", dest_file, buf);
+
+    if(exist_ext(buf2, 1) == 0){
+      int a = rm_touch(buf2, 1);
+      if(a < 0)
+        return error_rm_touch(a);
+    }
+    int a = rm_touch(buf2, 0);
+    if(a < 0)
+      return error_rm_touch(a);
+
+    int fd = open(buf2, O_RDWR);
+    if(fd < 0)
+    {
+      error_cmd(CMD_NAME, buf2);
+      return -1;
+    }
+    if(tar_cp_file(src_tar, src_file, fd) < 0)
+    {
+      char err[33];
+      sprintf(err, "%s: Problems at the add of file\n", CMD_NAME);
+      write(STDERR_FILENO, err, strlen(err));
+      free(buf);
+      return -1;
+    }
+    free(buf);
+  }
+  else
+  {
+    if(exist_ext(dest_file, 1) == 0){
+      int a = rm_touch(dest_file, 1);
+      if(a < 0)
+        return error_rm_touch(a);
+    }
+    int a = rm_touch(dest_file, 0);
+    if(a < 0)
+      return error_rm_touch(a);
+
+    int fd = open(dest_file, O_RDWR);
+    if(fd < 0)
+    {
+      error_cmd(CMD_NAME, dest_file);
+      return -1;
+    }
+    if(tar_cp_file(src_tar, src_file, fd) < 0)
+    {
+      char err[33];
+      sprintf(err, "%s: Problems at the add of file\n", CMD_NAME);
+      write(STDERR_FILENO, err, strlen(err));
+      return -1;
+    }
+  }
+  return 0;
+}
+
+static int cp_r_tte(char *src_tar, char *src_file, char *dest_file)
+{
+  return 0;
+}
+
 int cp_tar_to_ext (char *src_tar, char *src_file, char *dest_file, char *opt)
 {
-  printf("Copying %s/%s (tar) to %s (ext)\n", src_tar, src_file, dest_file);
+  if(is_empty_string(opt))
+  {
+    return cp_tte_without_r(src_tar, src_file, dest_file);
+  }
+  else
+  {
+    return cp_r_tte(src_tar, src_file, dest_file);
+  }
 
   return 0;
 }

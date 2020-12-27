@@ -87,7 +87,7 @@ static int extract_tar_file (const tar_file *tf, const char *extract_name, int d
 
     case DIRTYPE:
       return mkdirat (dest_fd, extract_name, 0777 & ~getumask());
-      
+
     case SYMTYPE:
       return symlinkat (tf->header.linkname, dest_fd, extract_name);
 
@@ -105,7 +105,7 @@ static int extract_tar_file (const tar_file *tf, const char *extract_name, int d
 static int extract_reg_file (const tar_file *tf, const char *extract_name, int dest_fd)
 {
   lseek(tf->tar_fd, tf->file_start + BLOCKSIZE, SEEK_SET);
-  
+
   int fd = openat(dest_fd, extract_name, O_CREAT | O_TRUNC | O_WRONLY, S_IRUSR | S_IWUSR);
   if (fd < 0)
     return -1;
@@ -134,21 +134,21 @@ static int ftar_extract_dir (int tar_fd, const char *full_path, const char *want
   tar_file *tf;
   char *extract_name;
   size_t wanted_dir_start;
-  
+
   tf = NULL;
-  
+
   arr = tar_ls_dir(tar_fd, full_path, true);
   if (!arr)
     goto error;
 
   wanted_dir_start = wanted_dir - full_path;
   array_sort(arr, extract_order);
-  
+
   // on extrait un par un les fichiers
   for (int i=0; i < array_size(arr); i++)
     {
       tf = array_get(arr, i);
-      
+
       if (!tf)
 	goto error;
 
@@ -160,7 +160,7 @@ static int ftar_extract_dir (int tar_fd, const char *full_path, const char *want
 
       if (extract_tar_file (tf, extract_name, dest_fd) < 0)
 	goto error;
-      
+
       free(tf);
     }
 
@@ -189,8 +189,8 @@ static int ftar_extract_file (int tar_fd, const char *full_path, const char *wan
 
   tf.tar_fd = tar_fd;
   tf.header = file_header;
-  tf.file_start = lseek (tar_fd, -BLOCKSIZE, SEEK_CUR);    
-  
+  tf.file_start = lseek (tar_fd, -BLOCKSIZE, SEEK_CUR);
+
   return extract_tar_file (&tf, wanted_file, dest_fd);
 }
 
@@ -206,7 +206,7 @@ static const char *get_last_component(const char *path)
   // on est dans le cas : dir/fic
   if (ret[1] != '\0')
     return ret + 1;
-    
+
   // on va cherche le début du mot
   ret--;
   for (; ret != path && *ret != '/'; ret--)
@@ -220,7 +220,7 @@ int tar_extract (const char *tar_name, const char *filename, const char *dest)
 {
   int tar_fd, dest_fd, ret;
   const char *wanted_file;
-  
+
   tar_fd = open(tar_name, O_RDONLY);
   if (tar_fd < 0)
     return -1;
@@ -230,22 +230,22 @@ int tar_extract (const char *tar_name, const char *filename, const char *dest)
     return error_pt (&tar_fd, 1, errno);
 
   lseek(tar_fd, 0, SEEK_SET);
-  
+
   dest_fd = open(dest, O_DIRECTORY);
   if (dest_fd < 0)
     return error_pt(&tar_fd, 1, errno);
 
   wanted_file = get_last_component (filename);
-  
-  if (is_empty_string(filename) || is_dir_name(filename))
-    {
-      ret = ftar_extract_dir (tar_fd, filename, wanted_file, dest_fd);
-    }
+
+  if(is_empty_string(filename) || is_dir_name(filename))
+  {
+    ret = ftar_extract_dir (tar_fd, filename, wanted_file, dest_fd);
+  }
   else
-    {
-      ret = ftar_extract_file (tar_fd, filename, wanted_file, dest_fd);
-    }
-  
+  {
+    ret = ftar_extract_file (tar_fd, filename, wanted_file, dest_fd);
+  }
+
   close(dest_fd);
   close(tar_fd);
 
@@ -264,32 +264,32 @@ int tar_cp_file(const char *tar_name, const char *filename, int fd)
 {
   if (tar_access (tar_name, filename, R_OK) < 0)
     return -1;
-    
+
   int tar_fd = open(tar_name, O_RDONLY);
 
   if (tar_fd < 0)
     return -1;
-    
+
   unsigned int file_size;
   struct posix_header file_header;
   int r = seek_header(tar_fd, filename, &file_header);
 
   if (r < 0) // erreur
-    {
-      return error_pt(&tar_fd, 1, errno);
-    }
+  {
+    return error_pt(&tar_fd, 1, errno);
+  }
   else if (r == 0)
-    {
-      return error_pt(&tar_fd, 1, ENOENT);
-    }
+  {
+    return error_pt(&tar_fd, 1, ENOENT);
+  }
   else if (file_header.typeflag == DIRTYPE)
-    {
-      return error_pt(&tar_fd, 1, EISDIR);
-    }
-  else if (file_header.typeflag != AREGTYPE && file_header.typeflag != REGTYPE)
-    {
-      return error_pt(&tar_fd, 1, EPERM);
-    }
+  {
+    return error_pt(&tar_fd, 1, EISDIR);
+  }
+  else if (file_header.typeflag != AREGTYPE && file_header.typeflag != REGTYPE && file_header.typeflag != LNKTYPE && file_header.typeflag != SYMTYPE)
+  {
+    return error_pt(&tar_fd, 1, EPERM);
+  }
 
   file_size = get_file_size(&file_header);
   if (read_write_buf_by_buf(tar_fd, fd, file_size, BUFSIZE) < 0)
