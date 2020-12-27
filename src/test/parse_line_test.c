@@ -53,8 +53,7 @@ int launch_parse_line_tests()
 
 static char *tokenize_test()
 {
-  char *line = malloc(PATH_MAX);
-  strcpy(line, "< in 2>> err_app       cat | cat | cmd fic >> app 2> err");
+  char line[] = "< in 2>> err_app       cat | cat | cmd fic >> app 2> err";
   list *tokens = tokenize(line);
   mu_assert("tokenize test: 2 pipes should result with a list of size 3", list_size(tokens) == 3);
   token excpexcted[] =
@@ -81,6 +80,7 @@ static char *tokenize_test()
   {
     if (array_size(arr_it) == 0)
     {
+      array_free(arr_it, false);
       arr_it = list_remove_first(tokens);
     }
     tok_it = array_remove_first(arr_it);
@@ -96,7 +96,11 @@ static char *tokenize_test()
       default:
         break;
     }
+    free(tok_it);
   }
+  array_free(arr_it, false);
+  free_tokens_list(tokens);
+
   return 0;
 }
 
@@ -118,7 +122,7 @@ static char *parse_tokens_success_test()
   {
     tokens[i] = tokenize(lines[i]);
     mu_assert("Parse tokens should return true in parse_tokens_success_test", parse_tokens(tokens[i]));
-    list_free(tokens[i], true);
+    free_tokens_list(tokens[i]);
   }
   return 0;
 }
@@ -143,18 +147,21 @@ static char *parse_tokens_err_test()
   }
 
   int null_fd = open("/dev/null", O_WRONLY);
+  init_redirections();
   add_reset_redir(STDERR_FILENO, 0);
-  dup2(null_fd, STDERR_FILENO);
+  dup2(null_fd, STDERR_FILENO); // Avoid syntax error message
   bool all_false[8];
   for (int i = 0; i < NB_LINES; i++)
   {
     all_false[i] = parse_tokens(tokens[i]);
-    list_free(tokens[i], true);
+    free_tokens_list(tokens[i]);
   }
   reset_redirs();
+  exit_redirections();
   for (int i = 0; i < NB_LINES; i++)
   {
     mu_assert("Parse tokens: should return false in parse_tokens_err_test", !all_false[i]);
   }
+
   return 0;
 }

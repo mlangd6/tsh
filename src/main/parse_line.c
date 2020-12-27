@@ -150,6 +150,7 @@ static bool well_formatted(void *a)
     {
       if (cur -> type != ARG)
       {
+        free(cur);
         write(STDERR_FILENO, "tsh: syntax error: unexpected token after redirection\n", 54);
         return false;
       }
