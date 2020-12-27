@@ -58,11 +58,11 @@ static int exist(const char *tar_name, const char *filename, int src_or_dest)
 {
   if(tar_access(tar_name, filename, F_OK) > 0)
   {
-    if(!src_or_dest)
+    if(src_or_dest == 0)
       return -1;
     return 0;
   }
-  if(!src_or_dest)
+  if(src_or_dest == 0)
     return 0;
   return -1;
 }
@@ -112,15 +112,18 @@ static int has_rights_src(char *src_tar, char *src_file)
 
 static int has_rights_dest(char *dest_tar, char *dest_file)
 {
-  if(tar_access(dest_tar, dest_file, X_OK | R_OK | W_OK) < 0  || (tar_access(dest_tar, dest_file, W_OK) > 0 && tar_access(dest_tar, dest_file, X_OK) < 0))
+  if(is_empty_string(dest_file))return 0;
+  if((tar_access(dest_tar, dest_file, X_OK) < 0))
   {
+    printf("1-bad\n");
     char buf[PATH_MAX+100];
     sprintf(buf, "%s: impossible to acceed to \'%s/%s\': Permission denied\n", CMD_NAME, dest_tar, dest_file);
     write(STDERR_FILENO, buf, strlen(buf));
     return -1;
   }
-  if(tar_access(dest_tar, dest_file, W_OK) < 0 && tar_access(dest_tar, dest_file, X_OK) > 0)
+  if(tar_access(dest_tar, dest_file, W_OK) < 0)
   {
+    printf("2-bad\n");
     char buf[PATH_MAX+100];
     sprintf(buf, "%s: impossible to create the standard file \'%s/%s\': Permission denied\n", CMD_NAME, dest_tar, dest_file);
     write(STDERR_FILENO, buf, strlen(buf));
@@ -141,6 +144,51 @@ static int has_rights_src_ext(char *src_file)
   return 0;
 }
 
+static int when_is_dir_dest(char *src_tar, char *src_file, char *dest_tar, char *dest_file)
+{
+  char buf[100];
+  if(nb_of_words(src_file) > 1){
+    char src_file_copy[100];
+    strcpy(src_file_copy, src_file);
+    char *tmp = end_of_path(src_file_copy);
+    strcpy(buf, tmp);
+    free(tmp);
+  }
+  else
+  {
+    strcpy(buf, src_file);
+  }
+  char buf2[PATH_MAX];
+  if(!is_empty_string(dest_file)){
+    char *dest_file_copy = append_slash(dest_file);
+    dest_file[0] = '\0';
+    strcpy(dest_file, dest_file_copy);
+    free(dest_file_copy);
+    sprintf(buf2, "%s%s", dest_file, buf);
+  }
+  else
+    sprintf(buf2, "%s", buf);
+  if(has_rights_dest(dest_tar, dest_file) < 0)
+    return -1;
+  printf("%s %s\n", dest_tar, buf2);
+  if(exist(dest_tar, buf2, 0) > 0)
+  {
+    if(tar_rm(dest_tar, buf2) < 0)
+    {
+      write(STDERR_FILENO, "cp: Problems on removing the file of the same name\n", 51);
+      return -1;
+    }
+  }
+  system("tar tvf test.tar");
+  if(add_tar_to_tar(src_tar, dest_tar, src_file, buf2) < 0)
+  {
+    write(STDERR_FILENO, "cp: Problems at the add of file\n", 33);
+    return -1;
+  }
+  system("tar tvf test.tar");
+  return 0;
+}
+
 static int cp_ttt_without_r(char *src_tar, char *src_file, char *dest_tar, char *dest_file)
 {
   if(is_dir(src_tar, src_file))
@@ -158,48 +206,8 @@ static int cp_ttt_without_r(char *src_tar, char *src_file, char *dest_tar, char 
     return -1;
   if(is_dir(dest_tar, dest_file))
   {
-    if(has_rights_dest(dest_tar, dest_file) < 0)
-      return -1;
-    char *buf = malloc(100);
-    if(nb_of_words(src_file) > 1){
-      char src_file_copy[100];
-      strcpy(src_file_copy, src_file);
-      char *tmp = end_of_path(src_file_copy);
-      strcpy(buf, tmp);
-      free(tmp);
-    }
-    else
-    {
-      strcpy(buf, src_file);
-    }
-    char buf2[PATH_MAX];
-    if(!is_empty_string(dest_file))
-    {
-      if(dest_file[strlen(dest_file) - 1] == '/')
-        dest_file[strlen(dest_file) - 1] = '\0';
-      sprintf(buf2, "%s/%s", dest_file, buf);
-    }
-    else
-      sprintf(buf2, "%s", buf);
-    if(exist(dest_tar, buf2, 0) > 0)
-    {
-      if(tar_rm(dest_tar, buf2) < 0)
-      {
-        write(STDERR_FILENO, "cp: Problems on removing the file of the same name\n", 51);
-        free(buf);
-        return -1;
-      }
-    }
-
-    if(add_tar_to_tar(src_tar, dest_tar, src_file, buf2) < 0)
-    {
-      char err[33];
-      sprintf(err, "%s: Problems at the add of file\n", CMD_NAME);
-      write(STDERR_FILENO, err, strlen(err));
-      free(buf);
-      return -1;
-    }
-    free(buf);
+    printf("%s/%s -> %s/%s\n", src_tar, src_file, dest_tar, dest_file);
+    return (when_is_dir_dest(src_tar, src_file, dest_tar, dest_file) < 0)?-1:0;
   }
   else
   {
@@ -224,6 +232,8 @@ static int cp_ttt_without_r(char *src_tar, char *src_file, char *dest_tar, char 
 
 static int cp_r_ttt(char *src_tar, char *src_file, char *dest_tar, char *dest_file)
 {
+  if(!is_dir(src_tar, src_file))
+    return cp_ttt_without_r(src_tar, src_file, dest_tar, dest_file);
   //TODO : FAIRE MARCHER POUR les FICHIERS
   //On pourrait dire que si c'est un fichier cp -r <=> cp
   if(is_empty_string(dest_file))
@@ -381,8 +391,17 @@ static int cp_ett_without_r(char *src_file, char *dest_tar, char *dest_file)
     return dont_exist(src_file);
   if(has_rights_src_ext(src_file) < 0)
     return -1;
-  if(has_rights_dest(dest_tar, dest_file) < 0)
-    return -1;
+
+  if(is_dir(dest_tar, dest_file) && !is_empty_string(dest_file)){
+    char *tmp = append_slash(dest_file);
+    dest_file[0] = '\0';
+    strcpy(dest_file, tmp);
+    free(tmp);
+  }
+  if(exist(dest_tar, dest_file, 1)==0){
+    if(has_rights_dest(dest_tar, dest_file) < 0)
+      return -1;
+    }
   if(is_dir(dest_tar, dest_file))
   {
     char src_file_copy[100];
@@ -441,6 +460,7 @@ static int cp_r_ett(char *src_file, char *dest_tar, char *dest_file)
 {
   //TODO : FAIRE MARCHER POUR les FICHIERS
   //On pourrait dire que si c'est un fichier cp -r <=> cp
+  if(!is_dir_ext(src_file))return cp_ett_without_r(src_file, dest_tar, dest_file);
   if(is_empty_string(dest_file))
   {//TODO
     printf("%s -> %s %s\n", src_file, dest_tar, dest_file);
