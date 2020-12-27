@@ -771,7 +771,6 @@ static int cp_r_tte(char *src_tar, char *src_file, char *dest_file)
   int new = 0;
   if(!is_dir_ext(dest_file))
   {
-    printf("1-COUCOU\n");
     if(exist_ext(dest_file, 1) == 0)
     {
       char buf2[PATH_MAX];
@@ -786,7 +785,6 @@ static int cp_r_tte(char *src_tar, char *src_file, char *dest_file)
   }
   else
   {
-    printf("2-COUCOU\n");
     char *temporary = append_slash(dest_file);
     dest_file[0] = '\0';
     strcpy(dest_file, temporary);
@@ -796,30 +794,25 @@ static int cp_r_tte(char *src_tar, char *src_file, char *dest_file)
   }
   if(is_dir(src_tar, src_file))
   {
-    printf("3-COUCOU\n");
     char *tempora = append_slash(src_file);
     src_file[0] = '\0';
     strcpy(src_file, tempora);
     free(tempora);
   }
   if(exist(src_tar, src_file, 0) == 0){
-    printf("4-COUCOU\n");
     char buf2[PATH_MAX];
     sprintf(buf2, "%s/%s", src_tar, src_file);
     return dont_exist(buf2);
   }
   if(has_rights_src(src_tar, src_file) < 0){
-    printf("5-COUCOU\n");
     return -1;
   }
   if(new == 1){
-    printf("6-COUCOU\n");
     int a = rm_touch(dest_file, 2);
     if(a < 0)
       return error_rm_touch(a);
     if(tar_extract(src_tar, src_file, dest_file) < 0)
     {
-      printf("7-COUCOU\n");
       char err[33];
       sprintf(err, "%s: Problems at the add of file\n", CMD_NAME);
       write(STDERR_FILENO, err, strlen(err));
@@ -828,35 +821,8 @@ static int cp_r_tte(char *src_tar, char *src_file, char *dest_file)
   }
   else
   {
-    /*printf("8-COUCOU\n");
-    char *buf = malloc(100);
-    if(nb_of_words(src_file) > 1){
-      printf("9-COUCOU\n");
-      char src_file_copy[100];
-      strcpy(src_file_copy, src_file);
-      char *tmp = end_of_path(src_file_copy);
-      strcpy(buf, tmp);
-      free(tmp);
-    }
-    else
-    {
-      printf("10-COUCOU\n");
-      strcpy(buf, src_file);
-    }
-    char buf2[PATH_MAX];
-    if(dest_file[strlen(dest_file) - 1] == '/')
-      dest_file[strlen(dest_file) - 1] = '\0';
-    sprintf(buf2, "%s/%s", dest_file, buf);
-    printf("11-COUCOU\n");
-    if(exist_ext(buf2, 1) == 0)
-    {
-      printf("12-COUCOU\n");
-      free(buf);
-      return -1;
-    }*/
     if(tar_extract(src_tar, src_file, dest_file) < 0)
     {
-      printf("13-COUCOU\n");
       char err[33];
       sprintf(err, "%s: Problems at the add of file\n", CMD_NAME);
       write(STDERR_FILENO, err, strlen(err));
@@ -865,7 +831,6 @@ static int cp_r_tte(char *src_tar, char *src_file, char *dest_file)
     }
     //free(buf);
   }
-  printf("14-COUCOU\n");
   return 0;
 }
 
