@@ -252,14 +252,7 @@ int tar_extract (const char *tar_name, const char *filename, const char *dest)
   return ret;
 }
 
-/**
- * Copy the content of a file from a tar into a file descriptor.
- * filename should be readable
- * @param tar_name the tar in which we want to read `filename`
- * @param filename the file we want to read
- * @param fd a file descriptor to write to
- * @return 0 on success; -1 otherwise
- */
+
 int tar_cp_file(const char *tar_name, const char *filename, int fd)
 {
   if (tar_access (tar_name, filename, R_OK) < 0)
