@@ -1,4 +1,3 @@
-//#include <sys/stat.h>
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <unistd.h>
@@ -11,60 +10,48 @@
 #include "tar.h"
 #include "errors.h"
 #include "command_handler.h"
+#include "utils.h"
+#include "path_lib.h"
 
 #define CMD_NAME "mkdir"
 
-//Check the acces of the file to create and his father, return -2 for the parent problems
-//return -1 if the file already exists else 0
-static int access_mkdir(char *tar_name, char *filename)
-{
-  char copy_filename[PATH_MAX];
-  strcpy(copy_filename, filename);
-  copy_filename[strlen(copy_filename) - 1] = '\0';
-  if(tar_access(tar_name, filename, F_OK) > 0 || tar_access(tar_name, copy_filename, F_OK) > 0)
-    return -2;
-
-  char *after_last_slash = strrchr(copy_filename, '/');
-  if(after_last_slash != NULL)
-  {
-    copy_filename[strlen(copy_filename) - strlen(after_last_slash) + 1] = '\0';
-    if(tar_access(tar_name, copy_filename, W_OK) < 0 || tar_access(tar_name, copy_filename, X_OK) < 0)
-      return -1;
-  }
-
-  return 0;
-}
-
-
-
 int mkdir(char *tar_name, char *filename, char *options)
 {
-  if(filename[strlen(filename) - 1] != '/')
-    strcat(filename, "/");
-
-  int res_access = access_mkdir(tar_name, filename);
   int len_tar_name = strlen(tar_name);
-  if(res_access == -2)
+  int len_filename = strlen(filename);
+  char err[len_tar_name + len_filename + 30];
+  sprintf(err, "cannot create directory \'%s/%s\'", tar_name, filename);
+  if (is_empty_string(filename))
   {
     errno = EEXIST;
-    tar_name[len_tar_name] = '/';
-    char buf[len_tar_name+27];
-    sprintf(buf, "cannot create directory \'%s\'", tar_name);
-    error_cmd(CMD_NAME, buf);
+    error_cmd(CMD_NAME, err);
     return EXIT_FAILURE;
   }
-  if(res_access == -1)
+  switch(type_of_file(tar_name, filename, true))
   {
-    tar_name[len_tar_name] = '/';
-    error_cmd(CMD_NAME, tar_name);
-    return EXIT_FAILURE;
+    case REG:
+    case DIR:
+      errno = EEXIST;
+      error_cmd(CMD_NAME, err);
+      return EXIT_FAILURE;
+    case NONE:
+      if (errno != ENOENT)
+      {
+        if (errno == ENOTDIR)
+          errno = EEXIST;
+        error_cmd(CMD_NAME, err);
+        return EXIT_FAILURE;
+      }
+      break;
   }
-  if(tar_add_file(tar_name, NULL, filename) != 0)
+  char *dir = append_slash(filename);
+  if(tar_add_file(tar_name, NULL, dir) != 0)
   {
-    tar_name[len_tar_name] = '/';
-    error_cmd(CMD_NAME, tar_name);
+    free(dir);
+    error_cmd(CMD_NAME, err);
     return EXIT_FAILURE;
   }
+  free(dir);
   return EXIT_SUCCESS;
 }
 
