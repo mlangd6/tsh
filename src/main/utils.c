@@ -94,6 +94,15 @@ char *append_slash(const char *str)
 }
 
 
+void append_slash_filename(char *filename)
+{
+  char *tmp = append_slash(filename);
+  filename[0] = '\0';
+  strcpy(filename, tmp);
+  free(tmp);
+}
+
+
 int is_prefix (const char *prefix, const char *str)
 {
   size_t prefix_len = strlen(prefix);

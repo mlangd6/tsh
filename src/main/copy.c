@@ -164,14 +164,6 @@ static int has_rights_dest_ext(char *dest_file)
   return 0;
 }
 
-static void append_slash_filename(char *filename)
-{
-  char *tmp = append_slash(filename);
-  filename[0] = '\0';
-  strcpy(filename, tmp);
-  free(tmp);
-}
-
 static void end_of_path_filename(char *path, char *the_end_of_path)
 {
   char *end_ofpath = end_of_path(path);

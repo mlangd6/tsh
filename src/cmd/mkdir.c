@@ -11,6 +11,7 @@
 #include "tar.h"
 #include "errors.h"
 #include "command_handler.h"
+#include "utils.h"
 
 #define CMD_NAME "mkdir"
 
@@ -39,8 +40,7 @@ static int access_mkdir(char *tar_name, char *filename)
 
 int mkdir(char *tar_name, char *filename, char *options)
 {
-  if(filename[strlen(filename) - 1] != '/')
-    strcat(filename, "/");
+  append_slash_filename(filename);
 
   int res_access = access_mkdir(tar_name, filename);
   int len_tar_name = strlen(tar_name);
