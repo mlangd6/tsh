@@ -5,26 +5,30 @@
 #include <fcntl.h>
 #include <unistd.h>
 
-#include "parse_line.h"
+#include "tokens.h"
 
 #include "parse_line_test.h"
 #include "minunit.h"
 #include "tsh_test.h"
 
+#define NB_LINES 8
 
 extern int tests_run;
 
 static char *tokenize_test();
-static char *exec_tokens_test();
+static char *parse_tokens_success_test();
+static char *parse_tokens_err_test();
 
 static char *(*tests[])(void) =
 {
   tokenize_test,
-  exec_tokens_test
+  parse_tokens_success_test,
+  parse_tokens_err_test,
 };
 
 static char *all_tests()
 {
+
   for (int i = 0; i < PARSE_LINE_TEST_SIZE; i++)
   {
     mu_run_test(tests[i]);
@@ -47,59 +51,117 @@ int launch_parse_line_tests()
   return (results == 0);
 }
 
-
 static char *tokenize_test()
 {
-  int nb_el;
-  char *user_input = malloc(PATH_MAX);
-  strcpy(user_input, "< in >   out    cat   2>> err_append");
-  token **tokens = tokenize(user_input, &nb_el);
-  mu_assert("Tokenize test: number of elements is wrong", nb_el == 7);
-  mu_assert("Tokenize test: return value doesn't end by NULL", tokens[nb_el] == NULL);
-  token tests[] =
+  char line[] = "< in 2>> err_app       cat | cat | cmd fic >> app 2> err";
+  list *tokens = tokenize(line);
+  mu_assert("tokenize test: 2 pipes should result with a list of size 3", list_size(tokens) == 3);
+  token excpexcted[] =
   {
     {.val.red = STDIN_REDIR, REDIR},
     {.val.arg = "in", ARG},
-    {.val.arg = STDOUT_REDIR, REDIR},
-    {.val.arg = "out", ARG},
-    {.val.arg = "cat", ARG},
     {.val.red = STDERR_APPEND, REDIR},
-    {.val.arg = "err_append", ARG}
+    {.val.arg = "err_app", ARG},
+    {.val.arg = "cat", ARG},
+    {.type = PIPE},
+    {.val.arg = "cat", ARG},
+    {.type = PIPE},
+    {.val.arg = "cmd", ARG},
+    {.val.arg = "fic", ARG},
+    {.val.red = STDOUT_APPEND, REDIR},
+    {.val.arg = "app", ARG},
+    {.val.red = STDERR_REDIR, REDIR},
+    {.val.arg = "err", ARG},
+    {.type = PIPE}
   };
-  for (int i = 0; i < nb_el; i++)
+  token *tok_it;
+  array *arr_it = list_remove_first(tokens);
+  for (int i = 0; i < 15; i++)
   {
-    mu_assert("Tokenize test: error on return vector elements type", tests[i].type == tokens[i] -> type);
-    if (tests[i].type == ARG)
+    if (array_size(arr_it) == 0)
     {
-      mu_assert("Tokenize test: error on return vector elements value (arg)", !strcmp(tests[i].val.arg, tokens[i] -> val.arg));
+      array_free(arr_it, false);
+      arr_it = list_remove_first(tokens);
     }
-    else
+    tok_it = array_remove_first(arr_it);
+    mu_assert("tokenize test: error on returned tokens type", excpexcted[i].type == tok_it -> type);
+    switch(tok_it -> type)
     {
-      mu_assert("Tokenize test: error on return vector elements value (redir)", tests[i].val.red == tokens[i] -> val.red);
+      case ARG:
+        mu_assert("Tokenize test: error on return vector elements value (arg)", !strcmp(excpexcted[i].val.arg, tok_it -> val.arg));
+        break;
+      case REDIR:
+        mu_assert("Tokenize test: error on return vector elements value (redir)", excpexcted[i].val.red == tok_it -> val.red);
+
+      default:
+        break;
     }
-    free(tokens[i]);
+    free(tok_it);
   }
-  free(user_input);
-  free(tokens);
+  array_free(arr_it, false);
+  free_tokens_list(tokens);
+
   return 0;
 }
 
-static char *exec_tokens_test()
+static char *parse_tokens_success_test()
 {
-  int nb_el;
-  char *user_input = malloc(PATH_MAX);
-  strcpy(user_input, "< in >   out    cat   fic 2>> err_append");
-  token **tokens = tokenize(user_input, &nb_el);
-  char **argv = malloc((nb_el + 1) * sizeof(char *));
-  nb_el = exec_tokens(tokens, nb_el, argv);
+  char lines[NB_LINES][512] =
+  {
+    "cmd",
+    "cmd | cmd | cmd",
+    "cmd | cmd | cmd < fic | cmd",
+    "cmd < fic | cmd > fic > fic | cmd ",
+    "> fic",
+    "cmd < fic >> fic | cmd 2>> fic",
+    "cmd > fic",
+    "cmd > fic | cmd > fic"
+  };
+  list *tokens[NB_LINES];
+  for (int i = 0; i < NB_LINES; i++)
+  {
+    tokens[i] = tokenize(lines[i]);
+    mu_assert("Parse tokens should return true in parse_tokens_success_test", parse_tokens(tokens[i]));
+    free_tokens_list(tokens[i]);
+  }
+  return 0;
+}
+
+static char *parse_tokens_err_test()
+{
+  char lines[NB_LINES][512] =
+  {
+    "| cat fic",
+    "<",
+    "     |",
+    "cat fic |",
+    "cat fic | cat |    ",
+    "cat fic | >",
+    "< | cat",
+    "< > "
+  };
+  list *tokens[NB_LINES];
+  for (int i = 0; i < NB_LINES; i++)
+  {
+    tokens[i] = tokenize(lines[i]);
+  }
+
+  int null_fd = open("/dev/null", O_WRONLY);
+  init_redirections();
+  add_reset_redir(STDERR_FILENO, 0);
+  dup2(null_fd, STDERR_FILENO); // Avoid syntax error message
+  bool all_false[8];
+  for (int i = 0; i < NB_LINES; i++)
+  {
+    all_false[i] = parse_tokens(tokens[i]);
+    free_tokens_list(tokens[i]);
+  }
   reset_redirs();
-  mu_assert("Exec tokens test: error on size of argv", nb_el == 2);
-  char *tests[] = {"cat", "fic"};
-  mu_assert("Exec tokens test: argv[0] != \"cat\"", !strcmp(argv[0], tests[0]));
-  mu_assert("Exec tokens test: argv[2] != \"fic\"", !strcmp(argv[1], tests[1]));
-  mu_assert("Exec tokens test: argv[2] != NULL", argv[2] == NULL);
-  free(tokens);
-  free(user_input);
-  free(argv);
+  exit_redirections();
+  for (int i = 0; i < NB_LINES; i++)
+  {
+    mu_assert("Parse tokens: should return false in parse_tokens_err_test", !all_false[i]);
+  }
+
   return 0;
 }

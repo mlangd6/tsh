@@ -15,6 +15,7 @@ static char* list_create_test();
 static char* list_size_test();
 static char* list_ins_rem_last_test();
 static char* list_ins_rem_first_test();
+static char *list_for_all_test();
 
 extern int tests_run;
 
@@ -23,7 +24,8 @@ static char *(*tests[])(void) =
     list_create_test,
     list_size_test,
     list_ins_rem_last_test,
-    list_ins_rem_first_test
+    list_ins_rem_first_test,
+    list_for_all_test
   };
 
 static char *all_tests()
@@ -140,5 +142,32 @@ static char* list_ins_rem_first_test()
   mu_assert("List should be empty", 1 == list_is_empty(list));
   list_free(list, false);
 
+  return 0;
+}
+
+static bool pos(void *el)
+{
+  int *val = el;
+  return (*val >= 0);
+}
+
+static char *list_for_all_test()
+{
+  list *l = list_create();
+  const int size = 15;
+  int *pi;
+  for (int i = 0; i < size; i++)
+  {
+    pi = malloc(sizeof(int));
+    *pi = i;
+    list_insert_last(l, pi);
+  }
+
+  mu_assert("list_for_all should return true if predicate test if the list is filled with positive number", list_for_all(l, pos));
+  pi = malloc(sizeof(int));
+  *pi = -1;
+  list_insert_last(l, pi);
+  mu_assert("list_for_all should return false if predicate test if the list is filled with positive number", !list_for_all(l, pos));
+  list_free(l, true);
   return 0;
 }

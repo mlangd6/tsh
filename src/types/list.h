@@ -9,7 +9,7 @@ typedef struct list list;
 /* Create an empty list */
 list *list_create ();
 
-/* free LIST and all its elements. 
+/* free LIST and all its elements.
    if FULL is true then free is used on data too */
 void list_free (list *list, bool full);
 
@@ -56,5 +56,19 @@ void *list_last (list *list);
 /* Apply F to all elements of LIST */
 void list_iter (list *list, void (*f)(void *));
 
-  
+/**
+ * Check if all the elements of the list satisfies a predicate
+ * @param list the list
+ * @param predicate the predicate to test on all the elements of the list
+ * @return true if predicate returns true on all of the elements, else false
+ */
+bool list_for_all(list *list, bool (*predicate)(void *));
+
+/**
+ * Free all the list
+ * @param list the list to be free'd
+ * @param free_func the function to launch that free the elements of the list
+ */
+void list_free_full(list *list, void (*free_func)(void *));
+
 #endif
