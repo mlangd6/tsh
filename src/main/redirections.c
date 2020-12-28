@@ -36,6 +36,9 @@ static void add_reset_redir(int fd, pid_t pid);
 static int handle_inside_tar_redir(int fd, char *tar_name, char *in_tar);
 static int launch_redir_tar_link(char *tar_name, char *in_tar, redir_type r);
 static int append_tar_file(char *tar_name, char *in_tar, int read_fd);
+static int handle_outside_tar_redir(int fd, char *filename, int open_flags);
+static int handle_inside_tar_stdin_redir(char *tar_name, char *filename);
+static int stdin_tar_redir(char *tar_name, char *filename);
 
 stack *reset_fds;
 
@@ -96,6 +99,12 @@ int launch_redir(redir_type r, char *arg)
 /* Function to handle both append redirections */
 static int redir_append(char *s, int fd, redir_type r)
 {
+  if (is_dir_name(s))
+  {
+    errno = EISDIR;
+    error_cmd("tsh", s);
+    return -1;
+  }
   char path[PATH_MAX];
   if (*s == '/')
     strcpy(path, s);
@@ -105,6 +114,7 @@ static int redir_append(char *s, int fd, redir_type r)
   if (! reduce_abs_path(path, resolved))
   {
     error_cmd("tsh", path);
+    return -1;
   }
   char *in_tar;
   if ((in_tar = split_tar_abs_path(resolved)))
@@ -115,16 +125,7 @@ static int redir_append(char *s, int fd, redir_type r)
   }
   else
   {
-    add_reset_redir(fd, 0);
-    int new_fd = open(s, O_CREAT | O_APPEND | O_WRONLY, 0666);
-    if (new_fd < 0)
-    {
-      error_cmd("tsh", s);
-      return -1;
-    }
-    dup2(new_fd, fd);
-    close(new_fd);
-    return 0;
+    return handle_outside_tar_redir(fd, resolved, O_CREAT | O_APPEND | O_WRONLY);
   }
 }
 
@@ -152,12 +153,11 @@ static int handle_inside_tar_redir(int fd, char *tar_name, char *in_tar)
       perror("Redirections: fork");
       break;
     case 0: // child
-    // Le procesus fils écrit lit dans le tube et écrit directement dans le tar
+    // Le procesus fils lit dans le tube et écrit directement dans le tar
     {
       close(pipefd[1]);
-      int append_ret;
-      if (( append_ret = append_tar_file(tar_name, in_tar, pipefd[0])) < 0)
-        return append_ret;
+      int ex = append_tar_file(tar_name, in_tar, pipefd[0]) == 0 ? EXIT_SUCCESS : EXIT_FAILURE;
+      exit(ex);
     }
     default: // parent
       // Ajout du reset et on ferme les deux fd du tube (stdout ou stderr sera
@@ -340,5 +340,123 @@ static int stderr_append(char *s)
 
 static int stdin_redir(char *s)
 {
+  if (is_dir_name(s))
+  {
+    errno = EISDIR;
+    error_cmd("tsh", s);
+    return -1;
+  }
+  char path[PATH_MAX];
+  if (*s == '/')
+    strcpy(path, s);
+  else
+    sprintf(path, "%s/%s", getenv("PWD"), s);
+  char resolved[PATH_MAX];
+  if (! reduce_abs_path(path, resolved))
+  {
+    error_cmd("tsh", path);
+    return -1;
+  }
+  char *in_tar;
+  if ((in_tar = split_tar_abs_path(resolved)))
+  {
+    int link_res = launch_redir_tar_link(resolved, in_tar, STDIN_REDIR);
+    if (link_res != -2) return link_res;
+    return stdin_tar_redir(resolved, in_tar);
+  }
+  return handle_outside_tar_redir(STDIN_FILENO, resolved, O_RDONLY);
+}
+
+static int stdin_tar_redir(char *tar_name, char *filename)
+{
+  if (filename[0] == '\0')
+  {
+    errno = EISDIR;
+    goto error;
+  }
+  switch(type_of_file(tar_name, filename, false))
+  {
+    case NONE:
+      goto error;
+    case DIR:
+      errno = EISDIR;
+      goto error;
+    case REG:
+      break;
+  }
+  if (tar_access(tar_name, filename, R_OK) != 1)
+  {
+    goto error;
+  }
+  return handle_inside_tar_stdin_redir(tar_name, filename);
+  error:
+  {
+    char err[PATH_MAX];
+    sprintf(err, "%s/%s", tar_name, filename);
+    error_cmd("tsh", err);
+    return -1;
+  }
+}
+
+static int handle_inside_tar_stdin_redir(char *tar_name, char *filename)
+{
+  int pipefd[2];
+  if (pipe(pipefd) == -1)
+  {
+    perror("Redirections: pipe");
+    return -1;
+  }
+  pid_t pid = fork();
+  switch(pid)
+  {
+    case -1:
+      perror("Redirections: fork");
+      break;
+    case 0: // child
+    // Le procesus fils écrit dans le tube
+    {
+      close(pipefd[0]);
+      int tar_fd = open(tar_name, O_RDONLY);
+      struct posix_header hd;
+      seek_header(tar_fd, filename, &hd);
+      ssize_t read_size = get_file_size(&hd);
+      read_write_buf_by_buf(tar_fd, pipefd[1], read_size, 4096);
+      exit(EXIT_SUCCESS);
+    }
+    default: // Parent
+    {
+      add_reset_redir(STDIN_FILENO, pid);
+      dup2(pipefd[0], STDIN_FILENO);
+      close(pipefd[1]);
+      close(pipefd[0]);
+      break;
+    }
+  }
+  return 0;
+}
+
+static int handle_outside_tar_redir(int fd, char *filename, int open_flags)
+{
+  struct stat s;
+  if (stat(filename, &s) == 0)
+  {
+    if (S_ISDIR(s.st_mode))
+    {
+      errno = EISDIR;
+      error_cmd("tsh", filename);
+      return -1;
+    }
+  }
+  add_reset_redir(fd, 0);
+  int new_fd;
+  if (O_CREAT & open_flags) new_fd = open(filename, open_flags, 0666);
+  else new_fd = open(filename, open_flags);
+  if (fd < 0)
+  {
+    error_cmd("tsh", filename);
+    return -1;
+  }
+  dup2(new_fd, fd);
+  close(new_fd);
   return 0;
 }
