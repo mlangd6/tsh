@@ -233,29 +233,43 @@ int add_tar_to_tar_rec(const char *tar_name_src, char *tar_name_dest, const char
     return error_pt(NULL, 0, errno);
 
   //We look all the file of tar_name_src
-  for(int i = 0; i < s; i++){
-    char copy[PATH_MAX];
-    int j = 0;
-    while(header[i].name[j] == source[j] && j < strlen(source))
-    {
-      copy[j] = source[j];
-      j++;
-    }
-    copy[j] = '\0';
-    //if the copy and source are equals
-    if(strcmp(copy, source) == 0 && (header[i].name[j] == '\0' || header[i].name[j-1] == '/')){
-      char copy2[PATH_MAX];
-      int k = 0;
-      for(k = 0; k < strlen(dest); k++){copy2[k] = dest[k];}
-      copy2[k] = '\0';
-      int l = 0;
-      for(l = 0; l < strlen(header[i].name) - strlen(copy); l++){
-        copy2[strlen(dest)+l] = header[i].name[strlen(copy)+l];
+  if(!is_empty_string(source))
+  {
+    for(int i = 0; i < s; i++){
+      char copy[PATH_MAX];
+      int j = 0;
+      while(header[i].name[j] == source[j] && j < strlen(source))
+      {
+        copy[j] = source[j];
+        j++;
       }
-      copy2[strlen(dest)+l] = '\0';
+      copy[j] = '\0';
+      //if the copy and source are equals
+      if(strcmp(copy, source) == 0 && (header[i].name[j] == '\0' || header[i].name[j-1] == '/')){
+        char copy2[PATH_MAX];
+        int k = 0;
+        for(k = 0; k < strlen(dest); k++){copy2[k] = dest[k];}
+        copy2[k] = '\0';
+        int l = 0;
+        for(l = 0; l < strlen(header[i].name) - strlen(copy); l++){
+          copy2[strlen(dest)+l] = header[i].name[strlen(copy)+l];
+        }
+        copy2[strlen(dest)+l] = '\0';
 
-      //Add Source or a file of source in tar_name_dest as copy2
-      if(add_tar_to_tar(tar_name_src, tar_name_dest, header[i].name, copy2)<0)printf("Bad\n");
+        //Add Source or a file of source in tar_name_dest as copy2
+        if(add_tar_to_tar(tar_name_src, tar_name_dest, header[i].name, copy2)<0)
+          return error_pt(NULL, 0, errno);
+      }
+    }
+  }
+  else
+  {
+    for(int i = 0; i < s; i++)
+    {
+      char copy[PATH_MAX];
+      sprintf(copy, "%s%s", dest, header[i].name);
+      if(add_tar_to_tar(tar_name_src, tar_name_dest, header[i].name, copy)<0)
+        return error_pt(NULL, 0, errno);
     }
   }
   free(header);

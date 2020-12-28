@@ -257,6 +257,20 @@ static int cp_r_ttt(char *src_tar, char *src_file, char *dest_tar, char *dest_fi
   {
     char dest_tar_copy[PATH_MAX];
     strcpy(dest_tar_copy, dest_tar);
+    if(is_empty_string(src_file))
+    {
+      char str[100];
+      strcpy(str, src_tar);
+      if(nb_of_words(src_tar) > 1)
+        end_of_path_filename(str, dest_file);
+      else
+        strcpy(dest_file, src_tar);
+
+      append_slash_filename(dest_file);
+      add_tar_to_tar_rec(src_tar, dest_tar_copy, "\0", dest_file);
+      add_ext_to_tar(dest_tar_copy, NULL, dest_file);
+      return 0;
+    }
     char str[100];
     strcpy(str, src_file);
     if(nb_of_words(src_file) > 1)
@@ -269,7 +283,6 @@ static int cp_r_ttt(char *src_tar, char *src_file, char *dest_tar, char *dest_fi
 
     return add_tar_to_tar_rec(src_tar, dest_tar_copy, src_file, dest_file);
   }
-
   int new = 0;
   if(!is_dir(dest_tar, dest_file))
   {
@@ -290,16 +303,24 @@ static int cp_r_ttt(char *src_tar, char *src_file, char *dest_tar, char *dest_fi
     if(has_rights_dest(dest_tar, dest_file) < 0)
       return -1;
   }
-  if(is_dir(src_tar, src_file))
-    append_slash_filename(src_file);
-
-  if(exist(src_tar, src_file, 1) < 0){
-    char buf[PATH_MAX];
-    sprintf(buf, "%s/%s", src_tar, src_file);
-    return dont_exist(buf);
+  if(is_empty_string(src_file) && new == 1)
+  {
+    add_tar_to_tar_rec(src_tar, dest_tar, src_file, dest_file);
+    add_ext_to_tar(dest_tar, NULL, dest_file);
+    return 0;
   }
-  if(has_rights_src(src_tar, src_file) < 0){
-    return -1;
+  if(!is_empty_string(src_file))
+  {
+    if(is_dir(src_tar, src_file))
+      append_slash_filename(src_file);
+    if(exist(src_tar, src_file, 1) < 0){
+      char buf[PATH_MAX];
+      sprintf(buf, "%s/%s", src_tar, src_file);
+      return dont_exist(buf);
+    }
+    if(has_rights_src(src_tar, src_file) < 0){
+      return -1;
+    }
   }
   if(new == 1){
     if(add_tar_to_tar_rec(src_tar, dest_tar, src_file, dest_file) < 0)
@@ -312,39 +333,57 @@ static int cp_r_ttt(char *src_tar, char *src_file, char *dest_tar, char *dest_fi
   }
   else
   {
-    char *buf = malloc(100);
-    if(nb_of_words(src_file) > 1){
-      char src_file_copy[100];
-      strcpy(src_file_copy, src_file);
-      end_of_path_filename(src_file_copy, buf);
-    }
-    else
-      strcpy(buf, src_file);
-
+    char buf[100];
     char buf2[PATH_MAX];
-
-    if(!is_empty_string(dest_file))
+    if(!is_empty_string(src_file))
     {
-      if(dest_file[strlen(dest_file) - 1] == '/')
-        dest_file[strlen(dest_file) - 1] = '\0';
-      sprintf(buf2, "%s/%s", dest_file, buf);
+      if(nb_of_words(src_file) > 1){
+        char src_file_copy[100];
+        strcpy(src_file_copy, src_file);
+        end_of_path_filename(src_file_copy, buf);
+      }
+      else
+        strcpy(buf, src_file);
+      if(!is_empty_string(dest_file))
+      {
+        if(dest_file[strlen(dest_file) - 1] == '/')
+          dest_file[strlen(dest_file) - 1] = '\0';
+        sprintf(buf2, "%s/%s", dest_file, buf);
+      }
+      else
+        sprintf(buf2, "%s", buf);
     }
     else
-      sprintf(buf2, "%s", buf);
-    if(exist(dest_tar, buf2, 0) > 0)
     {
-      free(buf);
-      return -1;
+      if(nb_of_words(src_tar) > 1){
+        char src_tar_copy[PATH_MAX];
+        strcpy(src_tar_copy, src_tar);
+        end_of_path_filename(src_tar_copy, buf);
+      }
+      else
+        strcpy(buf, src_tar);
+      sprintf(buf2, "%s%s/", dest_file, buf);
     }
+    if(exist(dest_tar, buf2, 1) == 0)
+      return -1;
+
     if(add_tar_to_tar_rec(src_tar, dest_tar, src_file, buf2) < 0)
     {
       char err[33];
       sprintf(err, "%s: Problems at the add of file\n", CMD_NAME);
       write(STDERR_FILENO, err, strlen(err));
-      free(buf);
       return -1;
     }
-    free(buf);
+    if(is_empty_string(src_file))
+    {
+      if(add_ext_to_tar(dest_tar, NULL, buf2) < 0)
+      {
+        char err[33];
+        sprintf(err, "%s: Problems at the add of file\n", CMD_NAME);
+        write(STDERR_FILENO, err, strlen(err));
+        return -1;
+      }
+    }
   }
   return 0;
 }
