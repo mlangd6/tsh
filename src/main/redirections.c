@@ -25,8 +25,8 @@ struct reset_redir {
 };
 
 static int get_required_blocks(size_t old_size, size_t read_size, int *padding);
-static int redir_append(char *s, int fd, redir_type r);
-static int tar_redir_append(char *tar_name, char *in_tar, int fd);
+static int redir(char *s, int fd, redir_type r);
+static int tar_redir(char *tar_name, char *in_tar, int fd, bool append);
 static int stdout_redir(char *s);
 static int stderr_redir(char *s);
 static int stdout_append(char *s);
@@ -38,6 +38,8 @@ static int append_tar_file(char *tar_name, char *in_tar, int read_fd);
 static int handle_outside_tar_redir(int fd, char *filename, int open_flags);
 static int handle_inside_tar_stdin_redir(char *tar_name, char *filename);
 static int stdin_tar_redir(char *tar_name, char *filename);
+static int remove_content_tar_file(char *tar_name, char *in_tar);
+
 
 stack *reset_fds;
 
@@ -96,7 +98,7 @@ int launch_redir(redir_type r, char *arg)
 /* DEFINITION OF REDIRECTIONS FUNCTIONS BELOW */
 
 /* Function to handle both append redirections */
-static int redir_append(char *s, int fd, redir_type r)
+static int redir(char *s, int fd, redir_type r)
 {
   if (is_dir_name(s))
   {
@@ -120,11 +122,14 @@ static int redir_append(char *s, int fd, redir_type r)
   {
     int link_res = launch_redir_tar_link(resolved, in_tar, r);
     if (link_res != -2) return link_res;
-    return tar_redir_append(resolved, in_tar, fd);
+    return tar_redir(resolved, in_tar, fd, r == STDERR_APPEND || r == STDOUT_APPEND);
   }
   else
   {
-    return handle_outside_tar_redir(fd, resolved, O_CREAT | O_APPEND | O_WRONLY);
+    if (r == STDERR_APPEND || r == STDOUT_APPEND)
+      return handle_outside_tar_redir(fd, resolved, O_CREAT | O_APPEND | O_WRONLY);
+    else
+      return handle_outside_tar_redir(fd, resolved, O_CREAT | O_TRUNC | O_WRONLY);
   }
 }
 
@@ -172,7 +177,7 @@ static int handle_inside_tar_redir(int fd, char *tar_name, char *in_tar)
 }
 
 /* Handle >> 2>> redirections inside tar */
-static int tar_redir_append(char *tar_name, char *in_tar, int fd)
+static int tar_redir(char *tar_name, char *in_tar, int fd, bool append)
 {
   // On vérifie que la redirection n'est pas vers un dossier
   if (in_tar[0] == '\0')
@@ -198,6 +203,10 @@ static int tar_redir_append(char *tar_name, char *in_tar, int fd)
       goto error;
       break;
     case REG:
+      if (!append)
+      {
+        remove_content_tar_file(tar_name, in_tar);
+      }
       break;
   }
   // On vérifie si le fichier existe déjà et si oui si on peut écrire dedans
@@ -319,22 +328,22 @@ static int append_tar_file(char *tar_name, char *in_tar, int read_fd)
 
 static int stdout_redir(char *s)
 {
-  return 0;
+  return redir(s, STDOUT_FILENO, STDOUT_REDIR);
 }
 
 static int stderr_redir(char *s)
 {
-  return 0;
+  return redir(s, STDERR_FILENO, STDERR_REDIR);
 }
 
 static int stdout_append(char *s)
 {
-  return redir_append(s, STDOUT_FILENO, STDOUT_APPEND);
+  return redir(s, STDOUT_FILENO, STDOUT_APPEND);
 }
 
 static int stderr_append(char *s)
 {
-  return redir_append(s, STDERR_FILENO, STDERR_APPEND);
+  return redir(s, STDERR_FILENO, STDERR_APPEND);
 }
 
 static int stdin_redir(char *s)
@@ -458,4 +467,29 @@ static int handle_outside_tar_redir(int fd, char *filename, int open_flags)
   dup2(new_fd, fd);
   close(new_fd);
   return 0;
+}
+
+static void no_contents_header_update(struct posix_header *hd)
+{
+  strcpy(hd -> size, "00000000000");
+}
+
+static int remove_content_tar_file(char *tar_name, char *in_tar)
+{
+  int tar_fd = open(tar_name, O_RDWR);
+  if (tar_fd < 0)
+    return -1;
+  struct posix_header hd;
+  seek_header(tar_fd, in_tar, &hd);
+  off_t tar_size = lseek(tar_fd, 0, SEEK_END);
+
+  int filesize = number_of_block(get_file_size(&hd)) * BLOCKSIZE;
+  if (update_header(&hd, tar_fd, in_tar, no_contents_header_update) != 0)
+    return -1;
+  off_t cur = lseek(tar_fd, 0, SEEK_CUR);
+  if (fmemmove(tar_fd, lseek(tar_fd, cur + filesize, SEEK_SET), tar_size - cur, cur) != 0)
+    return -1;
+  close(tar_fd);
+  return 0;
+
 }
