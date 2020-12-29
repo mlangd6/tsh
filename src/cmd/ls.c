@@ -459,7 +459,7 @@ static int print_filename(char name[100])
  */
 int ls (char *tar_name, char *filename, char *options)
 {
-  int tar_fd;
+  int tar_fd, ret;
   bool long_format;
   char *corrected_name;
   array *files; // on ajoute dans ce tableau les fichiers à afficher
@@ -470,7 +470,7 @@ int ls (char *tar_name, char *filename, char *options)
   // n'existe pas
   if (!corrected_name)
     {
-      error_cmd(CMD_NAME, filename);
+      tar_error_cmd(CMD_NAME, tar_name, filename);
       return -1;
     }
 
@@ -480,6 +480,8 @@ int ls (char *tar_name, char *filename, char *options)
 
   
   // On peut enfin initialiser
+  ret = EXIT_SUCCESS;
+  
   long_format = false;
   
   if (strchr(options, 'l'))
@@ -495,8 +497,9 @@ int ls (char *tar_name, char *filename, char *options)
       array *arr = tar_ls_dir(tar_fd, corrected_name, false);
       if (!arr)
 	{
-	  error_cmd(CMD_NAME, filename);
-	  return error_pt(&tar_fd, 1, errno);
+	  tar_error_cmd(CMD_NAME, tar_name, filename);
+	  ret = EXIT_FAILURE;
+	  goto exit;
 	}
 
       // on ajoute les en-têtes à files
@@ -514,7 +517,12 @@ int ls (char *tar_name, char *filename, char *options)
   else
     {
       struct posix_header hd;
-      seek_header (tar_fd, corrected_name, &hd);
+      if (seek_header (tar_fd, corrected_name, &hd) != 1)
+	{
+	  tar_error_cmd(CMD_NAME, tar_name, filename);
+	  ret = EXIT_FAILURE;
+	  goto exit;
+	}
 
       add_header_to_files (files, &hd);
     }
@@ -525,21 +533,25 @@ int ls (char *tar_name, char *filename, char *options)
   print_files (files, long_format);
 
 
+ exit:
   // On fait le ménage
   array_free (files, false);
   free (corrected_name);
   close (tar_fd);
   
-  return 0;
+  return ret;
 }
 
-int main(int argc, char **argv) {
-  unary_command cmd = {
-    CMD_NAME,
-    ls,
-    true,
-    true,
-    SUPPORT_OPT
-  };
+int main(int argc, char **argv)
+{
+  unary_command cmd =
+    {
+      CMD_NAME,
+      ls,
+      true,
+      true,
+      SUPPORT_OPT
+    };
+  
   return handle_unary_command (cmd, argc, argv);
 }
