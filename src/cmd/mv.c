@@ -16,8 +16,8 @@
 
 static void set_cmd_name()
 {
-  cmd_name[0] = '\0';
-  strcpy(cmd_name, "mv");
+  cmd_name_copy[0] = '\0';
+  strcpy(cmd_name_copy, "mv");
 }
 
 static void set_remove_cmd_name()
@@ -72,14 +72,14 @@ int mv_ext_to_tar (char *src_file, char *dest_tar, char *dest_file, char *opt)
       i = -1;
       break;
     case 0:
-      execlp("rm", "rm", "-r", src_file, NULL);
+      if(execlp("rm", "rm", "-r", src_file, NULL) < 0)i = -1;
       break;
     default:
       wait(NULL);
   }
   if(i == -1)
   {
-    error_cmd(cmd_name, src_file);
+    error_cmd(CMD_NAME, src_file);
   }
   return 0;
 }

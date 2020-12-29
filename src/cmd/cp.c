@@ -5,10 +5,12 @@
 #include "command_handler.h"
 #include "copy.h"
 
+#define CMD_NAME "cp"
+
 static void set_cmd_name()
 {
-  cmd_name[0] = '\0';
-  strcpy(cmd_name, "cp");
+  cmd_name_copy[0] = '\0';
+  strcpy(cmd_name_copy, "cp");
 }
 
 int main (int argc, char *argv[])
@@ -16,7 +18,7 @@ int main (int argc, char *argv[])
   set_cmd_name();
   binary_command cmd =
     {
-      cmd_name,
+      CMD_NAME,
       cp_tar_to_tar,
       cp_ext_to_tar,
       cp_tar_to_ext,
