@@ -311,51 +311,6 @@ int add_tar_to_tar(const char *tar_name_src, char *tar_name_dest, const char *so
 
 }
 
-// int add_tar_to_tar(const char *tar_name_src, char *tar_name_dest, const char *source, const char *dest){
-  // int s = 0;
-  // struct posix_header *header = tar_ls(tar_name_src, &s);
-  // int s_2 = 0;
-  // struct posix_header *header_2 = tar_ls(tar_name_dest, &s_2);
-  // int tar_src_fd = open(tar_name_src, O_RDWR);
-  // if ( tar_src_fd < 0)
-    // return error_pt(NULL, 0, errno);
-//
-  // initialisation of the header
-  // struct posix_header hd;
-  // memset(&hd, '\0', BLOCKSIZE);
-  // if(seek_header(tar_src_fd, source, &hd) < 0)
-    // return error_pt(&tar_src_fd, 1, errno);
-//
-  // Check if we want add in the same tar
-  // if(strcmp(tar_name_src, tar_name_dest) != 0)
-  // {
-    // open of TAR_NAME_DEST
-    // int tar_dest_fd;
-    // tar_dest_fd = open(tar_name_dest, O_RDWR);
-    // if ( tar_dest_fd < 0){
-      // perror(tar_name_dest);
-      // return error_pt(&tar_src_fd, 1, errno);
-    // }
-    // int fds[2] = {tar_dest_fd, tar_src_fd};
-    // writing the header and his containing
-    // if(read_and_write(tar_src_fd, tar_dest_fd, hd) < 0)
-      // return error_pt(fds, 2, errno);
-    // add_empty_block(tar_dest_fd);
-    // close(tar_dest_fd);
-  // }
-  // else
-  // {
-    // writing the header and his containing
-    // if(read_and_write(tar_src_fd, tar_src_fd, hd) < 0)
-      // return error_pt(&tar_src_fd, 1, errno);
-    // add_empty_block(tar_src_fd);
-  // }
-  // close(tar_src_fd);
-  // free(header);
-  // free(header_2);
-  // return 0;
-// }
-
 /* Add file SOURCE to tar at path TAR_NAME/FILENAME
    Or create file FILENAME to tar at path TAR_NAME/FILENAME */
 int add_ext_to_tar(const char *tar_name, const char *source, const char *filename) {
