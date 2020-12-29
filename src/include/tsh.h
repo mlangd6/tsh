@@ -18,6 +18,7 @@ void init_tsh_dir();
 char *get_tsh_dir(char *buf);
 int launch_tsh_func(char **argv, int argc);
 void set_ret_value(int ret);
+char *set_prompt(char *prompt);
 
 
 
