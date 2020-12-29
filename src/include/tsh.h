@@ -1,7 +1,6 @@
 #ifndef TSH_H
 #define TSH_H
 
-#define PROMPT "$ "
 #define CMD_NOT_FOUND " : command not found\n"
 #define CMD_NOT_FOUND_SIZE 22
 
