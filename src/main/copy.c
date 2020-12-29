@@ -828,9 +828,11 @@ static int cp_r_tte(char *src_tar, char *src_file, char *dest_file)
     return -1;
   }
   if(new == 1){
-    int a = rm_touch(dest_file, 2);
-    if(a < 0)
-      return error_rm_touch(a);
+    dest_file[strlen(dest_file) - 1 ] = '\0';
+    char *buf = strrchr(dest_file, '/');
+    char tmp[100];
+    strcpy(tmp, buf+1);
+    if(buf[0] != '\0')buf[0] = '\0';
     if(tar_extract(src_tar, src_file, dest_file) < 0)
     {
       char err[40];
@@ -838,6 +840,12 @@ static int cp_r_tte(char *src_tar, char *src_file, char *dest_file)
       write(STDERR_FILENO, err, strlen(err));
       return -1;
     }
+
+    char buf2[PATH_MAX];
+    sprintf(buf2, "%s/%s", dest_file, tmp);
+    char buf3[PATH_MAX];
+    sprintf(buf3, "%s/%s", dest_file, src_file);
+    if(rename(buf3, buf2) != 0)return -1;
   }
   else
   {
