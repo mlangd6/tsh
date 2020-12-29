@@ -1,446 +1,557 @@
-#include "tar.h"
-#include "errors.h"
-#include "path_lib.h"
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <sys/wait.h>
+#include <errno.h>
 #include <fcntl.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <unistd.h>
 #include <string.h>
-#include <assert.h>
 #include <time.h>
-#include <pwd.h>
+#include <unistd.h>
 
-#define SIZE_OF_LINE 200
-#define SIZE_OF_NAME 100
+#include "command_handler.h"
+#include "errors.h"
+#include "path_lib.h"
+#include "tar.h"
+#include "utils.h"
+
+/** Supported options by ls */
+#define SUPPORT_OPT "l"
+
+/** Command name */
 #define CMD_NAME "ls"
 
-static int convert_rights_nb_in_ch(char *rights);
-static int file_type(char c);
-static int convert_time(const char *ch);
-static int convert_size(char *size, int t);
-static int is_link(char c);
-static int nb_link(struct posix_header ph, struct posix_header *header, int n);
-static int nb_of_slash(char *name);
-static char *tar_name_func(char *name, char *name_two);
-static char *cut_name(char *to_cut, char *original, char *the_file_to_list);
-static int is_file(struct posix_header *header, char *name_in_tar, int nb_of_files_in_tar, int opt_or_not);
-static int write_ls(struct posix_header *header, struct posix_header header_to_write, char *name, int nb_of_files_in_tar);
+struct tar_fileinfo
+{
+  struct posix_header header;
 
+  unsigned int nb_links;
+};
 
-/* Convert a char pointer of rights with cipher format "0000755" in
-   a char pointer format "rwxr-xr-x" */
-static int convert_rights_nb_in_ch(char *rights) {
-  char *tmp = calloc(11, 1);
-  int c = 1;
-  for(int i = 4; i < 7; i++, c++)
-  {
-    int aux = c*((i-1)%3)+(c-1)%2;
-    switch(rights[i])
-    {
-      case '0' : tmp[aux] = '-'; tmp[aux + 1] = '-'; tmp[aux + 2] = '-'; break;
-      case '1' : tmp[aux] = '-'; tmp[aux + 1] = '-'; tmp[aux + 2] = 'x'; break;
-      case '2' : tmp[aux] = '-'; tmp[aux + 1] = 'w'; tmp[aux + 2] = '-'; break;
-      case '3' : tmp[aux] = '-'; tmp[aux + 1] = 'w'; tmp[aux + 2] = 'x'; break;
-      case '4' : tmp[aux] = 'r'; tmp[aux + 1] = '-'; tmp[aux + 2] = '-'; break;
-      case '5' : tmp[aux] = 'r'; tmp[aux + 1] = '-'; tmp[aux + 2] = 'x'; break;
-      case '6' : tmp[aux] = 'r'; tmp[aux + 1] = 'w'; tmp[aux + 2] = '-'; break;
-      case '7' : tmp[aux] = 'r'; tmp[aux + 1] = 'w'; tmp[aux + 2] = 'x'; break;
-    }
-  }
-  tmp[9] = ' ';tmp[10] = '\0';
-  write(STDOUT_FILENO, tmp, strlen(tmp));
-  free(tmp);
-  return 0;
+static int tficmp (const void *lhs, const void *rhs)
+{
+  struct tar_fileinfo *ltfi = (struct tar_fileinfo*)lhs;
+  struct tar_fileinfo *rtfi = (struct tar_fileinfo*)rhs;
+
+  return strcmp (ltfi->header.name, rtfi->header.name);
 }
 
-/* Return the letter "d" if the typeflag corresponds with a directory,
-   "l" if the typeflag corresponds with a link else "-" */
-static int file_type(char c) {
-  if(c == DIRTYPE)
-    write(STDOUT_FILENO, "d", 1);
-  else if(c == LNKTYPE || c == SYMTYPE)
-    write(STDOUT_FILENO, "l", 1);
-  else
-    write(STDOUT_FILENO, "-", 1);
-  return 0;
-}
+static int max_nlink_width;
+static int max_owner_width;
+static int max_group_width;
+static int max_size_width;
 
-/* Return 1 if the typeflag representing by char c represent a link type,
-   else 0 */
-static int is_link(char c) {
-  if(c == LNKTYPE || c == SYMTYPE)
-    return 1;
-  return 0;
-}
-
-/* Return the number of occurences of '/' in a name */
-static int nb_of_slash(char *name) {
-  int cmp = 0;
-  for(int i = 0; i < strlen(name)-1; i++)
-    if(name[i] == '/')
-      cmp++;
-  return cmp;
-}
-
-/* Return the number of link for one file of the tar*/
-static int nb_link(struct posix_header ph, struct posix_header *header, int n) {
-  char *nb_ln = malloc(10);
-  int cmp = 1;
-  for(int i = 0; i < n; i++)
-    if( strcmp(header[i].linkname, ph.name)==0 ||( header[i].typeflag==DIRTYPE
-      && strstr(header[i].name, ph.name)!=NULL
-      && nb_of_slash(header[i].name)-nb_of_slash(ph.name) == 1) )
-      cmp++;
-  if(ph.typeflag == DIRTYPE)
-    cmp++;
-  sprintf(nb_ln, "%i", cmp);
-  strcat(nb_ln, "  ");
-  write(STDOUT_FILENO, nb_ln, strlen(nb_ln));
-  free(nb_ln);
-  return 0;
-}
+static int total_block;
 
 
-/* Convert the time in the format of a number to the format of the human
-   time "mmm. dd hh:min" */
-static int convert_time(const char *ch) {
-  int si;
-  sscanf(ch, "%o", &si);
-  time_t timestamp =  si;
-  struct tm *realtime = gmtime(&timestamp);
+/* utils */
+static char* get_corrected_name (const char *tar_name, const char *filename); 
+static char* get_last_component (char *path);
 
-  char *month = calloc(6, 1);
-  char *day   = calloc(4, 1);
-  char *hour  = calloc(4,1);
-  char *min   = calloc(4,1);
+static int nb_of_digits (unsigned int n);
 
-  switch(realtime->tm_mon)
-  {
-    case 0 : strcat(month, "jan. "); break;
-    case 1 : strcat(month, "feb. "); break;
-    case 2 : strcat(month, "mar. "); break;
-    case 3 : strcat(month, "apr. "); break;
-    case 4 : strcat(month, "may  "); break;
-    case 5 : strcat(month, "jun. "); break;
-    case 6 : strcat(month, "jul. "); break;
-    case 7 : strcat(month, "aug. "); break;
-    case 8 : strcat(month, "sep. "); break;
-    case 9 : strcat(month, "oct. "); break;
-    case 10 : strcat(month, "nov. "); break;
-    case 11 : strcat(month, "dec. "); break;
-    default : exit(EXIT_FAILURE);
-  }
+static int print_string (const char *string);
+static int print_unsigned_int (unsigned int n);
 
-  sprintf(day, "%i", (*realtime).tm_mday);
-  sprintf(hour, "%i", (*realtime).tm_hour);
-  sprintf(min, "%i", (*realtime).tm_min);
+/* files array */
+static void init_ls ();
+static void add_header_to_files (array *files, struct posix_header *hd);
 
-  if(strlen(day) == 2) { day[2] = ' '; day[3] ='\0'; }
-  else { day[1] = ' '; day[2] = ' '; day[3] = '\0'; }
-  if(strlen(hour) == 1) { hour[1] = hour[0]; hour[0] = '0'; hour[2] = ':'; hour[3] = '\0';}
-  else { hour[2] = ':'; hour[3] = '\0'; }
-  if(strlen(min) == 1) { min[1] = min[0]; min[0] = '0'; min[2] = ' '; min[3] = '\0'; }
-  else { min[2] = ' '; min[3] = '\0'; }
+static void update_files (array *files, int tar_fd);
+static int count_nb_link (array *all, struct tar_fileinfo *info);
+static bool is_in_dir(const char *dir_name, const char *filename);
+static void update_widths (struct tar_fileinfo *info);
+static void update_total_block (struct tar_fileinfo *info);
 
-  strcat(month, strcat(day, strcat(hour, min)));
-  //month is equivalent to the entire date now
-  write(STDOUT_FILENO, month, strlen(month));
+/* printing */
+static void print_padding (int n);
 
-  free(month); free(day); free(hour); free(min);
-  return 0;
-}
+static void print_total_block ();
+static int print_files (array *files, bool long_format);
+static int print_fileinfo (struct tar_fileinfo *tfi, bool long_format, bool newline);
 
-/* convert the size to octal size */
-static int convert_size(char *size, int t) {
-  int si = 0, cmp = 0, more_than_zero_before = 0;
-  char *tmp = malloc(12);
-  sscanf(size, "%o", &si);
-  for(int i = 0; i < t; i++) {
-    if(more_than_zero_before > 0 || size[i] != '0' || (size[i] == '0' && more_than_zero_before == 0 && size[i+1] == '\0'))
-    {
-      tmp[cmp++] = size[i];
-      more_than_zero_before = 1;
-    }
-    if(size[i] == '0' && more_than_zero_before == 0 && size[i+1] != '\0')
-      tmp[cmp++] = ' ';
-  }
-  tmp[cmp] = tmp[t-1];
-  strcat(tmp, "   ");
-  write(STDOUT_FILENO, tmp, strlen(tmp));
-  free(tmp);
-  return 0;
-}
+static int print_filetype (char typeflag);
+static int print_filemode (char mode[8]);
+static void print_nb_links (unsigned int nb_links);
+static void print_uname (char uname[32]);
+static void print_gname (char gname[32]);
+static void print_size (char size[12]);
+static void print_mtime (char mtime[12]);
+static int print_filename (char name[100]);
 
-/* Return for "/tmp/tsh_test/test.tar/dir1/" the char * "/tmp/tsh_test/test.tar" */
-static char *tar_name_func(char *name, char *n){
-  int j = 0;
-  if( strstr(name, ".tar") == NULL){
+
+
+
+
+static char *get_corrected_name (const char *tar_name, const char *filename)
+{  
+  char *corrected_name = malloc(strlen(filename)+2); // 2 = 1 (\0 à la fin) + 1 (ajout possible d'un /)
+  if (!corrected_name)
     return NULL;
-  }
-  for(int i = 0; i < strlen(name); i++){
-    if(name[i] == '.' && name[i+1] == 't' && name[i+2] == 'a' && name[i+3] == 'r'){
-      n[j] = name[i];
-      n[j+1] = name[i+1];
-      n[j+2] = name[i+2];
-      n[i+3] = name[i+3];
-      break;
-    }else
-      n[j++] = name[i];
-  }
-  return n;
+
+  strcpy(corrected_name, filename);
+
+  // filename la racine ou un nom de dossier
+  if (*filename == '\0' || is_dir_name(filename))
+    return corrected_name;
+  
+  // filename existe dans le tar
+  if (tar_access(tar_name, corrected_name, F_OK) > 0)
+    return corrected_name;
+
+  strcat(corrected_name, "/");
+  
+  // filename/ existe dans le tar
+  if (tar_access(tar_name, corrected_name, F_OK) > 0)
+    return corrected_name;
+
+  // filename n'existe sous aucune forme dans le tar
+  free(corrected_name);
+  return NULL;
 }
 
-/* remove the name of origin "original" in to_cut and stock this result in the_file_to_list which is return
-   example : cut_name("tttt.tar/toto/tata/titi", "tttt.tar", "") == "titi"   */
-static char *cut_name(char *to_cut, char *original, char *the_file_to_list){
-  int i = 0, j = 0;
-  int size = strlen(to_cut) - strlen(original) + 1;
-  while(to_cut[i] == original[i]){
-    i++;
-  }
-  for(j = 0; j < size; j++){
-    the_file_to_list[j] = to_cut[i++];
-  }
-  the_file_to_list[j] = '\0';
-  return the_file_to_list;
+static char *get_last_component(char *path)
+{
+  char *ret = strrchr(path, '/');
+
+  // si on ne trouve pas de slash (i.e. un fichier à la racine)
+  if (!ret)
+    return path;
+
+  // on est dans le cas : dir/fic
+  if (ret[1] != '\0')
+    return ret + 1;
+    
+  // on va cherche le début du mot
+  ret--;
+  for (; ret != path && *ret != '/'; ret--)
+    ;
+
+  return *ret == '/' ? ret + 1 : ret;
 }
 
-/* list the name if the name input is a file. Return boolean. */
-static int is_file(struct posix_header *header, char *name_in_tar, int nb_of_files_in_tar, int opt_or_not){
-  for(int i = 0; i < nb_of_files_in_tar; i++){
-    if(strcmp(name_in_tar, header[i].name) == 0 && header[i].typeflag != '5'){
-      if(opt_or_not == 1) write_ls(header, header[i], name_in_tar, nb_of_files_in_tar);
-      if(opt_or_not == 0) {
-        write(STDOUT_FILENO, name_in_tar, strlen(name_in_tar));
-        write(STDOUT_FILENO, "\n", 1);
-      }
-      return 1;
+
+static int nb_of_digits (unsigned int n)
+{
+  int nb = 1;
+
+  while (n > 9)
+    {
+      n /= 10;
+      nb++;
     }
-  }
-  return 0;
+  
+  return nb;
 }
 
-/* Write all the informations for "ls -l" */
-static int write_ls(struct posix_header *header, struct posix_header header_to_write, char *name, int nb_of_files_in_tar){
-  file_type(header_to_write.typeflag);
-  convert_rights_nb_in_ch(header_to_write.mode);
-  write(STDOUT_FILENO, " ", 1);
-  nb_link(header_to_write, header, nb_of_files_in_tar);
-  write(STDOUT_FILENO, header_to_write.uname, strlen(header_to_write.uname));
-  write(STDOUT_FILENO, " ", 1);
-  write(STDOUT_FILENO, header_to_write.gname, strlen(header_to_write.gname));
-  write(STDOUT_FILENO, " ", 1);
-  convert_size(header_to_write.size, 12);
-  convert_time(header_to_write.mtime);
-  if(is_link(header_to_write.typeflag))
-  {
-    write(STDOUT_FILENO, header_to_write.name, strlen(header_to_write.name));
-    write(STDOUT_FILENO, " -> ", 4);
-    write(STDOUT_FILENO, header_to_write.linkname, strlen(header_to_write.linkname));
-  }
-  else
-    write(STDOUT_FILENO, name, strlen(name));
-  write(STDOUT_FILENO, "\n", 1);
-  return 0;
+
+static int print_unsigned_int(unsigned int n)
+{
+  char buf[20];
+  snprintf(buf, sizeof(buf), "%u", n);
+  return print_string(buf);
 }
 
-/* Representing the command ls -l which shows the type of the files, rights,
-   the number of links the user name, group name, size, last modification
-   date, and the file name. Take a char * in parameter representing the
-   file .tar that we want to list */
-int ls_l(char *tar_name, char *name_in_tar) {
-  name_in_tar = split_tar_abs_path(tar_name);
-  struct posix_header *header = tar_ls(tar_name);
-  int tar_fd = open(tar_name, O_RDONLY);
-  if (tar_fd == -1)
-    return error_pt(tar_name, &tar_fd, 1);
-  int nb_of_files_in_tar = nb_files_in_tar(tar_fd);
+static int print_string(const char *string)
+{
+  return write(STDOUT_FILENO, string, strlen(string)+1);
+}
 
-  if(is_file(header, name_in_tar, nb_of_files_in_tar, 1))
-  {
-    close(tar_fd);
+
+
+static void init_ls ()
+{
+  max_nlink_width = 0;
+  max_nlink_width = 0;
+  max_owner_width = 0;
+  max_group_width = 0;
+  max_size_width = 0;
+   
+  total_block = 0;
+}
+
+static void add_header_to_files (array *files, struct posix_header *hd)
+{
+  struct tar_fileinfo tfi = { *hd, 0 };
+  array_insert_last (files, &tfi);
+}
+
+
+
+static void update_files (array *files, int tar_fd)
+{
+  array *all = tar_ls_all (tar_fd);
+
+  struct tar_fileinfo *tfi;
+  struct tar_fileinfo updated_tfi;
+  
+  for (int i=0; i < array_size (files); i++)
+    {
+      tfi = array_get (files, i);
+      
+      updated_tfi.header = tfi->header;
+      updated_tfi.nb_links = count_nb_link (all, &updated_tfi);
+
+      free (array_set (files, i, &updated_tfi));
+
+      update_widths (&updated_tfi);
+      update_total_block (&updated_tfi);
+      
+      free (tfi);
+    }
+
+  array_free (all, false);
+}
+
+static int count_nb_link (array *all, struct tar_fileinfo *info)
+{
+  int nb;
+  tar_file *tf;
+
+  nb = 1;  
+  
+  for (int i = 0; i < array_size (all); i++)
+    {
+      tf = array_get (all, i);
+      
+      if (!strcmp(tf->header.linkname, info->header.name))
+	{
+	  nb++;
+	}
+      else if (info->header.typeflag == DIRTYPE && is_in_dir(info->header.name, tf->header.name))
+	{
+	  nb++;
+	}
+      
+      free (tf);
+    }
+  
+  return nb;
+}
+
+static bool is_in_dir(const char *dir_name, const char *filename)
+{
+  if (is_prefix(dir_name, filename) != 1)
+    return false;
+    
+  char *c = strchr(filename + strlen(dir_name), '/');
+  return !c || !c[1]; // pas de '/' ou 1er '/' à la fin
+}
+
+static void update_widths (struct tar_fileinfo *info)
+{
+  unsigned int n;
+  
+  n = nb_of_digits (info->nb_links);
+  if (max_nlink_width < n)
+    max_nlink_width = n;
+
+  n = nb_of_digits (get_file_size(&info->header));
+  if (max_size_width < n)
+    max_size_width = n;
+
+  n = strlen (info->header.uname);
+  if (max_owner_width < n)
+    max_owner_width = n;
+
+  n = strlen (info->header.gname);
+  if (max_group_width < n)
+    max_group_width = n;  
+}
+
+static void update_total_block (struct tar_fileinfo *info)
+{
+  unsigned int size = get_file_size (&info->header);
+
+  total_block += number_of_block(size);
+}
+
+
+
+static void print_padding (int n)
+{
+  for (int i=0; i < n; i++)
+    print_string (" ");
+}
+
+static void print_total_block ()
+{
+  print_string("total ");
+  print_unsigned_int (total_block);
+  print_string("\n");
+}
+
+static int print_files (array *files, bool long_format)
+{
+  if (array_size(files) == 0)
     return 0;
-  }
-  if(strcmp(name_in_tar, "\0") != 0){
-    if(name_in_tar[strlen(name_in_tar)-1] != '/'){ strcat(name_in_tar, "/");}
-    for(int i = 0; i < nb_of_files_in_tar; i++)
+  
+  struct tar_fileinfo *tfi;
+  int i;
+
+  if (long_format)
+    print_total_block ();
+  
+  for (i=0; i < array_size(files) - 1; i++)
     {
-      char *c = NULL;
-      char *d = NULL;
-      char *the_file_to_list = malloc(strlen(name_in_tar));
-      cut_name(header[i].name, name_in_tar, the_file_to_list);
-      //Conditions for the print of ls -l when we don't want list a file at the root
-      if(strcmp(name_in_tar, header[i].name)!=0
-      && ((d = strstr(header[i].name, name_in_tar)) != NULL)
-      && name_in_tar[strlen(name_in_tar)-1] == '/'
-      && name_in_tar[strlen(name_in_tar)] == '\0'
-      && ((c = strstr(the_file_to_list, "/")) == NULL || c[1] == '\0' ))
-      {
-        write_ls(header, header[i], the_file_to_list, nb_of_files_in_tar);
-      }
-      free(the_file_to_list);
+      tfi = array_get(files, i);
+      
+      if (long_format)
+	{
+	  print_fileinfo (tfi, long_format, true);
+	}
+      else
+	{
+	  print_fileinfo (tfi, long_format, false);
+	  print_string("  ");
+	}
+      
+      free(tfi);
     }
-  }else{//Conditions for the print of ls -l when we don't want to list a file at the root
-    for(int i = 0; i < nb_of_files_in_tar; i++)
-    {
-      char *c = NULL;
-      if((c = strstr(header[i].name, "/")) == NULL || c[1] == '\0' )
-      {
-        write_ls(header, header[i], header[i].name, nb_of_files_in_tar);
-      }
-    }
-  }
-  close(tar_fd);
+
+  tfi = array_get(files, i);
+  print_fileinfo (tfi, long_format, true);
+  free(tfi);
+  
   return 0;
 }
 
-/* Representing the command ls, list the files of a tarball. */
-int ls(char *tar_name, char *name_in_tar) {
-  name_in_tar = split_tar_abs_path(tar_name);
-  struct posix_header *header = tar_ls(tar_name);
-  int tar_fd = open(tar_name, O_RDONLY);
-  if (tar_fd == -1)
-    return error_pt(tar_name, &tar_fd, 1);
-  int nb_of_files_in_tar = nb_files_in_tar(tar_fd);
-  int empty = 1;
+static int print_fileinfo (struct tar_fileinfo *tfi, bool long_format, bool newline)
+{
+  if (long_format)
+    {      
+      print_filetype (tfi->header.typeflag);
+      print_filemode (tfi->header.mode);
 
-  if(is_file(header, name_in_tar, nb_of_files_in_tar, 0))
-  {
-    close(tar_fd);
-    return 0;
-  }
-  if(strcmp(name_in_tar, "\0") != 0){
-    if(name_in_tar[strlen(name_in_tar)-1] != '/'){ strcat(name_in_tar, "/");}
-    for(int i = 0; i < nb_of_files_in_tar; i++)
-    {
-      char *c = NULL;
-      char *d = NULL;
-      char *the_file_to_list = malloc(strlen(name_in_tar));
-      cut_name(header[i].name, name_in_tar, the_file_to_list);
-      //Conditions for the print of ls when we don't want to list a file at the root
-      if(strcmp(name_in_tar, header[i].name)!=0
-      && ((d = strstr(header[i].name, name_in_tar)) != NULL && name_in_tar[strlen(name_in_tar)-1] == '/' && name_in_tar[strlen(name_in_tar)] == '\0')
-      && ((c = strstr(the_file_to_list, "/")) == NULL || c[1] == '\0' )) {
-        write(STDOUT_FILENO, the_file_to_list, strlen(the_file_to_list));
-        write(STDOUT_FILENO, "   ", 3);
-        empty = 0;
-      }
-      if(i == nb_of_files_in_tar-1 && !empty)
-        write(STDOUT_FILENO, "\n", 1);
-      free(the_file_to_list);
+      print_string (" ");
+
+      print_nb_links (tfi->nb_links);
+
+      print_string (" ");
+
+      print_uname (tfi->header.uname);
+
+      print_string (" ");
+
+      print_gname (tfi->header.gname);
+
+      print_string (" ");
+
+      print_size (tfi->header.size);
+
+      print_string (" ");
+
+      print_mtime(tfi->header.mtime);
+
+      print_string (" ");
+	
+      print_filename(tfi->header.name);
+
+      if (tfi->header.typeflag == SYMTYPE)
+	{
+	  print_string (" -> ");
+	  print_filename(tfi->header.linkname);
+	}
     }
-  }
-  else {//Conditions for the print of ls when we want to list a file at the root
-    for(int i = 0; i < nb_of_files_in_tar; i++)
-    {
-      char *c = NULL;
-      if((c = strstr(header[i].name, "/")) == NULL || c[1] == '\0' ){
-        write(STDOUT_FILENO, header[i].name, strlen(header[i].name));
-        write(STDOUT_FILENO, "   ", 3);
-        empty = 0;
-      }
-      if(i == nb_of_files_in_tar-1 && !empty)
-        write(STDOUT_FILENO, "\n", 1);
-    }
-  }
-  close(tar_fd);
-  return 0;
-}
-
-
-int main(int argc, char *argv[]) {
-  char *name = malloc(100);
-  char *tar = malloc(100);
-  if(argc == 1 )
-  {
-    execvp(CMD_NAME, argv);
-  }
-  else if(argc == 2)
-  {
-    if(strcmp(argv[1], "-l")!=0 && is_tar(tar_name_func(argv[1], tar)) == 1)
-      ls(argv[1], name);
-    else
-      execvp(CMD_NAME, argv);
-  }
-  else if(argc == 3 && strcmp(argv[1], "-l") == 0 && is_tar(tar_name_func(argv[2], tar)) == 1 )
-    ls_l(argv[2], name);
-
   else
-  {
-    if(argc == 3 && is_tar(tar_name_func(argv[2], tar)) != 1)
-      execvp(CMD_NAME, argv);
-    else
     {
-      int f = fork(), w;
-      for(int i = 1 ; i < argc; i++)
-      {
-          switch(f)
-          {
-            case -1 :
-              perror("fork");
-              break;
-            case 0:
-              if(strcmp(argv[1], "-l") == 0 )
-              {
-                if(is_tar(tar_name_func(argv[i], tar)) == 1)
-                {
-                  write(STDOUT_FILENO, argv[i], strlen(argv[i]));
-                  write(STDOUT_FILENO, ":\n", 2);
-                  ls_l(argv[i], name);
-                  write(STDOUT_FILENO, "\n\n", 2);
-                }
-                else if(i!=1)
-                {
-                  int g = fork(), y;
-                  switch(g){
-                    case -1:
-                      perror("fork");
-                      break;
-                    case 0:
-                      write(STDOUT_FILENO, "\n", 2);
-                      write(STDOUT_FILENO, argv[i], strlen(argv[i]));
-                      write(STDOUT_FILENO, ":\n", 2);
-                      execlp(CMD_NAME, CMD_NAME, argv[1], argv[i], NULL);
-                    default:
-                      wait(&y);
-                  }
-
-                }
-              }
-              else if(is_tar(tar_name_func(argv[i], tar)) == 1)
-              {
-                write(STDOUT_FILENO, argv[i], strlen(argv[i]));
-                write(STDOUT_FILENO, ":\n", 2);
-                ls(argv[i], name);
-                write(STDOUT_FILENO, "\n\n", 2);
-              }
-              else
-              {
-                int g = fork(), y;
-                switch(g){
-                  case -1:
-                    perror("fork");
-                    break;
-                  case 0:
-                    write(STDOUT_FILENO, "\n", 2);
-                    write(STDOUT_FILENO, argv[i], strlen(argv[i]));
-                    write(STDOUT_FILENO, ":\n", 2);
-                    execlp(CMD_NAME, CMD_NAME, argv[i], NULL);
-                  default:
-                    wait(&y);
-                }
-              }
-            default:
-              wait(&w);
-          }
-        }
-
+      print_filename(tfi->header.name);
     }
-  }
-  free(name);
-  free(tar);
-  exit(EXIT_SUCCESS);
+  
+  if (newline)
+    print_string("\n");
+
+  return 0;
+}
+
+
+
+static int print_filetype(const char typeflag)
+{
+  switch (typeflag)
+    {
+    case DIRTYPE:
+      return print_string("d");
+
+    case SYMTYPE:
+      return print_string("l");
+
+    case FIFOTYPE:
+      return print_string("p");
+
+    default:
+      return print_string("-");
+    }
+
+  return 0;
+}
+
+static int print_filemode(char mode[8])
+{
+  char str[10];
+  int converted_mode;
+
+  converted_mode = strtol(mode, NULL, 8);
+  
+  str[0] = converted_mode & TUREAD  ? 'r' : '-';
+  str[1] = converted_mode & TUWRITE ? 'w' : '-';
+  str[2] = converted_mode & TUEXEC  ? 'x' : '-';
+
+  str[3] = converted_mode & TGREAD  ? 'r' : '-';
+  str[4] = converted_mode & TGWRITE ? 'w' : '-';
+  str[5] = converted_mode & TGEXEC  ? 'x' : '-';
+
+  str[6] = converted_mode & TOREAD  ? 'r' : '-';
+  str[7] = converted_mode & TOWRITE ? 'w' : '-';
+  str[8] = converted_mode & TOEXEC  ? 'x' : '-';
+
+  str[9] = '\0';  
+
+  return print_string(str);
+}
+
+static void print_nb_links(unsigned int nb_links)
+{
+  print_padding (max_nlink_width - nb_of_digits(nb_links));
+  print_unsigned_int (nb_links);
+}
+
+static void print_uname(char uname[32])
+{
+  print_padding (max_owner_width - strlen(uname));  
+  print_string (uname);
+}
+
+static void print_gname(char gname[32])
+{
+  print_padding (max_group_width - strlen(gname));  
+  print_string (gname);
+}
+
+static void print_size(char size[12])
+{
+  unsigned int file_size = 0;
+  sscanf(size, "%o", &file_size);
+
+  print_padding (max_size_width - nb_of_digits(file_size));
+  print_unsigned_int (file_size);
+}
+
+static void print_mtime(char mtime[12])
+{
+  unsigned int t;
+  sscanf(mtime, "%o", &t);
+  time_t timestamp = t;
+  struct tm *realtime = localtime(&timestamp);
+
+  char buffer[20]; // un peu arbitraire...
+  strftime(buffer, sizeof(buffer), "%d %b.  %H:%M", realtime);
+
+  print_string(buffer);
+}
+
+static int print_filename(char name[100])
+{
+  char *filename = get_last_component(name);
+  return print_string(filename);
+}
+
+/**
+ * `ls` command
+ */
+int ls (char *tar_name, char *filename, char *options)
+{
+  int tar_fd, ret;
+  bool long_format;
+  char *corrected_name;
+  array *files; // on ajoute dans ce tableau les fichiers à afficher
+      
+  // on vérifie que filename existe dans le tar
+  corrected_name = get_corrected_name(tar_name, filename);
+
+  // n'existe pas
+  if (!corrected_name)
+    {
+      tar_error_cmd(CMD_NAME, tar_name, filename);
+      return -1;
+    }
+
+  tar_fd = open(tar_name, O_RDONLY);
+  if (tar_fd < 0)
+    return -1;
+
+  
+  // On peut enfin initialiser
+  ret = EXIT_SUCCESS;
+  
+  long_format = false;
+  
+  if (strchr(options, 'l'))
+    long_format = true;
+  
+  init_ls ();
+  files = array_create(sizeof(struct tar_fileinfo));
+  
+  
+  // un dossier
+  if (*corrected_name == '\0' || is_dir_name(corrected_name))
+    {      
+      array *arr = tar_ls_dir(tar_fd, corrected_name, false);
+      if (!arr)
+	{
+	  tar_error_cmd(CMD_NAME, tar_name, filename);
+	  ret = EXIT_FAILURE;
+	  goto exit;
+	}
+
+      // on ajoute les en-têtes à files
+      tar_file *tf;
+      for (int i=0; i < array_size (arr); i++)
+	{
+	  tf = array_get(arr, i);
+	  add_header_to_files (files, &tf->header);
+	  free (tf);
+	}
+      
+      array_free(arr, false);
+    }
+  // un fichier
+  else
+    {
+      struct posix_header hd;
+      if (seek_header (tar_fd, corrected_name, &hd) != 1)
+	{
+	  tar_error_cmd(CMD_NAME, tar_name, filename);
+	  ret = EXIT_FAILURE;
+	  goto exit;
+	}
+
+      add_header_to_files (files, &hd);
+    }
+  
+  // On peut enfin afficher
+  update_files (files, tar_fd);
+  array_sort (files, tficmp);
+  print_files (files, long_format);
+
+
+ exit:
+  // On fait le ménage
+  array_free (files, false);
+  free (corrected_name);
+  close (tar_fd);
+  
+  return ret;
+}
+
+int main(int argc, char **argv)
+{
+  unary_command cmd =
+    {
+      CMD_NAME,
+      ls,
+      true,
+      true,
+      SUPPORT_OPT
+    };
+  
+  return handle_unary_command (cmd, argc, argv);
 }
