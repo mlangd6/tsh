@@ -6,10 +6,12 @@
 #include <ctype.h>
 
 #include "tsh.h"
-#include "parse_line.h"
+#include "tokens.h"
+#include "list.h"
+#include "array.h"
 
-static token *char_to_token(char *w);
-static void free_tokens(token **tokens, int start, int size);
+static bool well_formatted(void *a);
+static token char_to_token(char *w);
 
 int count_words(const char *str)
 {
@@ -37,88 +39,135 @@ int count_words(const char *str)
   return wc;
 }
 
-static token *char_to_token(char *w)
+static token char_to_token(char *w)
 {
-  token *res = malloc(sizeof(token));
+  token res;
   if (!strcmp(w, ">")) {
-    res -> val.red = STDOUT_REDIR;
-    res -> type = REDIR;
+    res.val.red = STDOUT_REDIR;
+    res.type = REDIR;
   } else if (!strcmp(w, "2>")) {
-    res -> val.red = STDERR_REDIR;
-    res -> type = REDIR;
+    res.val.red = STDERR_REDIR;
+    res.type = REDIR;
   } else if (!strcmp(w, ">>")) {
-    res -> val.red = STDOUT_APPEND;
-    res -> type = REDIR;
+    res.val.red = STDOUT_APPEND;
+    res.type = REDIR;
   } else if (!strcmp(w, "2>>")) {
-    res -> val.red = STDERR_APPEND;
-    res -> type = REDIR;
+    res.val.red = STDERR_APPEND;
+    res.type = REDIR;
   } else if (!strcmp(w, "<")) {
-    res -> val.red = STDIN_REDIR;
-    res -> type = REDIR;
+    res.val.red = STDIN_REDIR;
+    res.type = REDIR;
+  } else if (!strcmp(w, "|")) {
+    res.type = PIPE;
   } else {
-    res -> val.arg = w;
-    res -> type = ARG;
+    res.val.arg = w;
+    res.type = ARG;
   }
   return res;
 }
 
 
-token **tokenize(char *user_input, int *nb_el)
+list *tokenize(char *user_input)
 {
   const char delim[] = " ";
-  *nb_el = count_words(user_input);
-  token **res = malloc((*nb_el+1) * sizeof(token *)); // (res[nb_tokens] = NULL)
-  res[0] = char_to_token(strtok(user_input, delim));
-  for (int i = 1; i < *nb_el; i++)
+  list *res = list_create();
+  array *cur_arr = array_create(sizeof(token));
+  token cur_tok = char_to_token(strtok(user_input, delim));
+  array_insert_last(cur_arr, &cur_tok);
+  list_insert_last(res, cur_arr);
+  char *iter;
+  while((iter = strtok(NULL, delim)))
   {
-    res[i] = char_to_token(strtok(NULL, delim));
+    if (cur_tok.type == PIPE)
+    {
+      cur_arr = array_create(sizeof(token));
+      list_insert_last(res, cur_arr);
+    }
+    cur_tok = char_to_token(iter);
+    array_insert_last(cur_arr, &cur_tok);
   }
-  res[*nb_el] = NULL;
+  // Pourt garder une cohérence on ajoute un pipe à la fin, chaque cellule finit donc par un pipe
+  if (cur_tok.type == PIPE)
+  {
+    cur_arr = array_create(sizeof(token));
+    array_insert_last(cur_arr, &cur_tok);
+    list_insert_last(res, cur_arr);
+  }
+  else {
+    cur_tok.type = PIPE;
+    array_insert_last(cur_arr, &cur_tok);
+  }
   return res;
 }
 
-int exec_tokens(token **tokens, int nb_el, char **argv)
+char **array_to_argv(array *arr)
 {
-  short prev_is_redir = 0;
-  int j = 0;
-  for (int i = 0; i < nb_el; i++)
+  int size = array_size(arr);
+  char **argv = malloc(size * sizeof(char *));
+  for (int i = 0; i < size-1; i++)
   {
-    if (tokens[i] -> type == REDIR)
-    {
-      if (prev_is_redir)
-      {
-        write(STDERR_FILENO, "tsh: syntax error: unexpected token after redirection\n", 54);
-        return -1;
-      }
-      prev_is_redir = 1;
-    } else {
-      if (prev_is_redir)
-      {
-        if (launch_redir(tokens[i-1] -> val.red, tokens[i] -> val.arg) != 0)
-        {
-          free_tokens(tokens, i-1, nb_el);
-          return -1;
-        }
-        free(tokens[i-1]);
-      }else {
-        argv[j++] = tokens[i] -> val.arg;
-      }
-      free(tokens[i]);
-      prev_is_redir = 0;
-    }
+
   }
-  if (prev_is_redir){
-    write(STDERR_FILENO, "tsh: syntax error: unexpected token after redirection\n", 54);
-    return -1;
-  }
-  argv[j] = NULL;
-  return j;
+  argv[size-1] = NULL;
+  return argv;
 }
 
-static void free_tokens(token **tokens, int start, int size)
+bool parse_tokens(list *cmds)
 {
-  for (int i = start; i < size; i++)
+  return list_for_all(cmds, well_formatted);
+}
+
+char **cmd_array_to_argv(array *cmd_arr)
+{
+  int size = array_size(cmd_arr);
+  char **argv = malloc(sizeof(char *) * size);
+  token *it;
+  for (int i = 0; i < size-1; i++)
   {
-    free(tokens[i]);
+    it = array_get(cmd_arr, i);
+    argv[i] = it -> val.arg;
+    free(it);
   }
+  argv[size-1] = NULL;
+  return argv;
+}
+
+static bool well_formatted(void *a)
+{
+  array *arr = a;
+  int size = array_size(arr);
+  if (size <= 1)
+  {
+    write(STDERR_FILENO, "tsh: syntax error: unexpected token near |\n", 44);
+    return false;
+  }
+  bool prev_is_redir = false;
+  token *cur;
+  for (int i = 0; i < size; i++)
+  {
+    cur = array_get(arr, i);
+    if (prev_is_redir)
+    {
+      if (cur -> type != ARG)
+      {
+        free(cur);
+        write(STDERR_FILENO, "tsh: syntax error: unexpected token after redirection\n", 54);
+        return false;
+      }
+    }
+    prev_is_redir = cur -> type == REDIR;
+    free(cur);
+  }
+  return true;
+}
+
+static void free_tokens_array(void *arr)
+{
+  array *val = arr;
+  array_free(val, false);
+}
+
+void free_tokens_list(list *tokens)
+{
+  list_free_full(tokens, free_tokens_array);
 }
