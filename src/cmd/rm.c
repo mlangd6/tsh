@@ -14,15 +14,10 @@
 
 #define CMD_NAME "rm"
 
-static void set_remove_cmd_name()
-{
-  cmd_name_remove[0] = '\0';
-  strcpy(cmd_name_remove, "rm");
-}
 
 int main(int argc, char *argv[])
 {
-  set_remove_cmd_name();
+  set_remove_cmd_name("rm");
   unary_command cmd = {
     CMD_NAME,
     rm,

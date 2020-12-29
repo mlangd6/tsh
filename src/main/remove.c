@@ -12,6 +12,13 @@
 #include <errno.h>
 #include <limits.h>
 
+char cmd_name_remove[3];
+
+void set_remove_cmd_name(const char *str)
+{
+  cmd_name_remove[0] = '\0';
+  strcpy(cmd_name_remove, str);
+}
 
 static int rm_access_in_existing(const char *tar_name, const char *filename)
 {

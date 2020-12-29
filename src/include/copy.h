@@ -7,8 +7,9 @@
 
 
 #define SUPPORT_OPT "r"
-char cmd_name_copy[3];
 
+
+void set_cmd_name(char *str);
 /**
   * copy a file SRC_FILE from a tarball SRC_TAR to a tarball DEST_TAR as DEST_FILE
   * OPT could be NULL for "cp" or r for "cp -r"

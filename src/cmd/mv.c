@@ -14,21 +14,10 @@
 
 #define CMD_NAME "mv"
 
-static void set_cmd_name()
-{
-  cmd_name_copy[0] = '\0';
-  strcpy(cmd_name_copy, "mv");
-}
-
-static void set_remove_cmd_name()
-{
-  cmd_name_remove[0] = '\0';
-  strcpy(cmd_name_remove, "mv");
-}
 
 static int do_rm(char *src_tar, char *src_file)
 {
-  set_remove_cmd_name();
+  set_remove_cmd_name(CMD_NAME);
   unary_command cmd = {
     "rm",
     rm,
@@ -49,7 +38,7 @@ static int do_rm(char *src_tar, char *src_file)
 
 int mv_tar_to_tar (char *src_tar, char *src_file, char *dest_tar, char *dest_file, char *opt)
 {
-  set_cmd_name();
+  set_cmd_name(CMD_NAME);
   if(cp_tar_to_tar(src_tar, src_file, dest_tar, dest_file, "r") < 0)
     return -1;
 
@@ -61,7 +50,7 @@ int mv_tar_to_tar (char *src_tar, char *src_file, char *dest_tar, char *dest_fil
 
 int mv_ext_to_tar (char *src_file, char *dest_tar, char *dest_file, char *opt)
 {
-  set_cmd_name();
+  set_cmd_name(CMD_NAME);
   if(cp_ext_to_tar(src_file, dest_tar, dest_file, "r") < 0)
     return -1;
 
@@ -86,7 +75,7 @@ int mv_ext_to_tar (char *src_file, char *dest_tar, char *dest_file, char *opt)
 
 int mv_tar_to_ext(char *src_tar, char *src_file, char *dest_file, char *opt)
 {
-  set_cmd_name();
+  set_cmd_name(CMD_NAME);
   if(cp_tar_to_ext(src_tar, src_file, dest_file, "r") < 0)
     return -1;
 
@@ -99,7 +88,7 @@ int mv_tar_to_ext(char *src_tar, char *src_file, char *dest_file, char *opt)
 
 int main (int argc, char *argv[])
 {
-  set_cmd_name();
+  set_cmd_name(CMD_NAME);
   binary_command cmd =
     {
       CMD_NAME,

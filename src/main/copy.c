@@ -16,6 +16,15 @@
 #include "errors.h"
 
 
+char cmd_name_copy[3];
+
+
+void set_cmd_name(char *str)
+{
+  cmd_name_copy[0] = '\0';
+  strcpy(cmd_name_copy, str);
+}
+
 static int isfile_err_cp(const char *filename, const char *dest)
 {
   char buf[PATH_MAX+154];

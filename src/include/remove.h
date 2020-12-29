@@ -6,7 +6,8 @@
 #define REMOVE_H
 
 #define SUPPORT_OPT_ "r"
-char cmd_name_remove[3];
+
+void set_remove_cmd_name(const char *str);
 
 int rm(char *tar_name, char *filename, char *options);
 
