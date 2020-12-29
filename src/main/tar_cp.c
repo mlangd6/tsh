@@ -85,17 +85,7 @@ static int make_path(int dest_fd, char *path)
 }
 
 
-/**
- * Extracts the content of a directory from a tar.
- *
- * `dest` must designate an already existing directory.
- * Files from `dir_name` are extracted in `dest/dir_name/`.
- *
- * @param tar_name the path to the tar
- * @param dir_name the directory to extract from the tar
- * @param dest the path to the output directory
- * @return on success 0; otherwise -1
- */
+
 int tar_extract_dir(const char *tar_name, const char *dir_name, const char *dest)
 {
   int tar_fd, dest_fd;
@@ -175,14 +165,6 @@ int tar_extract_dir(const char *tar_name, const char *dir_name, const char *dest
 }
 
 
-/**
- * Copy the content of a file from a tar into a file descriptor.
- * filename should be readable
- * @param tar_name the tar in which we want to read `filename`
- * @param filename the file we want to read
- * @param fd a file descriptor to write to
- * @return 0 on success; -1 otherwise
- */
 int tar_cp_file(const char *tar_name, const char *filename, int fd) {
   if (tar_access(tar_name, filename, R_OK) != 1) {
     return -1;

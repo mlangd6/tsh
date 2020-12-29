@@ -314,8 +314,7 @@ int add_tar_file_in_tar(const char *tar_name_src, char *tar_name_dest, const cha
   return 0;
 }
 
-/* Add file SOURCE to tar at path TAR_NAME/FILENAME
-   Or create file FILENAME to tar at path TAR_NAME/FILENAME */
+
 int tar_add_file(const char *tar_name, const char *source, const char *filename) {
   int tar_fd = open(tar_name, O_RDWR);
   if ( tar_fd < 0) {
@@ -469,12 +468,7 @@ int tar_add_file_rec(const char *tar_name, const char *filename, const char *ins
   return 0;
 }
 
-/**
- * Move header and content of file inside a tarball to the end of the tarball
- * @param tar_name the name of the tarball
- * @param filename the name of the file inside the tar
- * @return 0 on success, -1 else
- */
+
 int move_file_to_end_of_tar(char *tar_name, char *filename)
 {
   int tar_fd = open(tar_name, O_RDWR);
