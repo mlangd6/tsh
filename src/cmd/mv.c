@@ -12,11 +12,23 @@
 #include "remove.h"
 #include "errors.h"
 
-#define CMD_NAME__ "mv"
-#define SUPPORT_OPT__ ""
+#define CMD_NAME "mv"
+
+static void set_cmd_name()
+{
+  cmd_name[0] = '\0';
+  strcpy(cmd_name, "mv");
+}
+
+static void set_remove_cmd_name()
+{
+  cmd_name_remove[0] = '\0';
+  strcpy(cmd_name_remove, "mv");
+}
 
 static int do_rm(char *src_tar, char *src_file)
 {
+  set_remove_cmd_name();
   unary_command cmd = {
     "rm",
     rm,
@@ -37,6 +49,7 @@ static int do_rm(char *src_tar, char *src_file)
 
 int mv_tar_to_tar (char *src_tar, char *src_file, char *dest_tar, char *dest_file, char *opt)
 {
+  set_cmd_name();
   if(cp_tar_to_tar(src_tar, src_file, dest_tar, dest_file, "r") < 0)
     return -1;
 
@@ -48,6 +61,7 @@ int mv_tar_to_tar (char *src_tar, char *src_file, char *dest_tar, char *dest_fil
 
 int mv_ext_to_tar (char *src_file, char *dest_tar, char *dest_file, char *opt)
 {
+  set_cmd_name();
   if(cp_ext_to_tar(src_file, dest_tar, dest_file, "r") < 0)
     return -1;
 
@@ -65,13 +79,14 @@ int mv_ext_to_tar (char *src_file, char *dest_tar, char *dest_file, char *opt)
   }
   if(i == -1)
   {
-    error_cmd(CMD_NAME__, src_file);
+    error_cmd(cmd_name, src_file);
   }
   return 0;
 }
 
 int mv_tar_to_ext(char *src_tar, char *src_file, char *dest_file, char *opt)
 {
+  set_cmd_name();
   if(cp_tar_to_ext(src_tar, src_file, dest_file, "r") < 0)
     return -1;
 
@@ -84,13 +99,14 @@ int mv_tar_to_ext(char *src_tar, char *src_file, char *dest_file, char *opt)
 
 int main (int argc, char *argv[])
 {
+  set_cmd_name();
   binary_command cmd =
     {
-      CMD_NAME__,
+      CMD_NAME,
       mv_tar_to_tar,
       mv_ext_to_tar,
       mv_tar_to_ext,
-      SUPPORT_OPT__
+      ""
     };
 
   return handle_binary_command (cmd, argc, argv);

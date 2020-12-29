@@ -19,7 +19,7 @@
 static int isfile_err_cp(const char *filename, const char *dest)
 {
   char buf[PATH_MAX+154];
-  sprintf(buf, "%s : Impossible to break the not-directory \'%s\' by the directory \'%s\'\n", CMD_NAME, filename, dest);
+  sprintf(buf, "%s : Impossible to break the not-directory \'%s\' by the directory \'%s\'\n", cmd_name, filename, dest);
   write(STDERR_FILENO, buf, strlen(buf));
   return -1;
 }
@@ -27,7 +27,7 @@ static int isfile_err_cp(const char *filename, const char *dest)
 static int isdir_err_cp(const char *filename)
 {
   char buf[PATH_MAX+154];
-  sprintf(buf, "%s : -%s not specified ; omission of the directory \'%s\'\n", CMD_NAME, SUPPORT_OPT, filename);
+  sprintf(buf, "%s : -%s not specified ; omission of the directory \'%s\'\n", cmd_name, SUPPORT_OPT, filename);
   write(STDERR_FILENO, buf, strlen(buf));
   return -1;
 }
@@ -44,7 +44,7 @@ static int is_dir_ext(const char *filename)
 static int dont_exist(const char *filename)
 {
   char buf[PATH_MAX+67];
-  sprintf(buf, "%s : Impossible to evaluate \'%s\': No file or directory of this type\n", CMD_NAME, filename);
+  sprintf(buf, "%s : Impossible to evaluate \'%s\': No file or directory of this type\n", cmd_name, filename);
   write(STDERR_FILENO, buf, strlen(buf));
   return -1;
 }
@@ -52,7 +52,7 @@ static int dont_exist(const char *filename)
 static int already_exist(const char *src, const char *dest)
 {
   char buf[2*PATH_MAX+37];
-  sprintf(buf, "%s: \'%s\' and \'%s\' identify the same file\n", CMD_NAME, src, dest);
+  sprintf(buf, "%s: \'%s\' and \'%s\' identify the same file\n", cmd_name, src, dest);
   write(STDERR_FILENO, buf, strlen(buf));
   return -1;
 }
@@ -106,7 +106,7 @@ static int has_rights_src(char *src_tar, char *src_file)
   if(tar_access(src_tar, src_file, R_OK) < 0)
   {
     char buf[PATH_MAX+100];
-    sprintf(buf, "%s: impossible to open \'%s/%s\' in reading: Permission denied\n", CMD_NAME, src_tar, src_file);
+    sprintf(buf, "%s: impossible to open \'%s/%s\' in reading: Permission denied\n", cmd_name, src_tar, src_file);
     write(STDERR_FILENO, buf, strlen(buf));
     return -1;
   }
@@ -119,14 +119,14 @@ static int has_rights_dest(char *dest_tar, char *dest_file)
   if(tar_access(dest_tar, dest_file, X_OK) < 0)
   {
     char buf[PATH_MAX+100];
-    sprintf(buf, "%s: impossible to acceed to \'%s/%s\': Permission denied\n", CMD_NAME, dest_tar, dest_file);
+    sprintf(buf, "%s: impossible to acceed to \'%s/%s\': Permission denied\n", cmd_name, dest_tar, dest_file);
     write(STDERR_FILENO, buf, strlen(buf));
     return -1;
   }
   if(tar_access(dest_tar, dest_file, W_OK) < 0)
   {
     char buf[PATH_MAX+100];
-    sprintf(buf, "%s: impossible to create the standard file \'%s/%s\': Permission denied\n", CMD_NAME, dest_tar, dest_file);
+    sprintf(buf, "%s: impossible to create the standard file \'%s/%s\': Permission denied\n", cmd_name, dest_tar, dest_file);
     write(STDERR_FILENO, buf, strlen(buf));
     return -1;
   }
@@ -138,7 +138,7 @@ static int has_rights_src_ext(char *src_file)
   if(access(src_file, R_OK) < 0)
   {
     char buf[PATH_MAX+100];
-    sprintf(buf, "%s: impossible to open \'%s\' in reading: Permission denied\n", CMD_NAME, src_file);
+    sprintf(buf, "%s: impossible to open \'%s\' in reading: Permission denied\n", cmd_name, src_file);
     write(STDERR_FILENO, buf, strlen(buf));
     return -1;
   }
@@ -150,14 +150,14 @@ static int has_rights_dest_ext(char *dest_file)
   if(access(dest_file, X_OK) < 0)
   {
     char buf[PATH_MAX+100];
-    sprintf(buf, "%s: impossible to acceed to \'%s\': Permission denied\n", CMD_NAME, dest_file);
+    sprintf(buf, "%s: impossible to acceed to \'%s\': Permission denied\n", cmd_name, dest_file);
     write(STDERR_FILENO, buf, strlen(buf));
     return -1;
   }
   if(access(dest_file, W_OK) < 0)
   {
     char buf[PATH_MAX+100];
-    sprintf(buf, "%s: impossible to create the standard file \'%s\': Permission denied\n", CMD_NAME, dest_file);
+    sprintf(buf, "%s: impossible to create the standard file \'%s\': Permission denied\n", cmd_name, dest_file);
     write(STDERR_FILENO, buf, strlen(buf));
     return -1;
   }
@@ -192,18 +192,21 @@ static int when_is_dir_dest(char *src_tar, char *src_file, char *dest_tar, char 
     sprintf(buf2, "%s", buf);
   if(has_rights_dest(dest_tar, dest_file) < 0)
     return -1;
-  printf("%s/%s\n%s/%s\n\n", src_tar, src_file, dest_file, buf2);
   if(exist(dest_tar, buf2, 0) > 0)
   {
     if(tar_rm(dest_tar, buf2) < 0)
     {
-      write(STDERR_FILENO, "cp: Problems on removing the file of the same name\n", 51);
+      char buf[60];
+      sprintf(buf, "%s: Problems on removing the file of the same name\n", cmd_name);
+      write(STDERR_FILENO, buf, strlen(buf));
       return -1;
     }
   }
   if(add_tar_to_tar(src_tar, dest_tar, src_file, buf2) < 0)
   {
-    write(STDERR_FILENO, "cp: Problems at the add of file\n", 33);
+    char buf[35];
+    sprintf(buf, "%s: Problems at the add of file\n", cmd_name);
+    write(STDERR_FILENO, buf, strlen(buf));
     return -1;
   }
   return 0;
@@ -234,14 +237,16 @@ static int cp_ttt_without_r(char *src_tar, char *src_file, char *dest_tar, char 
     {
       if(tar_rm(dest_tar, dest_file) < 0)
       {
-        write(STDERR_FILENO, "cp: Problems on removing the file of the same name\n", 51);
+        char buf[60];
+        sprintf(buf, "%s: Problems on removing the file of the same name\n", cmd_name);
+        write(STDERR_FILENO, buf, strlen(buf));
         return -1;
       }
     }
     if(add_tar_to_tar(src_tar, dest_tar, src_file, dest_file) < 0)
     {
       char err[33];
-      sprintf(err, "%s: Problems at the add of file\n", CMD_NAME);
+      sprintf(err, "%s: Problems at the add of file\n", cmd_name);
       write(STDERR_FILENO, err, strlen(err));
       return -1;
     }
@@ -326,7 +331,7 @@ static int cp_r_ttt(char *src_tar, char *src_file, char *dest_tar, char *dest_fi
     if(add_tar_to_tar_rec(src_tar, dest_tar, src_file, dest_file) < 0)
     {
       char err[33];
-      sprintf(err, "%s: Problems at the add of file\n", CMD_NAME);
+      sprintf(err, "%s: Problems at the add of file\n", cmd_name);
       write(STDERR_FILENO, err, strlen(err));
       return -1;
     }
@@ -370,7 +375,7 @@ static int cp_r_ttt(char *src_tar, char *src_file, char *dest_tar, char *dest_fi
     if(add_tar_to_tar_rec(src_tar, dest_tar, src_file, buf2) < 0)
     {
       char err[33];
-      sprintf(err, "%s: Problems at the add of file\n", CMD_NAME);
+      sprintf(err, "%s: Problems at the add of file\n", cmd_name);
       write(STDERR_FILENO, err, strlen(err));
       return -1;
     }
@@ -379,7 +384,7 @@ static int cp_r_ttt(char *src_tar, char *src_file, char *dest_tar, char *dest_fi
       if(add_ext_to_tar(dest_tar, NULL, buf2) < 0)
       {
         char err[33];
-        sprintf(err, "%s: Problems at the add of file\n", CMD_NAME);
+        sprintf(err, "%s: Problems at the add of file\n", cmd_name);
         write(STDERR_FILENO, err, strlen(err));
         return -1;
       }
@@ -388,7 +393,7 @@ static int cp_r_ttt(char *src_tar, char *src_file, char *dest_tar, char *dest_fi
   return 0;
 }
 
-int cp_tar_to_tar (char *src_tar, char *src_file, char *dest_tar, char *dest_file, char *opt)
+int cp_tar_to_tar(char *src_tar, char *src_file, char *dest_tar, char *dest_file, char *opt)
 {
   if(strcmp(dest_tar, src_tar) == 0 && strcmp(src_file, dest_file) == 0)
   {
@@ -401,8 +406,9 @@ int cp_tar_to_tar (char *src_tar, char *src_file, char *dest_tar, char *dest_fil
     else
     {
       char buf[PATH_MAX+100];
-      sprintf(buf, "%s: impossible to create the directory (\'%s\') in himself (\'%s/%s\')", CMD_NAME, src_file, src_file, src_file);
+      sprintf(buf, "%s: impossible to create the directory (\'%s\') in himself (\'%s/%s\')\n", cmd_name, src_file, src_file, src_file);
       write(STDERR_FILENO, buf, strlen(buf));
+      return -1;
     }
   }
   if(is_empty_string(opt))
@@ -450,7 +456,9 @@ static int cp_ett_without_r(char *src_file, char *dest_tar, char *dest_file)
     if(exist(dest_tar, buf2, 1) == 0){
       if(tar_rm(dest_tar, buf2) < 0)
       {
-        write(STDERR_FILENO, "cp: Problems on removing the file of the same name\n", 51);
+        char err[60];
+        sprintf(err, "%s: Problems on removing the file of the same name\n", cmd_name);
+        write(STDERR_FILENO, err, strlen(err));
         free(buf);
         return -1;
       }
@@ -458,7 +466,7 @@ static int cp_ett_without_r(char *src_file, char *dest_tar, char *dest_file)
     if(add_ext_to_tar(dest_tar, src_file, buf2) < 0)
     {
       char err[33];
-      sprintf(err, "%s: Problems at the add of file\n", CMD_NAME);
+      sprintf(err, "%s: Problems at the add of file\n", cmd_name);
       write(STDERR_FILENO, err, strlen(err));
       free(buf);
       return -1;
@@ -472,14 +480,16 @@ static int cp_ett_without_r(char *src_file, char *dest_tar, char *dest_file)
     {
       if(tar_rm(dest_tar, dest_file) < 0)
       {
-        write(STDERR_FILENO, "cp: Problems on removing the file of the same name\n", 51);
+        char buf[60];
+        sprintf(buf, "%s: Problems on removing the file of the same name\n", cmd_name);
+        write(STDERR_FILENO, buf, strlen(buf));
         return -1;
       }
     }
     if(add_ext_to_tar(dest_tar, src_file, dest_file) < 0)
     {
       char err[33];
-      sprintf(err, "%s: Problems at the add of file\n", CMD_NAME);
+      sprintf(err, "%s: Problems at the add of file\n", cmd_name);
       write(STDERR_FILENO, err, strlen(err));
       return -1;
     }
@@ -538,7 +548,7 @@ static int cp_r_ett(char *src_file, char *dest_tar, char *dest_file)
     if(add_ext_to_tar_rec(dest_tar, src_file, dest_file, 0) < 0)
     {
       char err[33];
-      sprintf(err, "%s: Problems at the add of file\n", CMD_NAME);
+      sprintf(err, "%s: Problems at the add of file\n", cmd_name);
       write(STDERR_FILENO, err, strlen(err));
       return -1;
     }
@@ -573,7 +583,7 @@ static int cp_r_ett(char *src_file, char *dest_tar, char *dest_file)
     if(add_ext_to_tar_rec(dest_tar, src_file, buf2, 0) < 0)
     {
       char err[33];
-      sprintf(err, "%s: Problems at the add of file\n", CMD_NAME);
+      sprintf(err, "%s: Problems at the add of file\n", cmd_name);
       write(STDERR_FILENO, err, strlen(err));
       free(buf);
       return -1;
@@ -711,13 +721,13 @@ static int cp_tte_without_r(char *src_tar, char *src_file, char *dest_file)
     int fd = open(buf2, O_RDWR);
     if(fd < 0)
     {
-      error_cmd(CMD_NAME, buf2);
+      error_cmd(cmd_name, buf2);
       return -1;
     }
     if(tar_cp_file(src_tar, src_file, fd) < 0)
     {
       char err[33];
-      sprintf(err, "%s: Problems at the add of file\n", CMD_NAME);
+      sprintf(err, "%s: Problems at the add of file\n", cmd_name);
       write(STDERR_FILENO, err, strlen(err));
       free(buf);
       return -1;
@@ -738,13 +748,13 @@ static int cp_tte_without_r(char *src_tar, char *src_file, char *dest_file)
     int fd = open(dest_file, O_RDWR);
     if(fd < 0)
     {
-      error_cmd(CMD_NAME, dest_file);
+      error_cmd(cmd_name, dest_file);
       return -1;
     }
     if(tar_cp_file(src_tar, src_file, fd) < 0)
     {
       char err[33];
-      sprintf(err, "%s: Problems at the add of file\n", CMD_NAME);
+      sprintf(err, "%s: Problems at the add of file\n", cmd_name);
       write(STDERR_FILENO, err, strlen(err));
       return -1;
     }
@@ -774,6 +784,7 @@ static int cp_r_tte(char *src_tar, char *src_file, char *dest_file)
     if(has_rights_dest_ext(dest_file) < 0)
       return -1;
   }
+
   if(is_dir(src_tar, src_file))
     append_slash_filename(src_file);
 
@@ -792,7 +803,7 @@ static int cp_r_tte(char *src_tar, char *src_file, char *dest_file)
     if(tar_extract(src_tar, src_file, dest_file) < 0)
     {
       char err[33];
-      sprintf(err, "%s: Problems at the add of file\n", CMD_NAME);
+      sprintf(err, "%s: Problems at the add of file\n", cmd_name);
       write(STDERR_FILENO, err, strlen(err));
       return -1;
     }
@@ -802,7 +813,7 @@ static int cp_r_tte(char *src_tar, char *src_file, char *dest_file)
     if(tar_extract(src_tar, src_file, dest_file) < 0)
     {
       char err[33];
-      sprintf(err, "%s: Problems at the add of file\n", CMD_NAME);
+      sprintf(err, "%s: Problems at the add of file\n", cmd_name);
       write(STDERR_FILENO, err, strlen(err));
       return -1;
     }

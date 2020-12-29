@@ -60,8 +60,7 @@ static int prompt_remove(char *tar_name, char *filename)
 {
   char a;
   char buf[1024];
-  strcpy(buf, CMD_NAME_);
-  sprintf(buf, "%s : remove \"%s/%s\" which is protected in writing ? : put \'y\' for yes \n", CMD_NAME_, tar_name, filename);
+  sprintf(buf, "%s : remove \"%s/%s\" which is protected in writing ? : put \'y\' for yes \n", cmd_name_remove, tar_name, filename);
   write(STDOUT_FILENO, buf, strlen(buf));
   a = get_char();
   if(a != 'y')
@@ -76,7 +75,7 @@ static int rm_(char *tar_name, char *filename)
   {
     errno = EISDIR;
     tar_name[strlen(tar_name)] = '/';
-    error_cmd(CMD_NAME_, tar_name);
+    error_cmd(cmd_name_remove, tar_name);
     return EXIT_FAILURE;
   }
   else {
@@ -84,7 +83,7 @@ static int rm_(char *tar_name, char *filename)
     {
       errno = EINTR;
       tar_name[strlen(tar_name)] = '/';
-      error_cmd(CMD_NAME_, tar_name);
+      error_cmd(cmd_name_remove, tar_name);
       return EXIT_FAILURE;
     }
   }
@@ -98,7 +97,7 @@ static int rm_r(char *tar_name, char *filename)
   {
     errno = EINTR;
     tar_name[strlen(tar_name)] = '/';
-    error_cmd(CMD_NAME_, tar_name);
+    error_cmd(cmd_name_remove, tar_name);
     return EXIT_FAILURE;
   }
   if(is_empty_string(filename)){
@@ -121,7 +120,7 @@ int rm(char *tar_name, char *filename, char *options)
     tar_name[strlen(tar_name)] = '/';
     strcpy(msg, tar_name);
     strcat(msg, ": Impossible to remove, is prefix of pwd");
-    error_cmd(CMD_NAME_, msg);
+    error_cmd(cmd_name_remove, msg);
     return EXIT_FAILURE;
   }
 
@@ -137,7 +136,7 @@ int rm(char *tar_name, char *filename, char *options)
   if(rm_access_in_existing(tar_name, new_filename) == -1)
   {
     tar_name[strlen(tar_name)] = '/';
-    error_cmd(CMD_NAME_, tar_name);
+    error_cmd(cmd_name_remove, tar_name);
     return EXIT_FAILURE;
   }
 

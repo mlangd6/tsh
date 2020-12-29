@@ -5,8 +5,8 @@
 #ifndef REMOVE_H
 #define REMOVE_H
 
-#define CMD_NAME_ "rm"
 #define SUPPORT_OPT_ "r"
+char cmd_name_remove[10];
 
 int rm(char *tar_name, char *filename, char *options);
 
