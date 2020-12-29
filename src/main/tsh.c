@@ -100,7 +100,7 @@ static int cd(char **argv, int argc)
     if (home == NULL)
     {
       error (0, "tsh: cd: HOME not set\n");
-      return EXIT_FAILURE;      
+      return EXIT_FAILURE;
     }
 
     if (chdir(home) != 0)
@@ -119,7 +119,7 @@ static int cd(char **argv, int argc)
       if (argv[1][1] != '\0') // Not supported option
       {
 	error (0, "tsh: cd: - est la seule option supportée\n");
-        return EXIT_FAILURE;        
+        return EXIT_FAILURE;
       }
       else // Supported option
       {
@@ -215,4 +215,11 @@ static int cd(char **argv, int argc)
     error (0, "tsh: cd: trop d'arguments\n");
     return EXIT_FAILURE;
   }
+}
+
+char *set_prompt(char *prompt)
+{
+  char c = getuid() == 0 ? '#': '$';
+  sprintf(prompt, "%s%c ", getenv("PWD"), c);
+  return prompt;
 }
