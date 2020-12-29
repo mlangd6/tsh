@@ -683,6 +683,24 @@ static int error_rm_touch(int a)
   return -1;
 }
 
+static int exec_cp(char *src, char *dest)
+{
+  int a = 0;
+  switch(fork())
+  {
+    case -1:
+      a = -1;
+      exit(2);
+      break;
+    case 0:
+      if(execlp("cp", "cp", src, dest, NULL) < 0)a = -1;
+      break;
+    default:
+      wait(NULL);
+  }
+  return a;
+}
+
 static int cp_tte_without_r(char *src_tar, char *src_file, char *dest_file)
 {
   if(is_dir(src_tar, src_file)){
@@ -775,6 +793,10 @@ static int cp_r_tte(char *src_tar, char *src_file, char *dest_file)
 {
   if(!is_dir(src_tar, src_file))return cp_tte_without_r(src_tar, src_file, dest_file);
 
+  if(is_empty_string(src_file))
+  {
+    return exec_cp(src_tar, dest_file);
+  }
   int new = 0;
   if(!is_dir_ext(dest_file))
   {
