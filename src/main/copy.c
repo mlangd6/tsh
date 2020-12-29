@@ -204,7 +204,7 @@ static int when_is_dir_dest(char *src_tar, char *src_file, char *dest_tar, char 
   }
   if(add_tar_to_tar(src_tar, dest_tar, src_file, buf2) < 0)
   {
-    char buf[35];
+    char buf[40];
     sprintf(buf, "%s: Problems at the add of file\n", cmd_name);
     write(STDERR_FILENO, buf, strlen(buf));
     return -1;
@@ -245,7 +245,7 @@ static int cp_ttt_without_r(char *src_tar, char *src_file, char *dest_tar, char 
     }
     if(add_tar_to_tar(src_tar, dest_tar, src_file, dest_file) < 0)
     {
-      char err[33];
+      char err[40];
       sprintf(err, "%s: Problems at the add of file\n", cmd_name);
       write(STDERR_FILENO, err, strlen(err));
       return -1;
@@ -330,7 +330,7 @@ static int cp_r_ttt(char *src_tar, char *src_file, char *dest_tar, char *dest_fi
   if(new == 1){
     if(add_tar_to_tar_rec(src_tar, dest_tar, src_file, dest_file) < 0)
     {
-      char err[33];
+      char err[40];
       sprintf(err, "%s: Problems at the add of file\n", cmd_name);
       write(STDERR_FILENO, err, strlen(err));
       return -1;
@@ -374,7 +374,7 @@ static int cp_r_ttt(char *src_tar, char *src_file, char *dest_tar, char *dest_fi
 
     if(add_tar_to_tar_rec(src_tar, dest_tar, src_file, buf2) < 0)
     {
-      char err[33];
+      char err[40];
       sprintf(err, "%s: Problems at the add of file\n", cmd_name);
       write(STDERR_FILENO, err, strlen(err));
       return -1;
@@ -383,7 +383,7 @@ static int cp_r_ttt(char *src_tar, char *src_file, char *dest_tar, char *dest_fi
     {
       if(add_ext_to_tar(dest_tar, NULL, buf2) < 0)
       {
-        char err[33];
+        char err[40];
         sprintf(err, "%s: Problems at the add of file\n", cmd_name);
         write(STDERR_FILENO, err, strlen(err));
         return -1;
@@ -465,7 +465,7 @@ static int cp_ett_without_r(char *src_file, char *dest_tar, char *dest_file)
     }
     if(add_ext_to_tar(dest_tar, src_file, buf2) < 0)
     {
-      char err[33];
+      char err[40];
       sprintf(err, "%s: Problems at the add of file\n", cmd_name);
       write(STDERR_FILENO, err, strlen(err));
       free(buf);
@@ -488,7 +488,7 @@ static int cp_ett_without_r(char *src_file, char *dest_tar, char *dest_file)
     }
     if(add_ext_to_tar(dest_tar, src_file, dest_file) < 0)
     {
-      char err[33];
+      char err[40];
       sprintf(err, "%s: Problems at the add of file\n", cmd_name);
       write(STDERR_FILENO, err, strlen(err));
       return -1;
@@ -547,7 +547,7 @@ static int cp_r_ett(char *src_file, char *dest_tar, char *dest_file)
   if(new == 1){
     if(add_ext_to_tar_rec(dest_tar, src_file, dest_file, 0) < 0)
     {
-      char err[33];
+      char err[40];
       sprintf(err, "%s: Problems at the add of file\n", cmd_name);
       write(STDERR_FILENO, err, strlen(err));
       return -1;
@@ -582,7 +582,7 @@ static int cp_r_ett(char *src_file, char *dest_tar, char *dest_file)
     }
     if(add_ext_to_tar_rec(dest_tar, src_file, buf2, 0) < 0)
     {
-      char err[33];
+      char err[40];
       sprintf(err, "%s: Problems at the add of file\n", cmd_name);
       write(STDERR_FILENO, err, strlen(err));
       free(buf);
@@ -726,7 +726,7 @@ static int cp_tte_without_r(char *src_tar, char *src_file, char *dest_file)
     }
     if(tar_cp_file(src_tar, src_file, fd) < 0)
     {
-      char err[33];
+      char err[40];
       sprintf(err, "%s: Problems at the add of file\n", cmd_name);
       write(STDERR_FILENO, err, strlen(err));
       free(buf);
@@ -753,7 +753,7 @@ static int cp_tte_without_r(char *src_tar, char *src_file, char *dest_file)
     }
     if(tar_cp_file(src_tar, src_file, fd) < 0)
     {
-      char err[33];
+      char err[40];
       sprintf(err, "%s: Problems at the add of file\n", cmd_name);
       write(STDERR_FILENO, err, strlen(err));
       return -1;
@@ -802,7 +802,7 @@ static int cp_r_tte(char *src_tar, char *src_file, char *dest_file)
       return error_rm_touch(a);
     if(tar_extract(src_tar, src_file, dest_file) < 0)
     {
-      char err[33];
+      char err[40];
       sprintf(err, "%s: Problems at the add of file\n", cmd_name);
       write(STDERR_FILENO, err, strlen(err));
       return -1;
@@ -812,7 +812,7 @@ static int cp_r_tte(char *src_tar, char *src_file, char *dest_file)
   {
     if(tar_extract(src_tar, src_file, dest_file) < 0)
     {
-      char err[33];
+      char err[40];
       sprintf(err, "%s: Problems at the add of file\n", cmd_name);
       write(STDERR_FILENO, err, strlen(err));
       return -1;

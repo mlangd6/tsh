@@ -7,7 +7,7 @@
 
 
 #define SUPPORT_OPT "r"
-char cmd_name[10];
+char cmd_name[3];
 
 /**
   * copy a file SRC_FILE from a tarball SRC_TAR to a tarball DEST_TAR as DEST_FILE
