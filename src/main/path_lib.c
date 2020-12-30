@@ -223,6 +223,8 @@ char *reduce_abs_path(const char *path, char *resolved)
  error:
   if (resolved == NULL)
     free(ret);
+  if (end)
+    free(end);
   return NULL;
 }
 
