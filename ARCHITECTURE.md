@@ -3,19 +3,19 @@
 ## Commandes
 Nous avons fait le choix de créer un exécutable pour chaque commande de TSH.
 
-**NB :** Les commandes `cd`, `pwd` et `exit` sont internes à TSH et 
+**NB :** Les commandes `cd`, `pwd` et `exit` sont internes à TSH et
 sont donc appelées dans TSH par leur fonction.
 
 ### Emplacement des commandes
 Lors d'un `make` (on peut aussi créer uniquement les commandes avec `make cmd`),
 les exécutables sont placés dans `target/bin/` puis copier dans
 `$HOME/.tsh/bin/` ainsi TSH sait toujours où se trouve les commandes
-pour les tarball. 
+pour les tarball.
 
 
 ### Appel d'une commande
 Lorsqu'une commande TSH est appelée, on doit appeler l'exécutable correspondant
-dans `$HOME/.tsh/bin/` même si l'utilisateur n'a donné que des arguments à 
+dans `$HOME/.tsh/bin/` même si l'utilisateur n'a donné que des arguments à
 l'extérieur des tar.
 
 La commande TSH exécutée appelle alors à son tour le *command_handler*
@@ -32,11 +32,38 @@ Un argument qui n'est pas une option est transformé, comme suit:
 Une fois les arguments transformés, pour chaque argument
 (qui n'est pas une option), le *command handler* s'occupe d'appeler la version
 TSH de la commande s'il s'agit d'un fichier dans un tar. La version externe de
-la commande sinon 
+la commande sinon
 
 ## Redirections
 Dès qu'une redirection fait intervenir des fichiers dans des tar, on passe par
-un *pipe*, en effet 
+un *tube* et un processus fils.
+
+### Redirections des sorties
+
+#### Intérieur des tar
+Tout d'abord on crée le fichier dans le tar si nécessaire. On enlève le contenu
+si nécessaire. On déplace le fichier à la fin de l'archive pour éviter des
+décalages lorsque l'on lit en même temps dans le tar. Supposons qu'il existe
+*a.tar* ayant *toto* et *titi* (dans cette ordre) comme fichier si on lance
+`cat a.tar/titi > a.tar/toto`. Si `cat` lit par block alors l'endroit où
+commence *titi* dans le tar aura changer. C'est pour cela que l'on place
+toujours le fichier à la fin avant la redirection.  
+Nous utilisons un *tube* pour ne pas supprimer le contenue d'un tar par exemple.
+On redirige la sortie souhaité vers l'entré du tube. Le processus fils lit dans
+la sortie du tube et lance une fonction qui permet d’agrandir le contenu du
+fichier souhaité sans corrompre le tar.
+
+
+#### Extérieur des tar
+Cela marche avec une ouverture avec différents `flags` en fonction de la
+redirection souhaité (`O_TRUNC` ou `O_APPEND`) puis on lance `dup2`.
+
+### Redirection de l'entrée
+On utilise aussi un *tube* car sinon la lecture s'arrêterait uniquement lorsque
+tout le tar (et non juste le fichier) sera lu. Ainsi on lit le fichier, ce qui
+est lu est écrit dans le *tube* et on redirige l'entrée standard vers la sortie
+du tube.   
+(Le cas à l'exterieur des tar est une redirection basique).
 
 ## Arborescence
 `src/` contient 5 dossiers:
@@ -54,4 +81,3 @@ un *pipe*, en effet
 
 5. `test_include/`: On y trouve les fichiers d'en têtes nécessaires uniquement
    		    aux tests.
-
