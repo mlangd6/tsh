@@ -59,8 +59,14 @@ char *copy_string (const char *str);
 char *append_slash(const char *str);
 
 /**
- * Add a slash at the end of FILENAME using append_slash
- */
+  * Add a slash at the end of FILENAME using append_slash
+  */
 void append_slash_filename(char *filename);
+
+/**
+  * remove '/' at the end of a string if it ends by '/'
+  * @param s the string
+  */
+void remove_last_slash(char *s);
 
 #endif
