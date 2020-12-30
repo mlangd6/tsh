@@ -22,8 +22,8 @@ typedef struct arg_info
 {
   int nb_tar_file; // Number of arguments that are inside a tarball
   int nb_reg_file; // Number of arguments that are outside a tarball
-  int nb_error; // 1 if a file argument is an error (e.g doesn't exists)
-
+  bool has_error; // 1 if a file argument is an error (e.g doesn't exists)
+  
   size_t options_size; // Number of options
   char **options; // Array containing all the options + unary_command name
 } arg_info ;
@@ -42,11 +42,10 @@ enum arg_type
     CMD,
     TAR_FILE,
     REG_FILE,
-    OPTION,
-    ERROR
+    OPTION
   };
 
-struct tar_file
+struct tar_path
 {
   char *tar_name;
   char *filename;
@@ -59,7 +58,7 @@ struct arg
   union
   {
     char *value;
-    struct tar_file tf;
+    struct tar_path tf;
   };
 
 };
@@ -92,7 +91,7 @@ void invalid_options (char *cmd_name);
 /**
  * Gets a `struct arg` array of size `argc` by scanning `argv`.
  */
-struct arg *tokenize_args (int argc, char **argv);
+struct arg *tokenize_args (int *argc, char **argv, arg_info *info);
 
 /**
  * Free a `struct arg` array of size `tokens_size`

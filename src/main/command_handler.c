@@ -57,22 +57,23 @@ void invalid_options (char *cmd_name)
 
 
 
-struct arg *tokenize_args (int argc, char **argv)
+struct arg *tokenize_args (int *argc, char **argv, arg_info *info)
 {
-  struct arg *tokens = malloc(argc * sizeof(struct arg));
+  struct arg *tokens = malloc(*argc * sizeof(struct arg));
   assert(tokens);
 
   // Par définition, le premier argument est la commande
   tokens[0].value = copy_string(argv[0]);
   tokens[0].type = CMD;
 
-  for (int i = 1; i < argc; i++)
+  int j = 1;
+  for (int i = 1; i < *argc; i++)
     {
       // OPTION
       if (*argv[i] == '-')
 	{
-	  tokens[i].value = copy_string (argv[i]);
-	  tokens[i].type = OPTION;
+	  tokens[j].value = copy_string (argv[i]);
+	  tokens[j++].type = OPTION;
 	}
       // ERROR ou TAR_FILE ou REG_FILE
       else
@@ -88,25 +89,27 @@ struct arg *tokenize_args (int argc, char **argv)
 	  // ERROR
 	  if (!reduce)
 	    {
-	      tokens[i].value = copy_string(argv[i]);
-	      tokens[i].type = ERROR;
+	      error_cmd(argv[0], argv[i]);
+	      info->has_error = true;
 	    }
 	  // TAR_FILE
-	  else if (in_tar)
-	    {
-	      tokens[i].tf.tar_name = reduce;
-	      tokens[i].tf.filename = in_tar;
-	      tokens[i].type = TAR_FILE;
+	  else if (in_tar) 
+	    {	      
+	      tokens[j].tf.tar_name = reduce;
+	      tokens[j].tf.filename = in_tar;
+	      tokens[j++].type = TAR_FILE;
 	    }
 	  // REG_FILE
 	  else
 	    {
-	      tokens[i].value = reduce;
-	      tokens[i].type = REG_FILE;
+	      tokens[j].value = reduce;
+	      tokens[j++].type = REG_FILE;
 	    }
 	}
     }
 
+  *argc = j;
+  
   return tokens;
 }
 
@@ -172,7 +175,6 @@ void init_arg_info (arg_info *info, struct arg *tokens, int tokens_size)
 {
   info->nb_tar_file = 0;
   info->nb_reg_file = 0;
-  info->nb_error = 0;
   info->options_size = 0;
   info->options = NULL;
 
@@ -191,10 +193,6 @@ void init_arg_info (arg_info *info, struct arg *tokens, int tokens_size)
 
 	case REG_FILE:
 	  info->nb_reg_file++;
-	  break;
-
-	case ERROR:
-	  info->nb_error++;
 	  break;
 	}
     }
