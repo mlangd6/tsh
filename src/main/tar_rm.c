@@ -11,12 +11,7 @@
 #include "tar.h"
 #include "utils.h"
 
-/** Delete all files starting with DIRNAME i.e. delete directory DIRNAME in the tar referenced by TAR_FD.
- * Last character of DIRNAME is '/'
- * @param tar_fd the file descriptor of the tarball
- * @param dirname the directory you want to delete
- * @return 0  on success, -1 if a system call failed
- */
+
 int tar_rm_dir(int tar_fd, const char *dirname)
 {
   unsigned int file_size;
@@ -29,32 +24,32 @@ int tar_rm_dir(int tar_fd, const char *dirname)
   lseek(tar_fd, 0, SEEK_SET);
 
   while((size_read = read(tar_fd, &file_header, BLOCKSIZE)) > 0)
-  {
-    if(size_read != BLOCKSIZE)
-	  {
-	     return -1;
-	  }
-    if(file_header.name[0] == '\0')
-	  {
-	     ftruncate(tar_fd, tar_end);
-	      return 0;
-	  }
-    else if(is_prefix(dirname, file_header.name))
-	  {
-	     file_size  = get_file_size(&file_header);
-	     file_start = lseek(tar_fd, -BLOCKSIZE, SEEK_CUR); // on était à la fin d'un header, on se place donc au début
-	     file_end   = file_start + BLOCKSIZE + number_of_block(file_size)*BLOCKSIZE;
+    {
+      if(size_read != BLOCKSIZE)
+	{
+	  return -1;
+	}
+      if(file_header.name[0] == '\0')
+	{
+	  ftruncate(tar_fd, tar_end);
+	  return 0;
+	}
+      else if(is_prefix(dirname, file_header.name))
+	{
+	  file_size  = get_file_size(&file_header);
+	  file_start = lseek(tar_fd, -BLOCKSIZE, SEEK_CUR); // on était à la fin d'un header, on se place donc au début
+	  file_end   = file_start + BLOCKSIZE + number_of_block(file_size)*BLOCKSIZE;
 
-	     if( fmemmove(tar_fd, file_end, tar_end - file_end, file_start) < 0) // on décale le contenu
-	     return -1;
+	  if( fmemmove(tar_fd, file_end, tar_end - file_end, file_start) < 0) // on décale le contenu
+	    return -1;
 
-	     tar_end -= file_end - file_start;    // on réduit virtuellement la taille
-	  }
-    else
-	  {
-	     skip_file_content(tar_fd, &file_header);
-	  }
-  }
+	  tar_end -= file_end - file_start;    // on réduit virtuellement la taille
+	}
+      else
+	{
+	  skip_file_content(tar_fd, &file_header);
+	}
+    }
 
   return -1;
 }
@@ -73,20 +68,20 @@ static int tar_rm_file(int tar_fd, const char *filename)
   int r = seek_header(tar_fd, filename, &file_header);
 
   if(r < 0) // erreur
-  {
-    return -1;
-  }
+    {
+      return -1;
+    }
   else if( r == 0 || (file_header.typeflag == DIRTYPE) ) // Pas trouvé OU un dossier
-  {
-    return -2;
-  }
+    {
+      return -2;
+    }
 
 
   file_size = get_file_size(&file_header);
 
   off_t file_start = lseek(tar_fd, -BLOCKSIZE, SEEK_CUR), // on était à la fin d'un header, on se place donc au début
-        file_end   = file_start + BLOCKSIZE + number_of_block(file_size)*BLOCKSIZE,
-        tar_end    = lseek(tar_fd, 0, SEEK_END);
+    file_end   = file_start + BLOCKSIZE + number_of_block(file_size)*BLOCKSIZE,
+    tar_end    = lseek(tar_fd, 0, SEEK_END);
 
   if(fmemmove(tar_fd, file_end, tar_end - file_end, file_start) < 0)
     return -1;
@@ -107,13 +102,13 @@ int tar_rm(const char *tar_name, const char *filename)
   int r;
 
   if(is_empty_string(filename) || is_dir_name(filename))
-  {
-    r = tar_rm_dir(tar_fd, filename);
-  }
+    {
+      r = tar_rm_dir(tar_fd, filename);
+    }
   else
-  {
-    r = tar_rm_file(tar_fd, filename);
-  }
+    {
+      r = tar_rm_file(tar_fd, filename);
+    }
 
   if(r == -1) // erreur appel système
     return error_pt(&tar_fd, 1, errno);

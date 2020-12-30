@@ -16,17 +16,17 @@ static int print_error_string (const char *str)
 static void close_fds (int fds[], int length_fds)
 {
   for (int i = 0; i < length_fds; i++)
-  {
-    close(fds[i]);
-  }
+    {
+      close(fds[i]);
+    }
 }
 
 static void change_errno (int new_errno)
 {
   if (0 < new_errno)
-  {
-    errno = new_errno;
-  }
+    {
+      errno = new_errno;
+    }
 }
 
 void *error_p(int fds[], int length_fds, int new_errno)

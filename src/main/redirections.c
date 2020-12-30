@@ -51,6 +51,8 @@ static int (*redirs[])(char *) = {
   stdin_redir
 };
 
+ssize_t update_size_func_read_size;
+
 /* Add a reset struct to the stack of the reseter of redirections */
 void add_reset_redir(int fd, pid_t pid)
 {
@@ -195,7 +197,7 @@ static int tar_redir(char *tar_name, char *in_tar, int fd, bool append)
         goto error;
       }
       if (errno = ENOENT)
-        tar_add_file(tar_name, NULL, in_tar);
+        add_ext_to_tar(tar_name, NULL, in_tar);
       else goto error;
       break;
     case DIR:
@@ -219,7 +221,7 @@ static int tar_redir(char *tar_name, char *in_tar, int fd, bool append)
     else if (errno == ENOENT)
     {
       // Si le fichier n'existe pas on lé crée
-      tar_add_file(tar_name, NULL, in_tar);
+      add_ext_to_tar(tar_name, NULL, in_tar);
     }
   }
   else // On le déplace à la fin du tar pour éviter tout problème possible avec des lecture sur le même tar en même temps
@@ -271,6 +273,14 @@ static int launch_redir_tar_link(char *tar_name, char *in_tar, redir_type r)
   return -2;
 }
 
+static void update_size(struct posix_header *hd)
+{
+  int size = get_file_size(hd);
+  long unsigned int new_size = size + update_size_func_read_size;
+  sprintf(hd -> size, "%011lo", new_size);
+}
+
+
 static int append_tar_file(char *tar_name, char *in_tar, int read_fd)
 {
   int tar_fd = open(tar_name, O_RDWR);
@@ -292,12 +302,7 @@ static int append_tar_file(char *tar_name, char *in_tar, int read_fd)
       default:
       {
         // On met à jour la taille du header par rapport à read_size
-        void update_size(struct posix_header *hd)
-        {
-          int size = get_file_size(hd);
-          long unsigned int new_size = size + read_size;
-          sprintf(hd -> size, "%011lo", new_size);
-        }
+        update_size_func_read_size = read_size;
         update_header(&hd, tar_fd, in_tar, update_size);
 
         // Calcul du décalage nécessaire

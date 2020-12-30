@@ -13,7 +13,7 @@ CMD_DIR=cmd/
 TYPES_DIR=types/
 INCLUDE=$(SRC)include/
 TEST_INCLUDE=$(SRC)test_include/
-TSH_DIR=${HOME}/.tsh
+TSH_DIR=/tmp/.tsh
 
 # TSH
 MAIN_FILES=$(wildcard $(SRC)$(MAIN_DIR)*.c)
@@ -77,5 +77,8 @@ $(TARGET)$(TYPES_DIR)%.o : $(SRC)$(TYPES_DIR)%.c
 	@mkdir -p $(dir $@)
 	@$(CC) -c $(CFLAGS) -o $@ $<
 
+doc: $(MAIN_FILES) $(TYPE_FILES) $(CMD_FILES)
+	@doxygen Doxyfile
+
 clean:
-	@rm -rf $(TARGET) $(EXEC) $(TEST) $(BIN)
+	@rm -rf $(TARGET) $(EXEC) $(TEST) $(BIN) doc

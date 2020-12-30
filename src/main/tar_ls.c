@@ -1,8 +1,7 @@
-#include "tar.h"
-
 #include <assert.h>
 #include <errno.h>
 #include <fcntl.h>
+#include <linux/limits.h>
 #include <stdbool.h>
 #include <stdlib.h>
 #include <string.h>
@@ -10,12 +9,13 @@
 
 #include "array.h"
 #include "errors.h"
+#include "tar.h"
 #include "utils.h"
 
 
-/**
- * Lists all files passing a predicate in a tar.
- */
+char dir_name_glob[PATH_MAX];
+bool in_dir_rec;
+
 array* tar_ls_if (int tar_fd, bool (*predicate)(const struct posix_header *))
 {
   array *ret;
@@ -57,47 +57,30 @@ static bool always_true (const struct posix_header *header)
 }
 
 
-/**
- * Lists all files in a tar.
- *
- * The file descriptor `tar_fd` must be already opened with at least read mode.
- *
- * @param tar_fd the file descriptor referencing a tar
- * @return a pointer to an array of tar_file; `NULL` if there are errors
- */
 array* tar_ls_all (int tar_fd)
 {
   return tar_ls_if(tar_fd, always_true);
 }
 
 
-/**
- * Lists all files from a directory contained in a tar.
- *
- * The file descriptor `tar_fd` must be already opened with at least read mode and `dir_name` must be a null terminated string.
- * To list files at root just put an empty string for `dir_name` otherwise make sure `dir_name` ends with a `/`.
- *
- * Note that, the returned array has no entry for the listed directory (i.e. `dir_name`).
- *
- * @param tar_fd a file descriptor referencing a tar
- * @param dir_name the directory to list
- * @param rec if `true` then subdirectories are also listed
- * @return a pointer to an array of tar_file; `NULL` if there are errors
- */
+static bool in_dir(const struct posix_header *header)
+{
+  if (is_prefix(dir_name_glob, header->name) != 1)
+    return false;
+
+  if (in_dir_rec)
+    return true;
+
+  char *c = strchr(header->name + strlen(dir_name_glob), '/');
+  return !c || !c[1]; // pas de '/' ou '/' à la fin
+
+}
+
+
 array* tar_ls_dir (int tar_fd, const char *dir_name, bool rec)
 {
-  bool in_dir(const struct posix_header *header)
-  {
-    if (is_prefix(dir_name, header->name) != 1)
-      return false;
-
-    if (rec)
-      return true;
-
-    char *c = strchr(header->name + strlen(dir_name), '/');
-    return !c || !c[1]; // pas de '/' ou '/' à la fin
-  }
-
+  in_dir_rec = rec;
+  strcpy(dir_name_glob, dir_name);
   if (*dir_name == '\0')
     return tar_ls_if(tar_fd, in_dir);
 
@@ -110,14 +93,6 @@ array* tar_ls_dir (int tar_fd, const char *dir_name, bool rec)
 
 
 
-
-/**
- * List all files contained in a tar.
- *
- * @param tar_name the tar to list
- * @param nb_headers an address to store the size of the returned array
- * @return on success, a malloc'd array of all headers; NULL on failure
- */
 struct posix_header *tar_ls(const char *tar_name, int *nb_headers)
 {
   int tar_fd = open(tar_name, O_RDONLY);

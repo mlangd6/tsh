@@ -1,5 +1,6 @@
 #include <assert.h>
 #include <errno.h>
+#include <fcntl.h>
 #include <limits.h>
 #include <stddef.h>
 #include <stdio.h>
@@ -8,22 +9,19 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <unistd.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <fcntl.h>
 
 #include "path_lib.h"
 #include "tar.h"
 #include "utils.h"
 
-static char *end_of_path(char *path);
+//static char *end_of_path(char *path);
 static void remove_last_slashs(char *path);
 static enum file_type is_dir_type(int tar_fd, const char *filename);
 static enum file_type is_reg_type(int tar_fd, const char *filename);
 
 /* Return a malloc'd pointer of the last file in path, NULL if it end by . or ..
    the last file will also be detahced of path */
-static char *end_of_path(char *path)
+char *end_of_path(char *path)
 {
   int len = strlen(path);
   char *end;
@@ -223,6 +221,8 @@ char *reduce_abs_path(const char *path, char *resolved)
  error:
   if (resolved == NULL)
     free(ret);
+  if (end)
+    free(end);
   return NULL;
 }
 
@@ -279,7 +279,17 @@ enum file_type ftype_of_file(int tar_fd, const char *filename, bool dir_priority
 {
   if (is_dir_name(filename))
     {
-      return ftar_access(tar_fd, filename, F_OK) > 0 ? DIR: NONE;
+      if (ftar_access(tar_fd, filename, F_OK) > 0)
+        return DIR;
+      else
+      {
+        char filename_not_dir[PATH_MAX];
+        strncpy(filename_not_dir, filename, strlen(filename) - 1);
+        strcat(filename_not_dir, "");
+        if (ftar_access(tar_fd, filename_not_dir, F_OK) > 0)
+          errno = ENOTDIR;
+        return NONE;
+      }
     }
   enum file_type res;
   if (tar_fd < 0)
@@ -312,7 +322,7 @@ enum file_type type_of_file(const char *tar_name, const char *filename, bool dir
   enum file_type res = ftype_of_file(tar_fd, filename, dir_priority);
   close(tar_fd);
   return res;
-  }
+}
 
 /* Return DIR if filename reference a directory, else NONE and errno is set accordingly */
 static enum file_type is_dir_type(int tar_fd, const char *filename)
@@ -321,17 +331,13 @@ static enum file_type is_dir_type(int tar_fd, const char *filename)
   sprintf(dir, "%s/", filename);
   return (ftar_access(tar_fd, dir, F_OK) > 0) ? DIR: NONE;
 }
+
 /* Return REG if filename reference a regular file, else NONE and errno is set accordingly */
 static enum file_type is_reg_type(int tar_fd, const char *filename)
 {
   return (ftar_access(tar_fd, filename, F_OK) == 1) ? REG : NONE;
 }
 
-/** Return 0 if pwd is prefix of an inside tarball path
- * @param tar_name the name of the tarball
- * @param filename the name of the file inside the tarball
- * @return -1 if true, else 0
- */
 int is_pwd_prefix(const char *tar_name, const char *filename)
 {
   char *copy_tar_name = malloc(4096);
@@ -345,13 +351,13 @@ int is_pwd_prefix(const char *tar_name, const char *filename)
 
   char *env = append_slash(getenv("PWD"));
   if(is_prefix(path, env) > 0)
-  {
-    free(copy_tar_name);
-    free(copy_filename);
-    free(path);
-    free(env);
-    return -1;
-  }
+    {
+      free(copy_tar_name);
+      free(copy_filename);
+      free(path);
+      free(env);
+      return -1;
+    }
 
   free(copy_tar_name);
   free(copy_filename);

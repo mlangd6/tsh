@@ -22,7 +22,7 @@ typedef struct arg_info
 {
   int nb_tar_file; // Number of arguments that are inside a tarball
   int nb_reg_file; // Number of arguments that are outside a tarball
-  int nb_error; // 1 if a file argument is an error (e.g doesn't exists)
+  bool has_error; // 1 if a file argument is an error (e.g doesn't exists)
   
   size_t options_size; // Number of options
   char **options; // Array containing all the options + unary_command name
@@ -34,7 +34,7 @@ typedef struct binary_command
   int (*tar_to_tar)(char *src_tar, char *src_file, char *dest_tar, char *dest_file, char *opt);
   int (*extern_to_tar)(char *src_file, char *dest_tar, char *dest_file, char *opt);
   int (*tar_to_extern)(char *src_tar, char *src_file, char *dest_file, char *opt);
-  char *support_opt; // Supported options for this unary_command
+  char *support_opt; // Supported options for this binary_command
 } binary_command;
 
 enum arg_type
@@ -42,11 +42,10 @@ enum arg_type
     CMD,
     TAR_FILE,
     REG_FILE,
-    OPTION,
-    ERROR
+    OPTION
   };
 
-struct tar_file
+struct tar_path
 {
   char *tar_name;
   char *filename;
@@ -55,13 +54,13 @@ struct tar_file
 struct arg
 {
   enum arg_type type;
-  
+
   union
   {
     char *value;
-    struct tar_file tf;
+    struct tar_path tf;
   };
-  
+
 };
 
 /**
@@ -89,10 +88,10 @@ char *check_options (int argc, char **argv, char *optstring);
 /** Prints an error message caused by an invalid option */
 void invalid_options (char *cmd_name);
 
-/** 
- * Gets a `struct arg` array of size `argc` by scanning `argv`.  
+/**
+ * Gets a `struct arg` array of size `argc` by scanning `argv`.
  */
-struct arg *tokenize_args (int argc, char **argv);
+struct arg *tokenize_args (int *argc, char **argv, arg_info *info);
 
 /**
  * Free a `struct arg` array of size `tokens_size`
@@ -100,7 +99,7 @@ struct arg *tokenize_args (int argc, char **argv);
 void free_tokens (struct arg *tokens, int tokens_size);
 
 /**
- * Calls `execvp` on tokens 
+ * Calls `execvp` on tokens
  */
 int execvp_tokens (char *cmd_name, struct arg *tokens, int tokens_size);
 

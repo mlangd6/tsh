@@ -14,14 +14,12 @@
 
 
 
-static char *is_tar_test();
 static char *tar_access_test();
 
 extern int tests_run;
 
 static char *(*tests[])(void) = {
-  is_tar_test,
-  tar_access_test,
+  tar_access_test
 };
 
 static char *all_tests() {
@@ -43,26 +41,6 @@ int launch_tar_access_tests() {
   }
   printf("tar access tests run: %d\n\n", tests_run - prec_tests_run);
   return (results == 0);
-}
-
-static char *is_tar_test() {
-  // test intégrité valide
-  mu_assert("Error, is_tar(\"/tmp/tsh_test/test.tar\") != 1", is_tar("/tmp/tsh_test/test.tar") == 1);
-
-  // test fichier vide
-  system("touch /tmp/tsh_test/toto");
-  mu_assert("Error, is_tar(\"/tmp/tsh_test/toto\") != 0", is_tar("/tmp/tsh_test/toto") == 0);
-
-  // test corruption
-  char bad_chksm[8];
-  memset(bad_chksm, '\0', sizeof(bad_chksm));
-  int fd = open("/tmp/tsh_test/test.tar", O_RDWR);
-  lseek(fd, 148, SEEK_SET);
-  write(fd, bad_chksm, sizeof(bad_chksm));
-  mu_assert("Error, is_tar(\"/tmp/tsh_test/test.tar\") != 0", is_tar("/tmp/tsh_test/test.tar") == 0);
-  close(fd);
-
-  return 0;
 }
 
 

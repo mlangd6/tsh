@@ -113,3 +113,4 @@ flycheck_*.el
 tsh
 tsh_test
 bin
+doc

@@ -9,6 +9,7 @@
 #include "errors.h"
 #include "tar.h"
 #include "tsh.h"
+#include "utils.h"
 
 static int ret_value;
 static int cd(char **argv, int argc);
@@ -44,9 +45,7 @@ int special_command(char *s)
 
 void init_tsh_dir()
 {
-  char *home = getenv("HOME");
-  strcpy(tsh_dir, home);
-  strcat(tsh_dir, "/.tsh");
+  strcpy(tsh_dir, "/tmp/.tsh");
 }
 
 char *get_tsh_dir(char *buf)
@@ -173,7 +172,7 @@ static int cd(char **argv, int argc)
           error_cmd("tsh: cd", argv[1]);
           return EXIT_FAILURE;
         }
-
+        if (strcmp(path, "/") != 0) remove_last_slash(path);
         setenv("OLDPWD", pwd, 1);
         setenv("PWD", path, 1);
       }
@@ -183,12 +182,11 @@ static int cd(char **argv, int argc)
         {
           if (tar_access(path, in_tar, X_OK) != -1) // check execution permission
           {
-            int in_tar_len = strlen(in_tar);
-            in_tar[in_tar_len-1] = '\0';
-            in_tar[-1] = '/';
+            remove_last_slash(in_tar);
+            char buf[PATH_MAX + 1];
+            sprintf(buf, "%s/%s", path, in_tar);
             setenv("OLDPWD", pwd, 1);
-            setenv("PWD", path, 1);
-            in_tar[-1] = '\0';
+            setenv("PWD", buf, 1);
           }
           else
           {

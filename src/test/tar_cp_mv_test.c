@@ -14,13 +14,15 @@ extern int tests_run;
 
 static char *tar_cp_test();
 static char *tar_mv_test();
-static char *tar_extract_dir_man_dir_test();
+static char *tar_extract_man_dir_test();
+static char *tar_extract_hello_test ();
 static char *all_tests();
 
 static char *(*tests[])(void) = {
   tar_cp_test,
   tar_mv_test,
-  tar_extract_dir_man_dir_test
+  tar_extract_man_dir_test,
+  tar_extract_hello_test
 };
 
 int launch_tar_cp_mv_tests() {
@@ -69,25 +71,33 @@ static char *tar_cp_test() {
   return 0;
 }
 
-static char *tar_extract_dir_man_dir_test()
+static char *tar_extract_man_dir_test()
 {
-  int r = tar_extract_dir("/tmp/tsh_test/test.tar", "man_dir/", "/tmp/tsh_test");
+  int r = tar_extract("/tmp/tsh_test/test.tar", "man_dir/", "/tmp/tsh_test");
   mu_assert("Error during the extraction", r == 0);
 
   system("man man > /tmp/tsh_test/man_dir/man_diff;"		\
 	 "man 2 open > /tmp/tsh_test/man_dir/open2_diff;"	\
 	 "man tar > /tmp/tsh_test/man_dir/tar_diff");
   
-  mu_assert("system(\"diff /tmp/tsh_test/man_dir/man_diff /tmp/tsh_test/man_dir/man\") == 0)", system("diff /tmp/tsh_test/man_dir/man_diff /tmp/tsh_test/man_dir/man") == 0);
-  mu_assert("system(\"diff /tmp/tsh_test/man_dir/open2_diff /tmp/tsh_test/man_dir/open2\") == 0)", system("diff /tmp/tsh_test/man_dir/open2_diff /tmp/tsh_test/man_dir/open2") == 0);
-  mu_assert("system(\"diff /tmp/tsh_test/man_dir/tar_diff /tmp/tsh_test/man_dir/tar\") == 0)", system("diff /tmp/tsh_test/man_dir/tar_diff /tmp/tsh_test/man_dir/tar") == 0);
-  
-  system("rm -r /tmp/tsh_test/man_dir");  
+  mu_assert("system(\"diff /tmp/tsh_test/man_dir/man_diff /tmp/tsh_test/man_dir/man\") != 0", system("diff /tmp/tsh_test/man_dir/man_diff /tmp/tsh_test/man_dir/man") == 0);
+  mu_assert("system(\"diff /tmp/tsh_test/man_dir/open2_diff /tmp/tsh_test/man_dir/open2\") != 0", system("diff /tmp/tsh_test/man_dir/open2_diff /tmp/tsh_test/man_dir/open2") == 0);
+  mu_assert("system(\"diff /tmp/tsh_test/man_dir/tar_diff /tmp/tsh_test/man_dir/tar\") != 0", system("diff /tmp/tsh_test/man_dir/tar_diff /tmp/tsh_test/man_dir/tar") == 0);
   
   return 0;
 }
 
 
+static char *tar_extract_hello_test ()
+{
+  int r = tar_extract("/tmp/tsh_test/test.tar", "dir1/subdir/subsubdir/hello", "/tmp/tsh_test");
+  mu_assert("Error during the extraction", r == 0);
+
+  system("echo \"Hello World!\" > /tmp/tsh_test/hello_diff");
+  mu_assert("system(\"diff /tmp/tsh_test/hello /tmp/tsh_test/hello_diff\") != 0", system("diff /tmp/tsh_test/hello /tmp/tsh_test/hello_diff") == 0);
+  
+  return 0;
+}
 
 static char *tar_mv_test()
 {

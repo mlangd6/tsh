@@ -22,7 +22,7 @@ static int handle_tokens (unary_command *cmd, struct arg *tokens, int argc, arg_
 static int handle_arg (unary_command *cmd, struct arg *token, arg_info *info, char *options);
 static int handle_reg_file (unary_command *cmd, arg_info *info, char *arg);
 static int handle_tar_file (unary_command *cmd, char *tar_name, char *filename, char *detected_options);
-static int handle_with_pwd (unary_command *cmd, int argc, char **argv, char *detected_options);
+static int handle_with_pwd (unary_command *cmd, char **argv, char *detected_options);
 
 static void free_all (struct arg *tokens, int argc, arg_info *info, char *options);
 
@@ -89,17 +89,13 @@ static int handle_tokens (unary_command *cmd, struct arg *tokens, int argc, arg_
   
   if (!options)
     invalid_options (cmd->name);
-  
+
   for (int i = optind; i < argc; i++)
     {      
       switch (tokens[i].type)
 	{
 	case CMD:
 	case OPTION:
-	  break;
-
-	case ERROR:
-	  error_cmd (cmd->name, tokens[i].value);
 	  break;
 
 	case TAR_FILE:
@@ -174,7 +170,7 @@ static int handle_tar_file (unary_command *cmd, char *tar_name, char *filename, 
 }
 
 /** Handles a unary command with `PWD` */
-static int handle_with_pwd (unary_command *cmd, int argc, char **argv, char *detected_options)
+static int handle_with_pwd (unary_command *cmd, char **argv, char *detected_options)
 {
   int ret;
   char *pwd, *in_tar;
@@ -224,8 +220,15 @@ int handle_unary_command (unary_command cmd, int argc, char **argv)
   int ret;
   char *tar_options;
   struct arg *tokens;
-  arg_info info;
-
+  
+  arg_info info =
+    {
+      0,
+      0,
+      false,
+      0,
+      NULL
+    };
   
   opterr = 0; // Pour ne pas avoir les messages d'erreurs de getopt
 
@@ -233,15 +236,20 @@ int handle_unary_command (unary_command cmd, int argc, char **argv)
   
   tar_options = check_options (argc, argv, cmd.support_opt); // on récupère les options pour la commande tar
 
-  tokens = tokenize_args(argc, argv);
+  tokens = tokenize_args(&argc, argv, &info);
 
-  init_arg_info(&info, tokens, argc);
+  init_arg_info(&info, tokens, argc);  
 
-
+  if (no_arg(&info) && info.has_error)
+    {
+      free_all (tokens, argc, &info, tar_options);
+      return EXIT_FAILURE;
+    }
+  
   // Pas d'argument et PWD
   if (no_arg(&info) && cmd.twd_arg)
     {
-      ret = handle_with_pwd (&cmd, argc, argv, tar_options);
+      ret = handle_with_pwd (&cmd, argv, tar_options);
       
       free_all (tokens, argc, &info, tar_options);
 

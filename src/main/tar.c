@@ -18,8 +18,6 @@
    https://gaufre.informatique.univ-paris-diderot.fr/klimann/systL3_2020-2021/blob/master/TP/TP1/tar.h */
 
 
-
-/* Compute and write the checksum of a header */
 void set_checksum(struct posix_header *hd)
 {
   memset(hd->chksum, ' ', 8);
@@ -32,7 +30,6 @@ void set_checksum(struct posix_header *hd)
 }
 
 
-/* Check that the checksum of a header is correct */
 int check_checksum(struct posix_header *hd) {
   unsigned int checksum = 0;
   sscanf(hd->chksum, "%o ", &checksum);
@@ -48,14 +45,22 @@ int check_checksum(struct posix_header *hd) {
 }
 
 
-/* Check if the file at PATH is a valid tar */
 int is_tar(const char *path)
 {
-  int tar_fd = open(path, O_RDONLY);
-
-  if (tar_fd < 0)
+  int len = strlen(path);
+  if (len < 4)
+    return -1;
+  if (path[len-4] != '.' || path[len-3] != 't' || path[len-2] != 'a' || path[len-1] != 'r')
     return -1;
 
+  int tar_fd = open(path, O_RDONLY);
+  if (tar_fd < 0)
+    return -1;
+  if (lseek(tar_fd, 0, SEEK_END) % BLOCKSIZE != 0)
+  {
+    return -1;
+  }
+  lseek(tar_fd, 0, SEEK_SET);
   struct posix_header file_header;
   int fail = 0, read_size;
 
@@ -82,7 +87,6 @@ int is_tar(const char *path)
 }
 
 
-/* Seek FILENAME in the tar referenced by TAR_FD and set HEADER accordingly */
 int seek_header(int tar_fd, const char *filename, struct posix_header *header)
 {
   while (1)
@@ -188,6 +192,7 @@ int update_header(struct posix_header *hd, int tar_fd, char *filename, void (*up
 
 int is_dir(const char *tar_name, const char *filename)
 {
+  if(!*filename)return 1;
   char *copy = append_slash(filename);
   if(copy!=NULL){
     if(tar_access(tar_name, copy, F_OK) > 0)
