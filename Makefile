@@ -13,7 +13,7 @@ CMD_DIR=cmd/
 TYPES_DIR=types/
 INCLUDE=$(SRC)include/
 TEST_INCLUDE=$(SRC)test_include/
-TSH_DIR=${HOME}/.tsh
+TSH_DIR=/tmp/.tsh
 
 # TSH
 MAIN_FILES=$(wildcard $(SRC)$(MAIN_DIR)*.c)

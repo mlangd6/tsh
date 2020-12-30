@@ -45,9 +45,7 @@ int special_command(char *s)
 
 void init_tsh_dir()
 {
-  char *home = getenv("HOME");
-  strcpy(tsh_dir, home);
-  strcat(tsh_dir, "/.tsh");
+  strcpy(tsh_dir, "/tmp/.tsh");
 }
 
 char *get_tsh_dir(char *buf)
