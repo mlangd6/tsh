@@ -14,14 +14,14 @@
 #include "tar.h"
 #include "utils.h"
 
-static char *end_of_path(char *path);
+//static char *end_of_path(char *path);
 static void remove_last_slashs(char *path);
 static enum file_type is_dir_type(int tar_fd, const char *filename);
 static enum file_type is_reg_type(int tar_fd, const char *filename);
 
 /* Return a malloc'd pointer of the last file in path, NULL if it end by . or ..
    the last file will also be detahced of path */
-static char *end_of_path(char *path)
+char *end_of_path(char *path)
 {
   int len = strlen(path);
   char *end;
@@ -221,6 +221,8 @@ char *reduce_abs_path(const char *path, char *resolved)
  error:
   if (resolved == NULL)
     free(ret);
+  if (end)
+    free(end);
   return NULL;
 }
 

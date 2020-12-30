@@ -8,10 +8,10 @@
 #include <unistd.h>
 
 #include "command_handler.h"
-#include "utils.h"
-#include "path_lib.h"
 #include "errors.h"
+#include "path_lib.h"
 #include "tar.h"
+#include "utils.h"
 
 #define CMD_NAME "mkdir"
 
@@ -45,7 +45,7 @@ int mkdir(char *tar_name, char *filename, char *options)
       break;
   }
   char *dir = append_slash(filename);
-  if(tar_add_file(tar_name, NULL, dir) != 0)
+  if(add_ext_to_tar(tar_name, NULL, dir) != 0)
   {
     free(dir);
     mkdir_error(errno, tar_name, filename);

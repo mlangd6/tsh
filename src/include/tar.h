@@ -152,6 +152,7 @@ int is_tar (const char *path);
  */
 int seek_header (int tar_fd, const char *filename, struct posix_header *header);
 
+
 /**
  * Converts a positive integer to a number of blocks
  * @param filesize the integer to be converted
@@ -177,6 +178,48 @@ unsigned int get_file_size(const struct posix_header *hd);
  * @return on success, the offset location as measured in bytes from the beginning of the file; -1 otherwise 
  */
 int skip_file_content(int tar_fd, struct posix_header *hd);
+
+/* /\* Add a file SOURCE from TAR_NAME_SRC to TAR_NAME_DEST with the name of file DEST */
+/*    Return : */
+/*    0 if FILENAME and his containing were added */
+/*   -1 if they couldn't *\/ */
+/* int add_tar_to_tar(const char *tar_name_src, char *tar_name_dest, const char *source, const char *dest); */
+
+/* /\* Add a file SOURCE from TAR_NAME_SRC to TAR_NAME_DEST with the name of file DEST */
+/*    If the file is a directory and have other files in him, they are also add in the */
+/*    TAR_NAME_DEST in the directory add before */
+/*    Return : */
+/*    0 if FILENAME and his containing were added */
+/*   -1 if they couldn't *\/ */
+/* int add_tar_to_tar_rec(const char *tar_name_src, char *tar_name_dest, const char *source, const char *dest); */
+
+
+/* /\* Add file at path FILENAME to tar at path TAR_NAME */
+/*    Return : */
+/*    0  if FILENAME was added */
+/*    -1 if it couldn't *\/ */
+/* int add_ext_to_tar(const char *tar_name, const char *source, const char *filename); */
+
+/* /\* Add a directory filename to tar at path inside_tar_name with all that he contains */
+/*    IT is here just for the first iteration */
+/*    Return : */
+/*    0 if FILENAME and his containing were added */
+/*   -1 if they couldn't *\/ */
+/* int add_ext_to_tar_rec(const char *tar_name, const char *filename, const char *inside_tar_name, int it); */
+
+/* /\* Append file name FILENAME in tarball TAR_NAME with the content of SRC_FD */
+/*    Return : */
+/*    0 if everything worked */
+/*    -1 if a system call failed *\/ */
+/* int tar_append_file(const char *tar_name, const char *filename, int src_fd); */
+
+/* /\** */
+/*  * Move header and content of file inside a tarball to the end of the tarball */
+/*  * @param tar_name the name of the tarball */
+/*  * @param filename the name of the file inside the tar */
+/*  * @return 0 on success, -1 else */
+/*  *\/ */
+/* int move_file_to_end_of_tar(char *tar_name, char *filename); */
 
 /**
  * Return the number of files in a tar referenced by a file descriptor
@@ -240,25 +283,16 @@ array* tar_ls_if (int tar_fd, bool (*predicate)(const struct posix_header *));
 /**
  * Read the content of a file from a tar and write it to a file descriptor
  *
- * @param tar_name path to the tar in which we want to read `filename`
+ * Copy the content of a file from a tar into a file descriptor.
+ * filename should be readable
+ * @param tar_name the tar in which we want to read `filename`
  * @param filename the file we want to read
  * @param fd a file descriptor to write to
  * @return 0 on success; -1 otherwise
  */
 int tar_cp_file(const char *tar_name, const char *filename, int fd);
 
-/**
- * Extracts the content of a directory from a tar.
- *
- * `dest` must designate an already existing directory.
- * Files from `dir_name` are extracted in `dest/dir_name/`.
- *
- * @param tar_name the path to the tar
- * @param dir_name the directory to extract from the tar
- * @param dest_name the path to the output directory
- * @return on success 0; otherwise -1
- */
-int tar_extract_dir(const char *tar_name, const char *dir_name, const char *dest_name);
+int tar_extract (const char *tar_name, const char *filename, const char *dest);
 
 /**
  * Remove a file from a tar
@@ -342,7 +376,7 @@ int ftar_access(int tar_fd, const char *file_name, int mode);
  * @param filename name inside the tar
  * @return 0 if `filename` was added; -1 if not
  */
-int tar_add_file(const char *tar_name, const char *source, const char *filename);
+int add_ext_to_tar(const char *tar_name, const char *source, const char *filename);
 
 /**
  * Add a directory recursively to a tar
@@ -356,7 +390,7 @@ int tar_add_file(const char *tar_name, const char *source, const char *filename)
  * @param it must be set to 0
  * @return 0 if `filename` was recursively added; -1 if not
  */
-int tar_add_file_rec(const char *tar_name, const char *filename, const char *inside_tar_name, int it);
+int add_ext_to_tar_rec(const char *tar_name, const char *filename, const char *inside_tar_name, int it);
 
 /**
  * Add a file from a tar to a tar
@@ -370,7 +404,7 @@ int tar_add_file_rec(const char *tar_name, const char *filename, const char *ins
  * @param dest destination name (in `tar_name_dest`)
  * @return 0 on success; -1 on error
  */
-int add_tar_file_in_tar(const char *tar_name_src, char *tar_name_dest, const char *source, const char *dest);
+int add_tar_to_tar(const char *tar_name_src, char *tar_name_dest, const char *source, const char *dest);
 
 /**
  * Add a directory recursively from a tar to a tar
@@ -384,7 +418,7 @@ int add_tar_file_in_tar(const char *tar_name_src, char *tar_name_dest, const cha
  * @param dest destination name (in `tar_name_dest`)
  * @return 0 on success; -1 on error
  */
-int add_tar_file_in_tar_rec(const char *tar_name_src, char *tar_name_dest, const char *source, const char *dest);
+int add_tar_to_tar_rec(const char *tar_name_src, char *tar_name_dest, const char *source, const char *dest);
 
 /**
  * Append content to a file in a tar
@@ -396,6 +430,9 @@ int add_tar_file_in_tar_rec(const char *tar_name_src, char *tar_name_dest, const
  */
 int tar_append_file(const char *tar_name, const char *filename, int src_fd);
 
+
+array* tar_ls_if (int tar_fd, bool (*predicate)(const struct posix_header *));
+/* Set mtime of header to actual time */
 /**
  * Set mtime of a header to actual time
  * @param hd pointer to the posix_header that needs to be updated
@@ -431,5 +468,9 @@ int move_file_to_end_of_tar(char *tar_name, char *filename);
  * @return 1 if `tar_name/filename` is a directory else 0
  */
 int is_dir(const char *tar_name, const char *filename);
+
+int tar_rm_dir(int tar_fd, const char *dirname);
+
+int rm(char *tar_name, char *filename, char *options);
 
 #endif

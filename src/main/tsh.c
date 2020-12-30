@@ -45,9 +45,7 @@ int special_command(char *s)
 
 void init_tsh_dir()
 {
-  char *home = getenv("HOME");
-  strcpy(tsh_dir, home);
-  strcat(tsh_dir, "/.tsh");
+  strcpy(tsh_dir, "/tmp/.tsh");
 }
 
 char *get_tsh_dir(char *buf)
@@ -188,8 +186,7 @@ static int cd(char **argv, int argc)
             char buf[PATH_MAX + 1];
             sprintf(buf, "%s/%s", path, in_tar);
             setenv("OLDPWD", pwd, 1);
-            setenv("PWD", path, 1);
-            in_tar[-1] = '\0';
+            setenv("PWD", buf, 1);
           }
           else
           {

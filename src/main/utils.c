@@ -22,7 +22,7 @@ mode_t getumask(void)
 int read_write_buf_by_buf(int read_fd, int write_fd, size_t count, size_t bufsize)
 {
   char buffer[bufsize];
-  int nb_of_buf = (count + bufsize - 1) / bufsize, i = 1;
+  int nb_of_buf = count / bufsize, i = 0;
 
   for (; i < nb_of_buf; i++)
     {
@@ -93,6 +93,9 @@ char *append_slash(const char *str)
   
   return copy;
 }
+
+
+
 
 int is_prefix (const char *prefix, const char *str)
 {
