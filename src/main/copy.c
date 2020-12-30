@@ -201,7 +201,7 @@ static int when_is_dir_dest(char *src_tar, char *src_file, char *dest_tar, char 
     sprintf(buf2, "%s", buf);
   if(has_rights_dest(dest_tar, dest_file) < 0)
     return -1;
-  if(exist(dest_tar, buf2, 0) > 0)
+  if(exist(dest_tar, buf2, 1) == 0)
   {
     if(tar_rm(dest_tar, buf2) < 0)
     {
@@ -242,7 +242,7 @@ static int cp_ttt_without_r(char *src_tar, char *src_file, char *dest_tar, char 
   }
   else
   {
-    if(exist(dest_tar, dest_file, 0) < 0)
+    if(exist(dest_tar, dest_file, 1) == 0)
     {
       if(tar_rm(dest_tar, dest_file) < 0)
       {
@@ -300,7 +300,7 @@ static int cp_r_ttt(char *src_tar, char *src_file, char *dest_tar, char *dest_fi
   int new = 0;
   if(!is_dir(dest_tar, dest_file))
   {
-    if(exist(dest_tar, dest_file, 1) > 0)
+    if(exist(dest_tar, dest_file, 1) == 0)
     {
       char buf[PATH_MAX];
       sprintf(buf, "%s/%s", src_tar, src_file);
