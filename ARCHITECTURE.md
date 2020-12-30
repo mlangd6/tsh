@@ -69,15 +69,15 @@ du tube.
 `src/` contient 5 dossiers:
 
 1. `main/`: C'est dans ce dossier que ce trouve tous les fichiers `.c`
-   	    primordiales au lancement de `tsh` (sauf les commandes).
+primordiales au lancement de `tsh` (sauf les commandes).
 
 2. `cmd/`: Ce dossier contient le code source des commandes demandé dans le
-   	   sujet.
+sujet.
 
 3. `include/`: C'est ici que se trouve tout les fichiers `.h` correspondant au
-   	       main, (les commandes n'ont pas de fichiers d'en têtes).
+main, (les commandes n'ont pas de fichiers d'en têtes).
 
 4. `test/`: On y trouve le code source des tests qui sont lancés.
 
 5. `test_include/`: On y trouve les fichiers d'en têtes nécessaires uniquement
-   		    aux tests.
+aux tests.
