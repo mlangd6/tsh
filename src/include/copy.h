@@ -6,8 +6,6 @@
 #define COPY_H
 
 
-#define SUPPORT_OPT "r"
-
 
 void set_cmd_name(char *str);
 /**

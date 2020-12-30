@@ -36,7 +36,7 @@ static int isfile_err_cp(const char *filename, const char *dest)
 static int isdir_err_cp(const char *filename)
 {
   char buf[PATH_MAX+154];
-  sprintf(buf, "%s : -%s not specified ; omission of the directory \'%s\'\n", cmd_name_copy, SUPPORT_OPT, filename);
+  sprintf(buf, "%s : -r not specified ; omission of the directory \'%s\'\n", cmd_name_copy, filename);
   write(STDERR_FILENO, buf, strlen(buf));
   return -1;
 }

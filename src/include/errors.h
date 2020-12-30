@@ -1,6 +1,7 @@
 #ifndef ERRORS_H
 #define ERRORS_H
 
+#include <stdarg.h>
 
 /* Manage error caused by a file and return a pointer of pointers of characters. */
 void *error_p(int[], int, int);
@@ -12,5 +13,7 @@ int error_pt(int[], int, int);
 void error_cmd(const char *cmd_name, const char *msg);
 
 void tar_error_cmd (const char *cmd_name, const char *tar_name, const char *filename);
+
+void error (int errnum, const char *msg, ...);
 
 #endif

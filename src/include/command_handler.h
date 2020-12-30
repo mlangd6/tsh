@@ -7,6 +7,7 @@
 #define COMMAND_HANDLER_H
 
 #include <stdbool.h>
+#include <stddef.h>
 
 typedef struct unary_command
 {

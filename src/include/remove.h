@@ -5,7 +5,6 @@
 #ifndef REMOVE_H
 #define REMOVE_H
 
-#define SUPPORT_OPT_ "r"
 
 void set_remove_cmd_name(const char *str);
 

@@ -1,17 +1,16 @@
-//#include <sys/stat.h>
+#include <errno.h>
+#include <limits.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <unistd.h>
-#include <stdlib.h>
-#include <stdio.h>
-#include <string.h>
-#include <errno.h>
-#include <limits.h>
 
-#include "tar.h"
-#include "errors.h"
 #include "command_handler.h"
 #include "utils.h"
+#include "tar.h"
+#include "errors.h"
 
 #define CMD_NAME "mkdir"
 
@@ -43,28 +42,25 @@ int mkdir(char *tar_name, char *filename, char *options)
   append_slash_filename(filename);
 
   int res_access = access_mkdir(tar_name, filename);
-  int len_tar_name = strlen(tar_name);
-  if(res_access == -2)
+
+  if (res_access == -2)
   {
-    errno = EEXIST;
-    tar_name[len_tar_name] = '/';
-    char buf[len_tar_name+27];
-    sprintf(buf, "cannot create directory \'%s\'", tar_name);
-    error_cmd(CMD_NAME, buf);
+    error (EEXIST, "%s: cannot create directory \'%s/%s\'", CMD_NAME, tar_name, filename);
     return EXIT_FAILURE;
   }
-  if(res_access == -1)
+
+  if (res_access == -1)
   {
-    tar_name[len_tar_name] = '/';
-    error_cmd(CMD_NAME, tar_name);
+    tar_error_cmd (CMD_NAME, tar_name, filename);
     return EXIT_FAILURE;
   }
-  if(add_ext_to_tar(tar_name, NULL, filename) != 0)
+
+  if (add_ext_to_tar(tar_name, NULL, filename) != 0)
   {
-    tar_name[len_tar_name] = '/';
-    error_cmd(CMD_NAME, tar_name);
+    tar_error_cmd (CMD_NAME, tar_name, filename);
     return EXIT_FAILURE;
   }
+
   return EXIT_SUCCESS;
 }
 

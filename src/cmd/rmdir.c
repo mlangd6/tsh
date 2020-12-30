@@ -121,9 +121,7 @@ static int parent_dir_access(int tar_fd, char *dir, char *err)
 
 static int pwd_prefix_err(char *filename)
 {
-  char msg[1024];
-  sprintf(msg, "%s: Cannot remove \'%s\': is prefix of current working directory\n", CMD_NAME, filename);
-  write(STDERR_FILENO, msg, strlen(msg) + 1);
+  error (0, "%s: Cannot remove \'%s\': is prefix of current working directory\n", CMD_NAME, filename);
   return -1;
 }
 

@@ -1,6 +1,5 @@
 #include <stdbool.h>
 #include <stdlib.h>
-#include <string.h>
 #include <unistd.h>
 
 #include "command_handler.h"
@@ -13,8 +12,7 @@ int cat (char *tar_name, char *filename, char *options)
 {
   if (tar_cp_file(tar_name, filename, STDOUT_FILENO) != 0)
     {
-      tar_name[strlen(tar_name)] = '/';
-      error_cmd(CMD_NAME, tar_name);
+      tar_error_cmd (CMD_NAME, tar_name, filename);
       return EXIT_FAILURE;
     }
   

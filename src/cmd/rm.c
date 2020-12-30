@@ -13,6 +13,7 @@
 #include <limits.h>
 
 #define CMD_NAME "rm"
+#define SUPPORT_OPT "r"
 
 
 int main(int argc, char *argv[])
@@ -23,7 +24,7 @@ int main(int argc, char *argv[])
     rm,
     false,
     false,
-    SUPPORT_OPT_
+    SUPPORT_OPT
   };
   return handle_unary_command (cmd, argc, argv);
 }

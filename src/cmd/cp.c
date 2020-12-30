@@ -6,6 +6,7 @@
 #include "copy.h"
 
 #define CMD_NAME "cp"
+#define SUPPORT_OPT "r"
 
 
 int main (int argc, char *argv[])
