@@ -1,4 +1,3 @@
-/* list.c - Doubly linked list structures and functions definitions */
 #include <stdlib.h>
 #include <stdbool.h>
 
@@ -35,7 +34,6 @@ static cell *create_cell(cell *p, cell *n, void *v)
 }
 
 
-/* Create an empty list */
 list *list_create()
 {
   list *l = malloc(sizeof(list));
@@ -49,7 +47,6 @@ list *list_create()
   return l;
 }
 
-/* free LIST and all its elements */
 void list_free(list *list, bool full)
 {
   // NULL
@@ -83,7 +80,6 @@ void list_free(list *list, bool full)
 
 
 
-/* Return the size of LIST */
 int list_size (list *list)
 {
   if (!list)
@@ -96,7 +92,7 @@ int list_size (list *list)
   return i;
 }
 
-/* Check if LIST is empty */
+
 int list_is_empty (list *list)
 {
   if (!list)
@@ -107,7 +103,6 @@ int list_is_empty (list *list)
 
 
 
-/* Insert VAL at the beginning of LIST */
 void list_insert_first(list *list, void *val)
 {
   if (!list)
@@ -125,7 +120,6 @@ void list_insert_first(list *list, void *val)
     }
 }
 
-/* Insert VAL at the end of LIST */
 void list_insert_last(list *list, void *val)
 {
   if (!list)
@@ -144,8 +138,6 @@ void list_insert_last(list *list, void *val)
 }
 
 
-
-/* Remove the first element of LIST */
 void *list_remove_first (list *list)
 {
   if (list_is_empty(list))
@@ -171,7 +163,7 @@ void *list_remove_first (list *list)
   return ret;
 }
 
-/* Remove the last element of LIST */
+
 void *list_remove_last (list *list)
 {
   if (list_is_empty(list))
@@ -198,7 +190,6 @@ void *list_remove_last (list *list)
 
 
 
-/* Return the first element of LIST */
 void *list_first (list *list)
 {
   if (!list || !list->first)
@@ -208,7 +199,6 @@ void *list_first (list *list)
 }
 
 
-/* Return the last element of LIST */
 void *list_last (list *list)
 {
   if (!list || !list->last)
@@ -219,7 +209,6 @@ void *list_last (list *list)
 
 
 
-/* Apply F to all elements of LIST */
 void list_iter(list *list, void (*f)(void *))
 {
   if(!list)

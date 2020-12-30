@@ -62,7 +62,7 @@ void array_insert (array *arr, size_t i, void *val);
  * Inserts an element at the beginning of an array.
  *
  * @param arr an array
- * @val a pointer to the element to insert
+ * @param val a pointer to the element to insert
  */
 void array_insert_first (array *arr, void *val);
 
