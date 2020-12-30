@@ -30,7 +30,7 @@ typedef union {
 } token_value;
 
 /**
- * The type of the tokens and its content
+ * The type of the tokens and its content.
  */
 typedef struct {
   token_value val; /**< The [value/content] of the token */
@@ -50,7 +50,7 @@ int count_words(const char *str);
  * The list represents all the commands.
  * There will be n+1 array in the list where n represent the number of '|' char.
  * Each array will end by a PIPE token.
- * @param str The string.
+ * @param user_input The string.
  * @return The list of array of tokens.
  */
 list *tokenize(char *user_input);
