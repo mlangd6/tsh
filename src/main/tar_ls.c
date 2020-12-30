@@ -1,8 +1,7 @@
-#include "tar.h"
-
 #include <assert.h>
 #include <errno.h>
 #include <fcntl.h>
+#include <linux/limits.h>
 #include <stdbool.h>
 #include <stdlib.h>
 #include <string.h>
@@ -10,9 +9,12 @@
 
 #include "array.h"
 #include "errors.h"
+#include "tar.h"
 #include "utils.h"
 
 
+char dir_name_glob[PATH_MAX];
+bool in_dir_rec;
 
 array* tar_ls_if (int tar_fd, bool (*predicate)(const struct posix_header *))
 {
@@ -61,20 +63,24 @@ array* tar_ls_all (int tar_fd)
 }
 
 
+static bool in_dir(const struct posix_header *header)
+{
+  if (is_prefix(dir_name_glob, header->name) != 1)
+    return false;
+
+  if (in_dir_rec)
+    return true;
+
+  char *c = strchr(header->name + strlen(dir_name_glob), '/');
+  return !c || !c[1]; // pas de '/' ou '/' à la fin
+
+}
+
+
 array* tar_ls_dir (int tar_fd, const char *dir_name, bool rec)
 {
-  bool in_dir(const struct posix_header *header)
-  {
-    if (is_prefix(dir_name, header->name) != 1)
-      return false;
-
-    if (rec)
-      return true;
-
-    char *c = strchr(header->name + strlen(dir_name), '/');
-    return !c || !c[1]; // pas de '/' ou '/' à la fin
-  }
-
+  in_dir_rec = rec;
+  strcpy(dir_name_glob, dir_name);
   if (*dir_name == '\0')
     return tar_ls_if(tar_fd, in_dir);
 
