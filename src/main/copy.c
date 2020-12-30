@@ -1,20 +1,43 @@
-#include <stdio.h>
+#include <fcntl.h>
 #include <linux/limits.h>
-#include <unistd.h>
+#include <stdlib.h>
+#include <stdio.h>
 #include <string.h>
 #include <sys/types.h>
 #include <sys/stat.h>
-#include <fcntl.h>
-#include <unistd.h>
-#include <stdlib.h>
 #include <sys/wait.h>
+#include <unistd.h>
 
 #include "copy.h"
-#include "tar.h"
-#include "path_lib.h"
-#include "utils.h"
 #include "errors.h"
+#include "path_lib.h"
+#include "tar.h"
+#include "utils.h"
 
+
+static int isfile_err_cp(const char *filename, const char *dest);
+static int isdir_err_cp(const char *filename);
+static int is_dir_ext(const char *filename);
+static int dont_exist(const char *filename);
+static int already_exist(const char *src, const char *dest);
+static int exist(const char *tar_name, const char *filename, int src_or_dest);
+static int exist_ext(const char *filename, int src_or_dest);
+static int nb_of_words(char *str);
+static int has_rights_src(char *src_tar, char *src_file);
+static int has_rights_dest(char *dest_tar, char *dest_file);
+static int has_rights_src_ext(char *src_file);
+static int has_rights_dest_ext(char *dest_file);
+static void end_of_path_filename(char *path, char *the_end_of_path);
+static int when_is_dir_dest(char *src_tar, char *src_file, char *dest_tar, char *dest_file);
+static int cp_ttt_without_r(char *src_tar, char *src_file, char *dest_tar, char *dest_file);
+static int cp_r_ttt(char *src_tar, char *src_file, char *dest_tar, char *dest_file);
+static int cp_ett_without_r(char *src_file, char *dest_tar, char *dest_file);
+static int cp_r_ett(char *src_file, char *dest_tar, char *dest_file);
+static int rm_touch(char *filename, int rm);
+static int error_rm_touch(int a);
+static int exec_cp(char *src, char *dest);
+static int cp_tte_without_r(char *src_tar, char *src_file, char *dest_file);
+static int cp_r_tte(char *src_tar, char *src_file, char *dest_file);
 
 char cmd_name_copy[3];
 
@@ -91,15 +114,8 @@ static int exist_ext(const char *filename, int src_or_dest)
     return 0;
   return -1;
 }
-/*
-static char *last_word(const char *file)
-{
-  char *sear = strrchr(file);
-  if(sear[1] == '\0')
-  {
 
-  }
-}*/
+
 static int nb_of_words(char *str)
 {
   int res = 1;
