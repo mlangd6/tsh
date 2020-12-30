@@ -9,13 +9,13 @@ sont donc appelées dans TSH par leur fonction.
 ### Emplacement des commandes
 Lors d'un `make` (on peut aussi créer uniquement les commandes avec `make cmd`),
 les exécutables sont placés dans `target/bin/` puis copier dans
-`$HOME/.tsh/bin/` ainsi TSH sait toujours où se trouve les commandes
+`/tmp/.tsh/bin` ainsi TSH sait toujours où se trouve les commandes
 pour les tarball.
 
 
 ### Appel d'une commande
 Lorsqu'une commande TSH est appelée, on doit appeler l'exécutable correspondant
-dans `$HOME/.tsh/bin/` même si l'utilisateur n'a donné que des arguments à
+dans `/tmp/.tsh/bin/` même si l'utilisateur n'a donné que des arguments à
 l'extérieur des tar.
 
 La commande TSH exécutée appelle alors à son tour le *command_handler*
@@ -69,7 +69,9 @@ du tube.
 `src/` contient 5 dossiers:
 
 1. `main/`: C'est dans ce dossier que ce trouve tous les fichiers `.c`
-primordiales au lancement de `tsh` (sauf les commandes).
+primordiales au lancement de `tsh` (sauf les commandes). `main/types/` est le dossier
+contenant les 3 structures de données (`stack`, `list` et `array`) utilisé dans
+`tsh`.
 
 2. `cmd/`: Ce dossier contient le code source des commandes demandé dans le
 sujet.
@@ -81,3 +83,9 @@ main, (les commandes n'ont pas de fichiers d'en têtes).
 
 5. `test_include/`: On y trouve les fichiers d'en têtes nécessaires uniquement
 aux tests.
+
+## Pipe
+Les tubes de commandes sont supportés par `tsh`. L'ordre de priorité entre les
+redirections est le même que pour `bash` avec quelque cas en plus qui sont
+considéré comme des erreurs pour nous mais pas pour `tsh`. Une redirection de
+la sortie standard dans une des commandes brisera donc la chaîne de *pipe*.
