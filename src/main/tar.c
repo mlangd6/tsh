@@ -47,11 +47,20 @@ int check_checksum(struct posix_header *hd) {
 
 int is_tar(const char *path)
 {
-  int tar_fd = open(path, O_RDONLY);
-
-  if (tar_fd < 0)
+  int len = strlen(path);
+  if (len < 4)
+    return -1;
+  if (path[len-4] != '.' || path[len-3] != 't' || path[len-2] != 'a' || path[len-1] != 'r')
     return -1;
 
+  int tar_fd = open(path, O_RDONLY);
+  if (tar_fd < 0)
+    return -1;
+  if (lseek(tar_fd, 0, SEEK_END) % BLOCKSIZE != 0)
+  {
+    return -1;
+  }
+  lseek(tar_fd, 0, SEEK_SET);
   struct posix_header file_header;
   int fail = 0, read_size;
 
