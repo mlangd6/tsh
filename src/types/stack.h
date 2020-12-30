@@ -1,42 +1,70 @@
+/**
+ * @file stack.h
+ * Stack data structure
+ */
+
 #ifndef STACK_H
 #define STACK_H
 
 #include <stdbool.h>
+
 #include "list.h"
 
+/**
+ * Stack
+ * Note that the stack holds only address and not the pointed data
+ */ 
 typedef list stack;
 
-
-/* Create an empty stack */
+/**
+ * Create an empty stack 
+ * @return a malloc'd empty stack
+ */
 stack *stack_create ();
 
-/* free STACK and all its elements.
-   if FULL is true then free is used on data too */
+/**
+ * Free the memory allocated for a stack
+ * @param stack a stack
+ * @param full if `full` is `true` then free is used on data too 
+ */
 void stack_free (stack *stack, bool full);
 
-
-
-/* Get the size of STACK.
-   Return -1 if STACK is NULL */
+/**
+ * Get the size of a stack
+ * @param stack a stack
+ * @return the size of the stack or -1 if `stack` is `NULL`
+ */
 int stack_size (stack *stack);
 
-/* Check if STACK is empty.
-   Return -1 if STACK is NULL */
+/**
+ * Check if a stack is empty
+ * @param stack a stack
+ * @return 
+ * * 0 if `stack` is no empty
+ * * 1 if `stack` is empty
+ * * -1 if `stack` is `NULL`
+ */
 int stack_is_empty (stack *stack);
 
-
-
-/* Push VAL onto the top of STACK */
+/**
+ * Push value onto the top of a stack
+ * @param stack a stack
+ * @param val the address to insert
+ */
 void stack_push (stack *stack, void *val);
 
-
-
-/* Remove the value at the top STACK.
-   Returns NULL if STACK is empty otherwise the value at the top. */
+/**
+ * Remove the top element from a stack
+ * @param stack a stack
+ * @return `NULL` if `stack` is empty; otherwise the address of the top element.
+ */
 void *stack_pop (stack *stack);
 
-/* Get the element at the top of STACK
-   Returns NULL if STACK is empty otherwise the value at the top. */
+/**
+ * Get the top element from a stack
+ * @param stack a stack
+ * @return `NULL` if `stack` is empty; otherwise the address of the top element.
+ */
 void *stack_peek (stack *stack);
 
 #endif
