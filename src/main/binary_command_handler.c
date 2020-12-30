@@ -122,10 +122,6 @@ static int handle_tokens (binary_command *cmd, struct arg *tokens, int argc, arg
 	case OPTION:
 	  break;
 
-	case ERROR:
-	  error_cmd (cmd->name, tokens[i].value);
-	  break;
-
 	case TAR_FILE:
 	  if (!options)
 	    break;
@@ -210,8 +206,15 @@ int handle_binary_command (binary_command cmd, int argc, char **argv)
   char *tar_options;
   struct arg *tokens;
   struct arg *last_token;
-  arg_info info;
 
+  arg_info info =
+    {
+      0,
+      0,
+      false,
+      0,
+      NULL
+    };
   
   opterr = 0; // Pour ne pas avoir les messages d'erreurs de getopt
 
@@ -219,7 +222,7 @@ int handle_binary_command (binary_command cmd, int argc, char **argv)
 
   tar_options = check_options (argc, argv, cmd.support_opt); // on récupère les options pour la commande tar
   
-  tokens = tokenize_args(argc, argv);
+  tokens = tokenize_args(&argc, argv, &info);
   
   last_token = tokens + (argc - 1);
 
