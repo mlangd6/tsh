@@ -42,14 +42,14 @@ int is_empty_string(const char *filename);
 int fmemmove(int fd, off_t whence, size_t size, off_t where);
 
 
-/** 
- * Writes a string to a file descriptor. 
+/**
+ * Writes a string to a file descriptor.
  */
 int write_string (int fd, const char *string);
 
 
-/** 
- * Gets a malloc'd copy of a string. 
+/**
+ * Gets a malloc'd copy of a string.
  */
 char *copy_string (const char *str);
 
@@ -57,5 +57,11 @@ char *copy_string (const char *str);
   * Add a slash at the end of STR and return it.
   */
 char *append_slash(const char *str);
+
+/**
+ * remove '/' at the end of a string if it ends by '/'
+ * @param s the string
+ */
+void remove_last_slash(char *s);
 
 #endif
