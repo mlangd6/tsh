@@ -188,6 +188,7 @@ int update_header(struct posix_header *hd, int tar_fd, char *filename, void (*up
 
 int is_dir(const char *tar_name, const char *filename)
 {
+  if(!*filename)return 1;
   char *copy = append_slash(filename);
   if(copy!=NULL){
     if(tar_access(tar_name, copy, F_OK) > 0)

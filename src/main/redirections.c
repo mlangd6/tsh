@@ -195,7 +195,7 @@ static int tar_redir(char *tar_name, char *in_tar, int fd, bool append)
         goto error;
       }
       if (errno = ENOENT)
-        tar_add_file(tar_name, NULL, in_tar);
+        add_ext_to_tar(tar_name, NULL, in_tar);
       else goto error;
       break;
     case DIR:
@@ -219,7 +219,7 @@ static int tar_redir(char *tar_name, char *in_tar, int fd, bool append)
     else if (errno == ENOENT)
     {
       // Si le fichier n'existe pas on lé crée
-      tar_add_file(tar_name, NULL, in_tar);
+      add_ext_to_tar(tar_name, NULL, in_tar);
     }
   }
   else // On le déplace à la fin du tar pour éviter tout problème possible avec des lecture sur le même tar en même temps

@@ -34,7 +34,7 @@ typedef struct binary_command
   int (*tar_to_tar)(char *src_tar, char *src_file, char *dest_tar, char *dest_file, char *opt);
   int (*extern_to_tar)(char *src_file, char *dest_tar, char *dest_file, char *opt);
   int (*tar_to_extern)(char *src_tar, char *src_file, char *dest_file, char *opt);
-  char *support_opt; // Supported options for this unary_command
+  char *support_opt; // Supported options for this binary_command
 } binary_command;
 
 enum arg_type
@@ -54,13 +54,13 @@ struct tar_path
 struct arg
 {
   enum arg_type type;
-  
+
   union
   {
     char *value;
     struct tar_path tf;
   };
-  
+
 };
 
 /**
@@ -88,8 +88,8 @@ char *check_options (int argc, char **argv, char *optstring);
 /** Prints an error message caused by an invalid option */
 void invalid_options (char *cmd_name);
 
-/** 
- * Gets a `struct arg` array of size `argc` by scanning `argv`.  
+/**
+ * Gets a `struct arg` array of size `argc` by scanning `argv`.
  */
 struct arg *tokenize_args (int *argc, char **argv, arg_info *info);
 
@@ -99,7 +99,7 @@ struct arg *tokenize_args (int *argc, char **argv, arg_info *info);
 void free_tokens (struct arg *tokens, int tokens_size);
 
 /**
- * Calls `execvp` on tokens 
+ * Calls `execvp` on tokens
  */
 int execvp_tokens (char *cmd_name, struct arg *tokens, int tokens_size);
 

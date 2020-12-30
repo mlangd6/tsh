@@ -49,4 +49,6 @@ char *make_absolute (const char *path);
  */
 int is_tar_path (char *path);
 
+char *end_of_path(char *path);
+
 #endif

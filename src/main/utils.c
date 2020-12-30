@@ -23,7 +23,7 @@ mode_t getumask(void){
 int read_write_buf_by_buf(int read_fd, int write_fd, size_t count, size_t bufsize)
 {
   char buffer[bufsize];
-  int nb_of_buf = (count + bufsize - 1) / bufsize, i = 1;
+  int nb_of_buf = count / bufsize, i = 0;
 
   for (; i < nb_of_buf; i++)
   {
@@ -91,6 +91,15 @@ char *append_slash(const char *str)
     copy[length + 1] = '\0';
   }
   return copy;
+}
+
+
+void append_slash_filename(char *filename)
+{
+  char *tmp = append_slash(filename);
+  filename[0] = '\0';
+  strcpy(filename, tmp);
+  free(tmp);
 }
 
 
