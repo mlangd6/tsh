@@ -98,7 +98,8 @@ static int has_rights_src(char *src_tar, char *src_file)
 {
   if(tar_access(src_tar, src_file, R_OK) < 0)
   {
-    error(0, "%s: impossible to open \'%s/%s\' in reading: Permission denied\n", cmd_name_copy, src_tar, src_file);
+    errno = EACCES;
+    error(errno, "%s: impossible to open \'%s/%s\' in reading", cmd_name_copy, src_tar, src_file);
     return -1;
   }
   return 0;
@@ -109,12 +110,14 @@ static int has_rights_dest(char *dest_tar, char *dest_file)
   if(is_empty_string(dest_file))return 0;
   if(tar_access(dest_tar, dest_file, X_OK) < 0)
   {
-    error(0, "%s: impossible to acceed to \'%s/%s\': Permission denied\n", cmd_name_copy, dest_tar, dest_file);
+    errno = EACCES;
+    error(errno, "%s: can't access \'%s/%s\'", cmd_name_copy, dest_tar, dest_file);
     return -1;
   }
   if(tar_access(dest_tar, dest_file, W_OK) < 0)
   {
-    error(0, "%s: impossible to create the standard file \'%s/%s\': Permission denied\n", cmd_name_copy, dest_tar, dest_file);
+    errno = EACCES;
+    error(errno, "%s: impossible to create the standard file \'%s/%s\'", cmd_name_copy, dest_tar, dest_file);
     return -1;
   }
   return 0;
@@ -124,7 +127,8 @@ static int has_rights_src_ext(char *src_file)
 {
   if(access(src_file, R_OK) < 0)
   {
-    error(0, "%s: impossible to open \'%s\' in reading: Permission denied\n", cmd_name_copy, src_file);
+    errno = EACCES;
+    error(errno, "%s: impossible to open \'%s\' in reading", cmd_name_copy, src_file);
     return -1;
   }
   return 0;
@@ -134,12 +138,14 @@ static int has_rights_dest_ext(char *dest_file)
 {
   if(access(dest_file, X_OK) < 0)
   {
-    error(0, "%s: impossible to acceed to \'%s\': Permission denied\n", cmd_name_copy, dest_file);
+    errno = EACCES;
+    error(errno, "can't access \'%s\'", cmd_name_copy, dest_file);
     return -1;
   }
   if(access(dest_file, W_OK) < 0)
   {
-    error(0, "%s: impossible to create the standard file \'%s\': Permission denied\n", cmd_name_copy, dest_file);
+    errno = EACCES;
+    error(errno, "%s: impossible to create the standard file \'%s\'", cmd_name_copy, dest_file);
     return -1;
   }
   return 0;
@@ -198,7 +204,8 @@ static int cp_ttt_without_r(char *src_tar, char *src_file, char *dest_tar, char 
   }
   if(exist(src_tar, src_file, 1) < 0)
   {
-    error(0, "%s : Impossible to evaluate \'%s/%s\': No file or directory of this type\n", cmd_name_copy, src_tar, src_file);
+    errno = ENOENT;
+    error(errno, "%s : Impossible to evaluate \'%s/%s\'", cmd_name_copy, src_tar, src_file);
     return -1;
   }
   if(has_rights_src(src_tar, src_file) < 0)
@@ -289,7 +296,8 @@ static int cp_r_ttt(char *src_tar, char *src_file, char *dest_tar, char *dest_fi
       append_slash_filename(src_file);
     if(exist(src_tar, src_file, 1) < 0)
     {
-      error(0, "%s : Impossible to evaluate \'%s/%s\': No file or directory of this type\n", cmd_name_copy, src_tar, src_file);
+      errno = ENOENT;
+      error(0, "%s : Impossible to evaluate \'%s/%s\'", cmd_name_copy, src_tar, src_file);
       return -1;
     }
     if(has_rights_src(src_tar, src_file) < 0){
@@ -396,7 +404,8 @@ static int cp_ett_without_r(char *src_file, char *dest_tar, char *dest_file)
   }
   if(exist_ext(src_file, 1) == 0)
   {
-    error(0, "%s : Impossible to evaluate \'%s\': No file or directory of this type\n", cmd_name_copy, src_file);
+    errno = ENOENT;
+    error(errno, "%s : Impossible to evaluate \'%s\'", cmd_name_copy, src_file);
     return -1;
   }
   if(has_rights_src_ext(src_file) < 0)
@@ -501,7 +510,8 @@ static int cp_r_ett(char *src_file, char *dest_tar, char *dest_file)
 
   if(exist_ext(src_file, 0) == 0)
   {
-    error(0, "%s : Impossible to evaluate \'%s\': No file or directory of this type\n", cmd_name_copy, src_file);
+    errno = ENOENT;
+    error(errno, "%s : Impossible to evaluate \'%s\'", cmd_name_copy, src_file);
     return -1;
   }
   if(has_rights_src_ext(src_file) < 0){
@@ -622,12 +632,12 @@ static int error_rm_touch(int a)
 {
   if(a == -1)
   {
-    error(errno, "Error Fork()\n");
+    error(errno, "Error Fork()");
     return -1;
   }
   if(a == -2)
   {
-    error(errno, "Error Execlp()\n");
+    error(errno, "Error Execlp()");
     return -1;
   }
   return -1;
@@ -660,7 +670,8 @@ static int cp_tte_without_r(char *src_tar, char *src_file, char *dest_file)
   }
   if(exist(src_tar, src_file, 1) == -1)
   {
-    error(0, "%s : Impossible to evaluate \'%s/%s\': No file or directory of this type\n", cmd_name_copy, src_tar, src_file);
+    errno = ENOENT;
+    error(errno, "%s : Impossible to evaluate \'%s/%s\'", cmd_name_copy, src_tar, src_file);
     return -1;
   }
   if(has_rights_src(src_tar, src_file) < 0)
@@ -767,7 +778,8 @@ static int cp_r_tte(char *src_tar, char *src_file, char *dest_file)
 
   if(exist(src_tar, src_file, 0) == 0)
   {
-    error(0, "%s : Impossible to evaluate \'%s/%s\': No file or directory of this type\n", cmd_name_copy, src_tar, src_file);
+    errno = ENOENT;
+    error(errno, "%s : Impossible to evaluate \'%s/%s\'", cmd_name_copy, src_tar, src_file);
     return -1;
   }
   if(has_rights_src(src_tar, src_file) < 0){
