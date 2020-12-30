@@ -15,16 +15,16 @@
 
 #define CMD_NAME "mkdir"
 
+static void mkdir_error(int new_errno, char *tar_name, char *filename)
+{
+  error(new_errno, "%s: cannot create directory \'%s/%s\'", CMD_NAME, tar_name, filename);
+}
+
 int mkdir(char *tar_name, char *filename, char *options)
 {
-  int len_tar_name = strlen(tar_name);
-  int len_filename = strlen(filename);
-  char err[len_tar_name + len_filename + 30];
-  sprintf(err, "cannot create directory \'%s/%s\'", tar_name, filename);
   if (is_empty_string(filename))
   {
-    errno = EEXIST;
-    error_cmd(CMD_NAME, err);
+    mkdir_error(EEXIST, tar_name, filename);
     return EXIT_FAILURE;
   }
   switch(type_of_file(tar_name, filename, true))
@@ -32,14 +32,14 @@ int mkdir(char *tar_name, char *filename, char *options)
     case REG:
     case DIR:
       errno = EEXIST;
-      error_cmd(CMD_NAME, err);
+      mkdir_error(EEXIST, tar_name, filename);
       return EXIT_FAILURE;
     case NONE:
       if (errno != ENOENT)
       {
         if (errno == ENOTDIR)
           errno = EEXIST;
-        error_cmd(CMD_NAME, err);
+        mkdir_error(errno, tar_name, filename);
         return EXIT_FAILURE;
       }
       break;
@@ -48,7 +48,7 @@ int mkdir(char *tar_name, char *filename, char *options)
   if(tar_add_file(tar_name, NULL, dir) != 0)
   {
     free(dir);
-    error_cmd(CMD_NAME, err);
+    mkdir_error(errno, tar_name, filename);
     return EXIT_FAILURE;
   }
   free(dir);
