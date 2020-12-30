@@ -23,12 +23,12 @@ static int seek_end_of_tar(int tar_fd) {
   while(1) {
     read_size = read(tar_fd, &hd, BLOCKSIZE);
     if (read_size != BLOCKSIZE)
-    {
-      if (read_size < 0)
-        return -1;
-      else
-        return error_pt(NULL, 0, EPERM);
-    }
+      {
+	if (read_size < 0)
+	  return -1;
+	else
+	  return error_pt(NULL, 0, EPERM);
+      }
     if (hd.name[0] != '\0')
       skip_file_content(tar_fd, &hd);
     else
@@ -231,44 +231,44 @@ int add_tar_to_tar_rec(const char *tar_name_src, char *tar_name_dest, const char
 
   //We look all the file of tar_name_src
   if(!is_empty_string(source))
-  {
-    for(int i = 0; i < s; i++){
-      char copy[PATH_MAX];
-      int j = 0;
-      while(header[i].name[j] == source[j] && j < strlen(source))
-      {
-        copy[j] = source[j];
-        j++;
-      }
-      copy[j] = '\0';
-      //if the copy and source are equals
-      if(strcmp(copy, source) == 0 && (header[i].name[j] == '\0' || header[i].name[j-1] == '/')){
-        char copy2[PATH_MAX];
-        int k = 0;
-        for(k = 0; k < strlen(dest); k++){copy2[k] = dest[k];}
-        copy2[k] = '\0';
-        int l = 0;
-        for(l = 0; l < strlen(header[i].name) - strlen(copy); l++){
-          copy2[strlen(dest)+l] = header[i].name[strlen(copy)+l];
-        }
-        copy2[strlen(dest)+l] = '\0';
-
-        //Add Source or a file of source in tar_name_dest as copy2
-        if(add_tar_to_tar(tar_name_src, tar_name_dest, header[i].name, copy2)<0)
-          return error_pt(NULL, 0, errno);
-      }
-    }
-  }
-  else
-  {
-    for(int i = 0; i < s; i++)
     {
-      char copy[PATH_MAX];
-      sprintf(copy, "%s%s", dest, header[i].name);
-      if(add_tar_to_tar(tar_name_src, tar_name_dest, header[i].name, copy)<0)
-        return error_pt(NULL, 0, errno);
+      for(int i = 0; i < s; i++){
+	char copy[PATH_MAX];
+	int j = 0;
+	while(header[i].name[j] == source[j] && j < strlen(source))
+	  {
+	    copy[j] = source[j];
+	    j++;
+	  }
+	copy[j] = '\0';
+	//if the copy and source are equals
+	if(strcmp(copy, source) == 0 && (header[i].name[j] == '\0' || header[i].name[j-1] == '/')){
+	  char copy2[PATH_MAX];
+	  int k = 0;
+	  for(k = 0; k < strlen(dest); k++){copy2[k] = dest[k];}
+	  copy2[k] = '\0';
+	  int l = 0;
+	  for(l = 0; l < strlen(header[i].name) - strlen(copy); l++){
+	    copy2[strlen(dest)+l] = header[i].name[strlen(copy)+l];
+	  }
+	  copy2[strlen(dest)+l] = '\0';
+
+	  //Add Source or a file of source in tar_name_dest as copy2
+	  if(add_tar_to_tar(tar_name_src, tar_name_dest, header[i].name, copy2)<0)
+	    return error_pt(NULL, 0, errno);
+	}
+      }
     }
-  }
+  else
+    {
+      for(int i = 0; i < s; i++)
+	{
+	  char copy[PATH_MAX];
+	  sprintf(copy, "%s%s", dest, header[i].name);
+	  if(add_tar_to_tar(tar_name_src, tar_name_dest, header[i].name, copy)<0)
+	    return error_pt(NULL, 0, errno);
+	}
+    }
   free(header);
   free(header_2);
   return 0;
@@ -277,33 +277,33 @@ int add_tar_to_tar_rec(const char *tar_name_src, char *tar_name_dest, const char
 int add_tar_to_tar(const char *tar_name_src, char *tar_name_dest, const char *source, const char *dest)
 {
   if (tar_access(tar_name_dest, dest, F_OK) > 0)
-  { // File already exists
-    errno = EEXIST;
-    return -1;
-  }
+    { // File already exists
+      errno = EEXIST;
+      return -1;
+    }
   else if (errno != ENOENT)
-  {
-    return -1;
-  }
+    {
+      return -1;
+    }
   int tar_src_fd = open(tar_name_src, O_RDONLY);
   if (tar_src_fd < 0)
     return -1;
   struct posix_header hd;
   if (seek_header(tar_src_fd, source, &hd) < 0)
-  {
-    return error_pt(&tar_src_fd, 1, errno);
-  }
+    {
+      return error_pt(&tar_src_fd, 1, errno);
+    }
   modif_header(&hd, dest);
   int tar_dest_fd = open(tar_name_dest, O_RDWR);
   if (tar_dest_fd < 0)
     return error_pt(&tar_src_fd, 1, errno);
   seek_end_of_tar(tar_dest_fd);
   if (read_and_write(tar_src_fd, tar_dest_fd, hd) != 0)
-  {
-    close(tar_src_fd);
-    close(tar_dest_fd);
-    return -1;
-  }
+    {
+      close(tar_src_fd);
+      close(tar_dest_fd);
+      return -1;
+    }
   add_empty_block(tar_dest_fd);
   close(tar_src_fd);
   close(tar_dest_fd);
@@ -311,9 +311,8 @@ int add_tar_to_tar(const char *tar_name_src, char *tar_name_dest, const char *so
 
 }
 
-/* Add file SOURCE to tar at path TAR_NAME/FILENAME
-   Or create file FILENAME to tar at path TAR_NAME/FILENAME */
-int add_ext_to_tar(const char *tar_name, const char *source, const char *filename) {
+int add_ext_to_tar(const char *tar_name, const char *source, const char *filename)
+{
   int tar_fd = open(tar_name, O_RDWR);
   if ( tar_fd < 0) {
     return error_pt(NULL, 0, errno);
@@ -357,15 +356,15 @@ int add_ext_to_tar(const char *tar_name, const char *source, const char *filenam
   }
 
   else
-  {
-    if(filename[strlen(filename)-1] == '/')
-      init_header_empty_file(&hd, filename, 1);
-    else
-      init_header_empty_file(&hd, filename, 0);
-    if (write(tar_fd, &hd, BLOCKSIZE) < 0) {
-      return error_pt(&tar_fd, 1, errno);
+    {
+      if(filename[strlen(filename)-1] == '/')
+	init_header_empty_file(&hd, filename, 1);
+      else
+	init_header_empty_file(&hd, filename, 0);
+      if (write(tar_fd, &hd, BLOCKSIZE) < 0) {
+	return error_pt(&tar_fd, 1, errno);
+      }
     }
-  }
   close(tar_fd);
   return 0;
 }
@@ -426,7 +425,8 @@ int add_ext_to_tar_rec(const char *tar_name, const char *filename, const char *i
 
 
 
-int tar_append_file(const char *tar_name, const char *filename, int src_fd) {
+int tar_append_file(const char *tar_name, const char *filename, int src_fd)
+{
   int tar_fd = open(tar_name, O_RDWR);
   if (tar_fd < 0) {
     return -1;
@@ -482,10 +482,10 @@ int move_file_to_end_of_tar(char *tar_name, char *filename)
   size_t move_size = BLOCKSIZE * (number_of_block(get_file_size(&hd)) + 1);
   off_t whence = lseek(tar_fd, -BLOCKSIZE, SEEK_CUR);
   if (whence + move_size == end_tar)
-  {
-    // Le fichier est déjà le dernier fichier du tar
-    return 0;
-  }
+    {
+      // Le fichier est déjà le dernier fichier du tar
+      return 0;
+    }
   // On récupère le header et contenue du fichier
   char *move_buff = malloc(move_size);
   read(tar_fd, move_buff, move_size);

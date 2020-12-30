@@ -77,5 +77,8 @@ $(TARGET)$(TYPES_DIR)%.o : $(SRC)$(TYPES_DIR)%.c
 	@mkdir -p $(dir $@)
 	@$(CC) -c $(CFLAGS) -o $@ $<
 
+doc: $(MAIN_FILES) $(TYPE_FILES) $(CMD_FILES)
+	@doxygen Doxyfile
+
 clean:
-	@rm -rf $(TARGET) $(EXEC) $(TEST) $(BIN)
+	@rm -rf $(TARGET) $(EXEC) $(TEST) $(BIN) doc

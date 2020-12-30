@@ -1,6 +1,12 @@
-# tsh
+SYSTÈME
+==================
 
-Projet de SYSTÈME L3 2020/2021
+**L3 Informatique**
+
+
+Il est important de bien lire le sujet jusqu'au bout et de bien y réfléchir
+avant de se lancer dans la programmation du projet.
+
 
 ## Sujet : `tsh`, un shell pour les tarballs
 
@@ -29,9 +35,18 @@ Tous les processus lancés à partir de votre shell le seront en premier-plan.
 
 ## Modalités d'exécution (et de test)
 
-Les projets seront testés sur la distribution [https://mirrors.ircam.fr/pub/mx/isos/ANTIX/Final/antiX-19/antiX-19.2.1_386-base.iso](https://mirrors.ircam.fr/pub/mx/isos/ANTIX/Final/antiX-19/antiX-19.2.1_386-base.iso). À vous de faire en sorte que ça fonctionne (nous n'accepterons pas d'argument de type "ça fonctionne chez moi").
+Les projets seront testés sur la distribution
+[https://mirrors.ircam.fr/pub/mx/isos/ANTIX/Final/antiX-19/antiX-19.2.1_386-base.iso](https://mirrors.ircam.fr/pub/mx/isos/ANTIX/Final/antiX-19/antiX-19.2.1_386-base.iso)
+ou sur un conteneur Docker dont vous transmettrez l'image avec votre projet
+(sous forme d'un Dockerfile ou d'une image mise sur `hub.docker.com`). À vous de faire en sorte que ça fonctionne (nous n'accepterons pas d'argument de type "ça fonctionne chez moi").
 
 La présence de tests dans le projet sera grandement appréciée.
+
+
+**`antix` a changé de version !** ceux qui n'ont pas récupéré la
+version 19.2.1 à temps peuvent se rabattre sur
+[https://mirrors.ircam.fr/pub/mx/isos/ANTIX/Final/antiX-19/antiX-19.3_386-base.iso](https://mirrors.ircam.fr/pub/mx/isos/ANTIX/Final/antiX-19/antiX-19.3_386-base.iso)
+(pensez à nous préciser laquelle utiliser)
 
 ## Modalités de rendu
 
@@ -41,6 +56,13 @@ chaque équipe devra être envoyée par mail à l'enseignante responsable
 du cours de systèmes **au plus tard le 1er octobre 2020**, avec copie à
 chaque membre de l'équipe.
 
+Chaque équipe doit créer un dépôt `git` privé sur
+le [gitlab de l'UFR](https://gaufre.informatique.univ-paris-diderot.fr/) **dès
+la lecture du sujet** (maintenant!) et y donner accès en tant que `Reporter` à
+tous les enseignants du cours de Système : Edwin Hamel-de le Court, Ines
+Klimann, Anne Micheli et Dominique Poulalhon. Le dépôt devra contenir un
+fichier `AUTHORS` donnant la liste des membres de l'équipe (nom, prénom,
+numéro étudiant et pseudo(s) sur le gitlab).
 
 En plus du programme demandé, vous devez fournir un `Makefile` utilisable, un
 mode d'emploi, et un fichier `ARCHITECTURE` (idéalement en format Markdown,
@@ -48,11 +70,18 @@ donc avec extension `.md`) expliquant la stratégie adoptée pour répondre au
 sujet (notamment l'architecture logicielle, les structures de
 données et les algorithmes implémentés).
 
+En cas de question et si la réponse n'est pas contenue dans le présent
+document, merci de poser la question sur le forum `moodle` dédié du
+cours de systèmes ou dans le salon quesions-projet du serveur discord du cours. Seules les réponses postées sur le forum et le salon feront foi
+au moment de la soutenance. 
+
 Les seules interdictions strictes sont les suivantes : plagiat (d'un
 autre projet ou d'une source extérieure à la licence), utilisation de
 la fonction `system` de la `stdlib` et de la commande `tar` (vous
 pouvez utiliser la commande `tar` pour créer des archives afin de
-tester le projet, mais pas dans le code du projet).
+tester le projet, mais pas dans le code du projet). Les
+entrées/sorties doivent se faire en bas niveau, sauf pour les messages
+d'erreur pour lesquels `perror` est autorisé.
 
 Pour rappel, l'emprunt de code sans citer sa source est un
 plagiat. L'emprunt de code en citant sa source est autorisé, mais bien
@@ -61,6 +90,25 @@ Donc si vous copiez l'intégralité de votre projet en le spécifiant
 clairement, vous aurez quand même 0 (mais vous éviterez une demande de
 convocation de la section disciplinaire).
 
+
+## MCC Session 1
+La matière étant en contrôle continu intégral, ce projet donnera lieu
+à 3 notes, correspondant à 2 rendus et 1 épreuve.
+
+* un premier rendu aura lieu à mi-semestre, sans soutenance ; l'équipe
+  pédagogique vous fera un retour circonstancié sur ce rendu ; il vous
+  permettra entre autre de ne pas vous fourvoyer sur le sujet ; **ce rendu est à faire pour le 25 octobre au plus tard, il prendra la forme d'un tag `rendu1` sur votre dépôt git distant** (attention : les tags ne sont pas transmis automatiquement par l'action push sur le serveur distant, assurez-vous que le tag est bien mis à la date demandée, sinon le rendu sera considéré vide; voir par exemple [https://git-scm.com/book/en/v2/Git-Basics-Tagging](https://git-scm.com/book/en/v2/Git-Basics-Tagging))
+* un deuxième rendu aura lieu en fin de semestre et sera accompagné
+  d'une soutenance si les circonstances sanitaires le permettent
+  (sinon rendu seul) ; **ce rendu est à faire pour le 30 décembre au
+  plus tard, il prendra la forme d'un tag `soutenance` sur votre dépôt
+  git distant** (rappelez-vous que les tags ne sont pas transmis
+  automatiquement par l'action push sur le serveur distant);
+* l'épreuve sera personnalisée et portera sur votre projet ; elle sera
+  à faire en temps limité sur machine (3h si les circonstances
+  sanitaires le permettent, une plage plus longue en cas de
+  confinement); suivez les [instructions pour la session
+  1](session1.md) **avant** la session 1.
 
 ### Premier rendu
 Le premier rendu est au choix de chaque groupe. Il est là pour vous
@@ -82,8 +130,52 @@ ensemble de fonctions qui permettent de faire toutes les manipulations
 qui seront nécessaires dans un tarball est un travail tout à fait
 acceptable pour ce premier rendu.
 
+> → note N1
 
+### Deuxième rendu
+Le deuxième rendu est le rendu final de tout le projet. Il doit
+correspondre à la description globale du sujet et des attendus décrits
+dans ce document. Il doit aussi tenir compte des remarques faites lors
+du premier rendu (ou justifier clairement pourquoi vous n'avez pas
+tenu compte de ces remarques).
 
+> → note N2
 
+Si N2>N1, on transformera N1 en N2. Nous sommes conscients que ça peut
+en pousser certains à négliger le premier rendu : il s'agit pour nous
+d'encourager les groupes qui sont capables de tenir compte
+de nos remarques et de se remettre en selle après un mauvais premier
+rendu. Si vous négligez le premier rendu, vous aurez peu de retours sur
+votre travail et vous vous exposez au risque de passer à côté du
+sujet, sans aucun garde-fou.
 
-[ Récupéré depuis https://gaufre.informatique.univ-paris-diderot.fr/klimann/systL3_2020-2021/blob/master/Projet/README.md ]
+### Épreuve sur machine
+
+Cette épreuve sera personnalisée : chaque étudiant recevra une demande
+spécifique à son projet (un point à corriger ou à améliorer, ou un
+point à ajouter). Il devra faire un `fork` du projet de son groupe
+pour réaliser ce point (nous vous recommandons de regarder avant
+l'épreuve comment faire un `fork` d'un dépôt), et mettre tous les
+enseignants de la matière `Reporter` sur ce nouveau dépôt.
+
+> → note N3
+
+### Participation effective
+
+La participation effective d'un étudiant au projet de son groupe sera
+évaluée grâce, entre autres :
+
+* aux statistiques du dépôt git d'origine ;
+* aux réponses aux éventuelles questions portant sur le projet pendant
+  la soutenance (si les circonstances sanitaires le permettent, sinon
+  par mail ou visio) ;
+* à la capacité à travailler sur le projet lors de l'épreuve sur machine.
+
+À noter qu'un étudiant n'ayant aucun commit sur du code, incapable de
+répondre aux questions sur le projet de son groupe ou incapable de
+travailler sur ce même projet lors de l'épreuve sur machine sera
+considéré comme n'ayant pas participé au projet. Sa note finale
+sera 0 s'il a participé à l'épreuve sur machine et DEF sinon. Dans les
+autres cas, sa note finale sera
+
+> 50% max (N2, 50%N1 + 50%N2) + 50% N3.

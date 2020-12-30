@@ -116,18 +116,6 @@ static int extract_reg_file (const tar_file *tf, const char *extract_name, int d
 }
 
 
-
-/**
- * Extracts the content of a directory from a tar.
- *
- * `dest` must designate an already existing directory.
- * Files from `dir_name` are extracted in `dest/dir_name/`.
- *
- * @param tar_name the path to the tar
- * @param dir_name the directory to extract from the tar
- * @param dest the path to the output directory
- * @return on success 0; otherwise -1
- */
 static int ftar_extract_dir (int tar_fd, const char *full_path, const char *wanted_dir, int dest_fd)
 {
   array *arr;

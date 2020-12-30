@@ -15,7 +15,7 @@
 #include "tar.h"
 #include "utils.h"
 
-
+static void append_slash_filename(char *filename);
 static int is_dir_ext(const char *filename);
 static int exist(const char *tar_name, const char *filename, int src_or_dest);
 static int exist_ext(const char *filename, int src_or_dest);
@@ -39,12 +39,20 @@ static int cp_r_tte(char *src_tar, char *src_file, char *dest_file);
 char cmd_name_copy[3];
 
 
+
 void set_cmd_name(char *str)
 {
   cmd_name_copy[0] = '\0';
   strcpy(cmd_name_copy, str);
 }
 
+static void append_slash_filename(char *filename)
+{
+  char *tmp = append_slash(filename);
+  filename[0] = '\0';
+  strcpy(filename, tmp);
+  free(tmp);
+}
 
 
 static int is_dir_ext(const char *filename)
