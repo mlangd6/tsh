@@ -45,7 +45,7 @@ enum arg_type
     OPTION
   };
 
-struct tar_file
+struct tar_path
 {
   char *tar_name;
   char *filename;
@@ -58,7 +58,7 @@ struct arg
   union
   {
     char *value;
-    struct tar_file tf;
+    struct tar_path tf;
   };
   
 };
