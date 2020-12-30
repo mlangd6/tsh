@@ -217,3 +217,10 @@ static int cd(char **argv, int argc)
     return EXIT_FAILURE;
   }
 }
+
+char *set_prompt(char *prompt)
+{
+  char c = getuid() == 0 ? '#': '$';
+  sprintf(prompt, "%s%c ", getenv("PWD"), c);
+  return prompt;
+}

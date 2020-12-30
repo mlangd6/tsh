@@ -1,11 +1,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <readline/readline.h>
-#include <readline/history.h>
 #include <unistd.h>
-#include <sys/wait.h>
-#include <errno.h>
+#include <readline/history.h>
 #include <linux/limits.h>
+
 
 #include "tsh.h"
 #include "path_lib.h"
@@ -14,6 +13,8 @@
 #include "tokens.h"
 
 static void init_tsh();
+
+char prompt[PATH_MAX + 16];
 
 static void init_tsh()
 {
@@ -31,7 +32,7 @@ int main (int argc, char *argv[])
   init_tsh ();
 
   char *buf;
-  while ((buf = readline(PROMPT)))
+  while ((buf = readline(set_prompt(prompt))))
   {
     if (count_words(buf) == 0)
     {
