@@ -38,7 +38,7 @@ char *split_tar_abs_path(char *path);
 /**
  * Reduce an absolute path
  *
- * If `resolved_path` is `NULL`, then @ref realpath uses malloc to allocate a buffer to hold the resolved path,
+ * If `resolved_path` is `NULL`, then @ref reduce_abs_path uses malloc to allocate a buffer to hold the resolved path,
  * and returns a pointer to this buffer.
  * The caller should deallocate this buffer using free.
  * 

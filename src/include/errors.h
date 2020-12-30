@@ -46,6 +46,16 @@ void error_cmd(const char *cmd_name, const char *msg);
  */
 void tar_error_cmd (const char *cmd_name, const char *tar_name, const char *filename);
 
+/**
+ * Print error message
+ *
+ * `msg` use the same format as `printf`
+ * See https://en.cppreference.com/w/c/io/fprintf for more details on format
+ *
+ * @param errnum if different from 0 then `strerror(errnum)\n` is printed at the end
+ * @param msg pointer to a null-terminated multibyte string specifying how to interpret the data
+ * @param ... arguments specifying data to print
+ */
 void error (int errnum, const char *msg, ...);
 
 #endif
