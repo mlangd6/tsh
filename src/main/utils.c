@@ -119,3 +119,12 @@ char *copy_string (const char *str)
   strcpy(cpy, str);
   return cpy;
 }
+
+void remove_last_slash(char *s)
+{
+  int len = strlen(s);
+  if (s[len-1] == '/')
+  {
+    s[len-1] = '\0';
+  }
+}

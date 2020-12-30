@@ -277,7 +277,17 @@ enum file_type ftype_of_file(int tar_fd, const char *filename, bool dir_priority
 {
   if (is_dir_name(filename))
     {
-      return ftar_access(tar_fd, filename, F_OK) > 0 ? DIR: NONE;
+      if (ftar_access(tar_fd, filename, F_OK) > 0)
+        return DIR;
+      else
+      {
+        char filename_not_dir[PATH_MAX];
+        strncpy(filename_not_dir, filename, strlen(filename) - 1);
+        strcat(filename_not_dir, "");
+        if (ftar_access(tar_fd, filename_not_dir, F_OK) > 0)
+          errno = ENOTDIR;
+        return NONE;
+      }
     }
   enum file_type res;
   if (tar_fd < 0)

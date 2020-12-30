@@ -93,4 +93,10 @@ char *copy_string (const char *str);
   */
 char *append_slash(const char *str);
 
+/**
+ * remove '/' at the end of a string if it ends by '/'
+ * @param s the string
+ */
+void remove_last_slash(char *s);
+
 #endif

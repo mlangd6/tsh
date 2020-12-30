@@ -14,5 +14,7 @@ int launch_redir(redir_type r, char *arg);
 void init_redirections();
 void reset_redirs();
 void exit_redirections();
+void add_reset_redir(int fd, pid_t pid);
+
 
 #endif

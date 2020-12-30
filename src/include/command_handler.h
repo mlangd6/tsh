@@ -7,6 +7,7 @@
 #define COMMAND_HANDLER_H
 
 #include <stdbool.h>
+#include <stddef.h>
 
 typedef struct unary_command
 {
@@ -101,7 +102,7 @@ void free_tokens (struct arg *tokens, int tokens_size);
 /**
  * Calls `execvp` on tokens 
  */
-int execvp_tokens (struct arg *tokens, int tokens_size);
+int execvp_tokens (char *cmd_name, struct arg *tokens, int tokens_size);
 
 /** Init a `struct arg_info` given `tokens` */
 void init_arg_info (arg_info *info, struct arg *tokens, int tokens_size);

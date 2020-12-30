@@ -5,6 +5,8 @@
 #ifndef ERRORS_H
 #define ERRORS_H
 
+#include <stdarg.h>
+
 /**
  * Close files descriptors and set errno
  * @param fds array of file descriptor to close
@@ -43,5 +45,7 @@ void error_cmd(const char *cmd_name, const char *msg);
  * @param filename a null-terminated string
  */
 void tar_error_cmd (const char *cmd_name, const char *tar_name, const char *filename);
+
+void error (int errnum, const char *msg, ...);
 
 #endif

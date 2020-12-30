@@ -68,7 +68,7 @@ void array_free (array *arr, bool full)
   if (full)
     {
       for (int i=0; i < arr->size; i++)
-	free(arr->data+i);
+	free (*(char**)(arr->data + i*arr->elem_size));
     }
 
   free(arr->data);
